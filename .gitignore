@@ -1,0 +1,31 @@
+# Rust
+/target/
+/data/
+
+# Env
+.env
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Shadcn
+web/components/ui/
