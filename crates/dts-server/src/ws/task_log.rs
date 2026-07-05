@@ -11,6 +11,12 @@ pub struct WsHub {
     pub tx: broadcast::Sender<(String, String)>,
 }
 
+impl Default for WsHub {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WsHub {
     pub fn new() -> Self {
         let (tx, _) = broadcast::channel(256);
@@ -64,11 +70,9 @@ pub async fn task_log_ws(
 ) -> Result<HttpResponse, AppError> {
     let task_id = path.into_inner();
 
-    log::info!("WebSocket 连接请求: task_id={}", task_id);
+    log::info!("WebSocket 连接请求: task_id={task_id}");
 
     let (response, mut session, mut msg_stream) = actix_ws::handle(&req, stream)?;
-
-    let task_id_clone = task_id.clone();
     let mut rx = hub.tx.subscribe();
 
     let mut heartbeat_interval = tokio::time::interval(tokio::time::Duration::from_secs(15));
@@ -78,14 +82,14 @@ pub async fn task_log_ws(
             tokio::select! {
                 result = rx.recv() => {
                     match result {
-                        Ok((tid, msg)) if tid == task_id_clone => {
+                        Ok((tid, msg)) if tid == task_id => {
                             if session.text(msg).await.is_err() {
                                 break;
                             }
                         }
                         Ok(_) => {}
                         Err(broadcast::error::RecvError::Lagged(n)) => {
-                            log::warn!("WebSocket 广播落后 {} 条消息", n);
+                            log::warn!("WebSocket 广播落后 {n} 条消息");
                         }
                         Err(_) => break,
                     }
@@ -106,7 +110,7 @@ pub async fn task_log_ws(
                 }
             }
         }
-        log::info!("WebSocket 连接关闭: task_id={}", task_id_clone);
+        log::info!("WebSocket 连接关闭: task_id={task_id}");
     });
 
     Ok(response)

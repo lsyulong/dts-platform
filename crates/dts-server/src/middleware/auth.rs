@@ -22,7 +22,7 @@ pub fn extract_claims(req: &HttpRequest, jwt_secret: &str) -> Result<Claims, App
         &Validation::default(),
     )
     .map(|data| data.claims)
-    .map_err(|e| AppError::Unauthorized(format!("Token 无效或已过期: {}", e)))
+    .map_err(|e| AppError::Unauthorized(format!("Token 无效或已过期: {e}")))
 }
 
 /// 从 AppConfig 获取 JWT Secret（用于 API handler 中统一获取 secret）

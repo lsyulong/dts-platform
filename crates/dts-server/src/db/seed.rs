@@ -141,10 +141,7 @@ pub async fn seed_default_data(pool: &PgPool) -> anyhow::Result<()> {
     .execute(pool)
     .await?;
 
-    log::info!(
-        "种子数据初始化完成: 租户='{}', 管理员='admin', 密码='admin123'",
-        tenant_name
-    );
+    log::info!("种子数据初始化完成: 租户='{tenant_name}', 管理员='admin', 密码='admin123'");
 
     Ok(())
 }

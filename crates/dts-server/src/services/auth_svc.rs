@@ -131,7 +131,7 @@ impl AuthService {
         let salt = SaltString::generate(&mut OsRng);
         let hash = Argon2::default()
             .hash_password(password.as_bytes(), &salt)
-            .map_err(|e| anyhow!("密码哈希失败: {}", e))?;
+            .map_err(|e| anyhow!("密码哈希失败: {e}"))?;
         Ok(hash.to_string())
     }
 }

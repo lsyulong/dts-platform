@@ -22,11 +22,11 @@ pub enum AppError {
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Unauthorized(msg) => write!(f, "{}", msg),
-            Self::Forbidden(msg) => write!(f, "{}", msg),
-            Self::NotFound(msg) => write!(f, "{}", msg),
-            Self::BadRequest(msg) => write!(f, "{}", msg),
-            Self::Internal(msg) => write!(f, "{}", msg),
+            Self::Unauthorized(msg) => write!(f, "{msg}"),
+            Self::Forbidden(msg) => write!(f, "{msg}"),
+            Self::NotFound(msg) => write!(f, "{msg}"),
+            Self::BadRequest(msg) => write!(f, "{msg}"),
+            Self::Internal(msg) => write!(f, "{msg}"),
         }
     }
 }
@@ -61,14 +61,14 @@ impl From<sqlx::Error> for AppError {
     fn from(err: sqlx::Error) -> Self {
         match err {
             sqlx::Error::RowNotFound => AppError::NotFound("记录不存在".into()),
-            _ => AppError::Internal(format!("数据库错误: {}", err)),
+            _ => AppError::Internal(format!("数据库错误: {err}")),
         }
     }
 }
 
 impl From<actix_web::Error> for AppError {
     fn from(err: actix_web::Error) -> Self {
-        AppError::Internal(format!("Web 服务器错误: {}", err))
+        AppError::Internal(format!("Web 服务器错误: {err}"))
     }
 }
 

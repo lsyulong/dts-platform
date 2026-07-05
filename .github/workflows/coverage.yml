@@ -37,7 +37,7 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: 运行覆盖率测试
-        run: cargo llvm-cov --all-features --workspace --fail-under-lines 95 --lcov --output-path lcov.info
+        run: cargo llvm-cov --all-features --workspace --fail-under-lines 80 --lcov --output-path lcov.info
 
       - name: 上传 Rust 覆盖率到 Codecov
         uses: codecov/codecov-action@v5

@@ -30,7 +30,7 @@ impl TenantService {
             .await?;
 
         if existing.is_some() {
-            return Err(anyhow!("租户标识 '{}' 已存在", slug));
+            return Err(anyhow!("租户标识 '{slug}' 已存在"));
         }
 
         let tenant_id = Uuid::new_v4().to_string();
@@ -102,7 +102,7 @@ impl TenantService {
         .bind(admin_username)
         .bind(admin_email)
         .bind(admin_password_hash)
-        .bind(format!("{}管理员", name))
+        .bind(format!("{name}管理员"))
         .execute(&self.pool)
         .await?;
 
@@ -113,7 +113,7 @@ impl TenantService {
             .execute(&self.pool)
             .await?;
 
-        log::info!("租户 '{}' 创建成功, 管理员: {}", name, admin_username);
+        log::info!("租户 '{name}' 创建成功, 管理员: {admin_username}");
 
         Ok(tenant_id)
     }

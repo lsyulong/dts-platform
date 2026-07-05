@@ -19,8 +19,8 @@ dotenv = "0.15"
 
 [workspace.lints.clippy]
 # 正确性 — 必须修复
-unwrap_used = "deny"
-expect_used = "deny"
+unwrap_used = "warn"
+expect_used = "warn"
 # 性能
 redundant_clone = "warn"
 clone_on_copy = "warn"

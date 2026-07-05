@@ -65,7 +65,7 @@ pub async fn create(
 
     let id = Uuid::new_v4().to_string();
 
-    let encrypted_pw = body.password.as_ref().map(|p| format!("enc:{}", p));
+    let encrypted_pw = body.password.as_ref().map(|p| format!("enc:{p}"));
 
     sqlx::query(
         "INSERT INTO datasource (id, tenant_id, name, db_type, host, port, username,

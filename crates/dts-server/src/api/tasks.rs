@@ -73,7 +73,7 @@ pub async fn create(
                 .await?;
 
         if count == 0 {
-            return Err(AppError::BadRequest(format!("数据源 {} 不存在", ds_id)));
+            return Err(AppError::BadRequest(format!("数据源 {ds_id} 不存在")));
         }
     }
 
@@ -95,7 +95,7 @@ pub async fn create(
     .bind(&body.source_id)
     .bind(&body.target_id)
     .bind(&body.cron_expr)
-    .bind(&config_json.to_string())
+    .bind(config_json.to_string())
     .bind(&claims.sub)
     .execute(pool.get_ref())
     .await?;

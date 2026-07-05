@@ -6,7 +6,7 @@ use dts_server::config::AppConfig;
 use dts_server::db;
 use dts_server::models::auth::Claims;
 use jsonwebtoken::{EncodingKey, Header};
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 
 /// 创建测试用数据库连接并运行迁移
 pub async fn setup_test_db() -> anyhow::Result<PgPool> {
