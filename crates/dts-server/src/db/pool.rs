@@ -3,8 +3,7 @@ use std::str::FromStr;
 
 /// 创建 PostgreSQL 连接池
 pub async fn create_pool(database_url: &str) -> anyhow::Result<PgPool> {
-    let options = PgConnectOptions::from_str(database_url)?
-        .application_name("dts-platform");
+    let options = PgConnectOptions::from_str(database_url)?.application_name("dts-platform");
 
     let pool = PgPoolOptions::new()
         .max_connections(10)

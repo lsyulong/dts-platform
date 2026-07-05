@@ -1,5 +1,5 @@
 use actix_cors::Cors;
-use actix_web::{web, App, HttpServer, HttpResponse, middleware as actix_middleware};
+use actix_web::{App, HttpResponse, HttpServer, middleware as actix_middleware, web};
 use sqlx::PgPool;
 
 use crate::config::AppConfig;
@@ -8,10 +8,7 @@ use crate::services::tenant_svc::TenantService;
 use crate::ws::task_log::WsHub;
 
 /// 创建并配置 actix-web 应用
-pub async fn create_app(
-    pool: PgPool,
-    config: AppConfig,
-) -> anyhow::Result<actix_web::dev::Server> {
+pub async fn create_app(pool: PgPool, config: AppConfig) -> anyhow::Result<actix_web::dev::Server> {
     let bind_addr = format!("{}:{}", config.server_host, config.server_port);
 
     let server = HttpServer::new(move || {

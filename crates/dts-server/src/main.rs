@@ -4,7 +4,9 @@ use dts_server::{app, db};
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     // 初始化日志
-    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info,dts_server=debug"));
+    env_logger::init_from_env(
+        env_logger::Env::default().default_filter_or("info,dts_server=debug"),
+    );
 
     log::info!("=== DTS Platform 企业级数据同步管理平台 ===");
     log::info!("版本: {}", env!("CARGO_PKG_VERSION"));

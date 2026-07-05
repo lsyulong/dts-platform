@@ -2,7 +2,7 @@
 
 mod common;
 
-use actix_web::{test, web, App};
+use actix_web::{App, test, web};
 use dts_server::api::auth;
 use dts_server::services::auth_svc::AuthService;
 use serde_json::json;
@@ -14,15 +14,10 @@ async fn login_with_valid_credentials_returns_token_and_user() {
     let auth_svc = AuthService::new(pool.clone(), config.clone());
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(auth_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(
-                        web::scope("/auth")
-                            .route("/login", web::post().to(auth::login)),
-                    ),
-            ),
+        App::new().app_data(web::Data::new(auth_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/auth").route("/login", web::post().to(auth::login))),
+        ),
     )
     .await;
 
@@ -54,15 +49,10 @@ async fn login_with_wrong_password_returns_401() {
     let auth_svc = AuthService::new(pool.clone(), config.clone());
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(auth_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(
-                        web::scope("/auth")
-                            .route("/login", web::post().to(auth::login)),
-                    ),
-            ),
+        App::new().app_data(web::Data::new(auth_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/auth").route("/login", web::post().to(auth::login))),
+        ),
     )
     .await;
 
@@ -86,15 +76,10 @@ async fn login_with_nonexistent_tenant_returns_401() {
     let auth_svc = AuthService::new(pool.clone(), config.clone());
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(auth_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(
-                        web::scope("/auth")
-                            .route("/login", web::post().to(auth::login)),
-                    ),
-            ),
+        App::new().app_data(web::Data::new(auth_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/auth").route("/login", web::post().to(auth::login))),
+        ),
     )
     .await;
 
@@ -118,17 +103,9 @@ async fn me_endpoint_with_valid_token_returns_user_info() {
     let token = common::get_admin_token(&pool).await;
     let auth_svc = AuthService::new(pool.clone(), config.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(auth_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(
-                        web::scope("/auth")
-                            .route("/me", web::get().to(auth::me)),
-                    ),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(auth_svc)).service(
+        web::scope("/api/v1").service(web::scope("/auth").route("/me", web::get().to(auth::me))),
+    ))
     .await;
 
     let req = test::TestRequest::get()
@@ -150,22 +127,12 @@ async fn me_endpoint_without_token_returns_401() {
     let config = common::test_config();
     let auth_svc = AuthService::new(pool.clone(), config.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(auth_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(
-                        web::scope("/auth")
-                            .route("/me", web::get().to(auth::me)),
-                    ),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(auth_svc)).service(
+        web::scope("/api/v1").service(web::scope("/auth").route("/me", web::get().to(auth::me))),
+    ))
     .await;
 
-    let req = test::TestRequest::get()
-        .uri("/api/v1/auth/me")
-        .to_request();
+    let req = test::TestRequest::get().uri("/api/v1/auth/me").to_request();
 
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), 401);
@@ -177,17 +144,9 @@ async fn me_endpoint_with_invalid_token_returns_401() {
     let config = common::test_config();
     let auth_svc = AuthService::new(pool.clone(), config.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(auth_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(
-                        web::scope("/auth")
-                            .route("/me", web::get().to(auth::me)),
-                    ),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(auth_svc)).service(
+        web::scope("/api/v1").service(web::scope("/auth").route("/me", web::get().to(auth::me))),
+    ))
     .await;
 
     let req = test::TestRequest::get()
@@ -206,17 +165,11 @@ async fn permissions_endpoint_returns_permission_list() {
     let token = common::get_admin_token(&pool).await;
     let auth_svc = AuthService::new(pool.clone(), config.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(auth_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(
-                        web::scope("/auth")
-                            .route("/permissions", web::get().to(auth::my_permissions)),
-                    ),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(auth_svc)).service(
+        web::scope("/api/v1").service(
+            web::scope("/auth").route("/permissions", web::get().to(auth::my_permissions)),
+        ),
+    ))
     .await;
 
     let req = test::TestRequest::get()

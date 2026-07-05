@@ -1,4 +1,4 @@
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use log::info;
 use sqlx::Row;
 
@@ -43,7 +43,7 @@ pub async fn my_permissions(
     let permissions: Vec<String> = sqlx::query_scalar(
         "SELECT DISTINCT rp.permission FROM role_permission rp
          INNER JOIN user_role ur ON rp.role_id = ur.role_id
-         WHERE ur.user_id = $1"
+         WHERE ur.user_id = $1",
     )
     .bind(&claims.sub)
     .fetch_all(&auth_svc.pool)
@@ -61,7 +61,7 @@ async fn get_user_info(pool: &sqlx::PgPool, user_id: &str) -> Result<UserInfo, A
                 t.name as tenant_name
          FROM \"user\" u
          JOIN tenant t ON u.tenant_id = t.id
-         WHERE u.id = $1"
+         WHERE u.id = $1",
     )
     .bind(user_id)
     .fetch_optional(pool)
@@ -78,7 +78,7 @@ async fn get_user_info(pool: &sqlx::PgPool, user_id: &str) -> Result<UserInfo, A
     let roles: Vec<String> = sqlx::query_scalar(
         "SELECT r.name FROM role r
          INNER JOIN user_role ur ON r.id = ur.role_id
-         WHERE ur.user_id = $1"
+         WHERE ur.user_id = $1",
     )
     .bind(user_id)
     .fetch_all(pool)
@@ -87,7 +87,7 @@ async fn get_user_info(pool: &sqlx::PgPool, user_id: &str) -> Result<UserInfo, A
     let permissions: Vec<String> = sqlx::query_scalar(
         "SELECT DISTINCT rp.permission FROM role_permission rp
          INNER JOIN user_role ur ON rp.role_id = ur.role_id
-         WHERE ur.user_id = $1"
+         WHERE ur.user_id = $1",
     )
     .bind(user_id)
     .fetch_all(pool)

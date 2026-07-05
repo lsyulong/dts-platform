@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use log::info;
 
 use crate::models::auth::CreateTenantRequest;
@@ -29,7 +29,10 @@ pub async fn create(
         .await
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
-    info!("新租户创建: {} ({}), 管理员: {}", body.name, body.slug, admin_username);
+    info!(
+        "新租户创建: {} ({}), 管理员: {}",
+        body.name, body.slug, admin_username
+    );
 
     Ok(HttpResponse::Created().json(serde_json::json!({
         "id": tenant_id,
@@ -41,9 +44,7 @@ pub async fn create(
 }
 
 /// GET /api/v1/tenants
-pub async fn list(
-    tenant_svc: web::Data<TenantService>,
-) -> Result<HttpResponse, AppError> {
+pub async fn list(tenant_svc: web::Data<TenantService>) -> Result<HttpResponse, AppError> {
     let tenants = tenant_svc
         .list()
         .await

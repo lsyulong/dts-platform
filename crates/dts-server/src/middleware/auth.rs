@@ -2,7 +2,7 @@ use crate::config::AppConfig;
 use crate::models::auth::Claims;
 use crate::models::error::AppError;
 use actix_web::HttpRequest;
-use jsonwebtoken::{decode, DecodingKey, Validation};
+use jsonwebtoken::{DecodingKey, Validation, decode};
 
 /// 从 HTTP 请求中提取并验证 JWT Claims
 pub fn extract_claims(req: &HttpRequest, jwt_secret: &str) -> Result<Claims, AppError> {
@@ -12,9 +12,9 @@ pub fn extract_claims(req: &HttpRequest, jwt_secret: &str) -> Result<Claims, App
         .and_then(|v| v.to_str().ok())
         .ok_or_else(|| AppError::Unauthorized("缺少 Authorization 请求头".into()))?;
 
-    let token = auth_header
-        .strip_prefix("Bearer ")
-        .ok_or_else(|| AppError::Unauthorized("Authorization 格式错误，应为 Bearer <token>".into()))?;
+    let token = auth_header.strip_prefix("Bearer ").ok_or_else(|| {
+        AppError::Unauthorized("Authorization 格式错误，应为 Bearer <token>".into())
+    })?;
 
     decode::<Claims>(
         token,
@@ -28,18 +28,16 @@ pub fn extract_claims(req: &HttpRequest, jwt_secret: &str) -> Result<Claims, App
 /// 从 AppConfig 获取 JWT Secret（用于 API handler 中统一获取 secret）
 /// 优先使用传入的 config，如果不可用则回退到环境变量
 pub fn get_jwt_secret(config: Option<&AppConfig>) -> String {
-    config
-        .map(|c| c.jwt_secret.clone())
-        .unwrap_or_else(|| {
-            std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev-secret-change-me".to_string())
-        })
+    config.map(|c| c.jwt_secret.clone()).unwrap_or_else(|| {
+        std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev-secret-change-me".to_string())
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::models::auth::Claims;
-    use jsonwebtoken::{encode, EncodingKey, Header};
+    use jsonwebtoken::{EncodingKey, Header, encode};
     use pretty_assertions::assert_eq;
 
     const TEST_SECRET: &str = "test-secret-for-unit-tests";
@@ -105,7 +103,7 @@ mod tests {
         match result.unwrap_err() {
             AppError::Unauthorized(msg) => {
                 assert!(msg.contains("Authorization"));
-            }
+            },
             _ => panic!("Expected Unauthorized"),
         }
     }
@@ -122,7 +120,7 @@ mod tests {
         match result.unwrap_err() {
             AppError::Unauthorized(msg) => {
                 assert!(msg.contains("Bearer"));
-            }
+            },
             _ => panic!("Expected Unauthorized"),
         }
     }
@@ -149,7 +147,7 @@ mod tests {
         match result.unwrap_err() {
             AppError::Unauthorized(msg) => {
                 assert!(msg.contains("Token"));
-            }
+            },
             _ => panic!("Expected Unauthorized"),
         }
     }
@@ -166,7 +164,7 @@ mod tests {
         match result.unwrap_err() {
             AppError::Unauthorized(msg) => {
                 assert!(msg.contains("Token") || msg.contains("expired"));
-            }
+            },
             _ => panic!("Expected Unauthorized"),
         }
     }
@@ -181,7 +179,7 @@ mod tests {
         let result = extract_claims(&req, "wrong-secret");
         assert!(result.is_err());
         match result.unwrap_err() {
-            AppError::Unauthorized(_) => {}
+            AppError::Unauthorized(_) => {},
             _ => panic!("Expected Unauthorized"),
         }
     }

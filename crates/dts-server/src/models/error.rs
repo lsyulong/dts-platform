@@ -157,7 +157,11 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
         // The content-type should be JSON
         assert_eq!(
-            resp.headers().get("content-type").unwrap().to_str().unwrap(),
+            resp.headers()
+                .get("content-type")
+                .unwrap()
+                .to_str()
+                .unwrap(),
             "application/json"
         );
     }
@@ -171,7 +175,7 @@ mod tests {
         match app_err {
             AppError::Internal(msg) => {
                 assert!(msg.contains("something went wrong"));
-            }
+            },
             _ => panic!("Expected AppError::Internal"),
         }
     }
@@ -184,7 +188,7 @@ mod tests {
         match app_err {
             AppError::Internal(msg) => {
                 assert!(msg.contains("file missing") || msg.contains("failed to read config"));
-            }
+            },
             _ => panic!("Expected AppError::Internal"),
         }
     }
@@ -198,7 +202,7 @@ mod tests {
         match app_err {
             AppError::NotFound(msg) => {
                 assert_eq!(msg, "记录不存在");
-            }
+            },
             _ => panic!("Expected AppError::NotFound, got {:?}", app_err),
         }
     }
@@ -212,7 +216,7 @@ mod tests {
         match app_err {
             AppError::Internal(msg) => {
                 assert!(msg.contains("数据库错误"));
-            }
+            },
             _ => panic!("Expected AppError::Internal, got {:?}", app_err),
         }
     }
@@ -226,7 +230,7 @@ mod tests {
         match app_err {
             AppError::Internal(msg) => {
                 assert!(msg.contains("Web 服务器错误"));
-            }
+            },
             _ => panic!("Expected AppError::Internal, got {:?}", app_err),
         }
     }

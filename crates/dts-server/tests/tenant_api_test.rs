@@ -2,7 +2,7 @@
 
 mod common;
 
-use actix_web::{test, web, App};
+use actix_web::{App, test, web};
 use dts_server::api::tenants;
 use dts_server::services::auth_svc::AuthService;
 use dts_server::services::tenant_svc::TenantService;
@@ -20,12 +20,11 @@ async fn create_tenant_successfully() {
             .app_data(web::Data::new(auth_svc))
             .app_data(web::Data::new(tenant_svc))
             .service(
-                web::scope("/api/v1")
-                    .service(
-                        web::scope("/tenants")
-                            .route("", web::post().to(tenants::create))
-                            .route("", web::get().to(tenants::list)),
-                    ),
+                web::scope("/api/v1").service(
+                    web::scope("/tenants")
+                        .route("", web::post().to(tenants::create))
+                        .route("", web::get().to(tenants::list)),
+                ),
             ),
     )
     .await;
@@ -59,12 +58,11 @@ async fn create_tenant_duplicate_slug_fails() {
             .app_data(web::Data::new(auth_svc))
             .app_data(web::Data::new(tenant_svc))
             .service(
-                web::scope("/api/v1")
-                    .service(
-                        web::scope("/tenants")
-                            .route("", web::post().to(tenants::create))
-                            .route("", web::get().to(tenants::list)),
-                    ),
+                web::scope("/api/v1").service(
+                    web::scope("/tenants")
+                        .route("", web::post().to(tenants::create))
+                        .route("", web::get().to(tenants::list)),
+                ),
             ),
     )
     .await;
@@ -105,17 +103,12 @@ async fn list_tenants_returns_all_tenants() {
             .app_data(web::Data::new(tenant_svc))
             .service(
                 web::scope("/api/v1")
-                    .service(
-                        web::scope("/tenants")
-                            .route("", web::get().to(tenants::list)),
-                    ),
+                    .service(web::scope("/tenants").route("", web::get().to(tenants::list))),
             ),
     )
     .await;
 
-    let req = test::TestRequest::get()
-        .uri("/api/v1/tenants")
-        .to_request();
+    let req = test::TestRequest::get().uri("/api/v1/tenants").to_request();
 
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), 200);

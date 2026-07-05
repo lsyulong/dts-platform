@@ -47,7 +47,7 @@ mod tests {
         match result.unwrap_err() {
             AppError::Forbidden(msg) => {
                 assert!(msg.contains("跨租户"));
-            }
+            },
             _ => panic!("Expected Forbidden"),
         }
     }

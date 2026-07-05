@@ -24,12 +24,10 @@ impl TenantService {
         admin_password_hash: &str,
     ) -> anyhow::Result<String> {
         // 检查 slug 唯一性
-        let existing: Option<String> = sqlx::query_scalar(
-            "SELECT id FROM tenant WHERE slug = $1"
-        )
-        .bind(slug)
-        .fetch_optional(&self.pool)
-        .await?;
+        let existing: Option<String> = sqlx::query_scalar("SELECT id FROM tenant WHERE slug = $1")
+            .bind(slug)
+            .fetch_optional(&self.pool)
+            .await?;
 
         if existing.is_some() {
             return Err(anyhow!("租户标识 '{}' 已存在", slug));
@@ -38,14 +36,12 @@ impl TenantService {
         let tenant_id = Uuid::new_v4().to_string();
 
         // 创建租户
-        sqlx::query(
-            "INSERT INTO tenant (id, name, slug) VALUES ($1, $2, $3)"
-        )
-        .bind(&tenant_id)
-        .bind(name)
-        .bind(slug)
-        .execute(&self.pool)
-        .await?;
+        sqlx::query("INSERT INTO tenant (id, name, slug) VALUES ($1, $2, $3)")
+            .bind(&tenant_id)
+            .bind(name)
+            .bind(slug)
+            .execute(&self.pool)
+            .await?;
 
         // 创建默认角色: tenant_admin, developer, viewer
         let admin_role_id = self
@@ -53,7 +49,18 @@ impl TenantService {
                 &tenant_id,
                 "tenant_admin",
                 "租户管理员",
-                &["task:read","task:write","task:execute","datasource:read","datasource:write","monitor:read","alert:read","alert:write","user:manage","audit:read"],
+                &[
+                    "task:read",
+                    "task:write",
+                    "task:execute",
+                    "datasource:read",
+                    "datasource:write",
+                    "monitor:read",
+                    "alert:read",
+                    "alert:write",
+                    "user:manage",
+                    "audit:read",
+                ],
                 true,
             )
             .await?;
@@ -62,7 +69,15 @@ impl TenantService {
             &tenant_id,
             "developer",
             "开发运维",
-            &["task:read","task:write","task:execute","datasource:read","datasource:write","monitor:read","alert:read"],
+            &[
+                "task:read",
+                "task:write",
+                "task:execute",
+                "datasource:read",
+                "datasource:write",
+                "monitor:read",
+                "alert:read",
+            ],
             true,
         )
         .await?;
@@ -71,7 +86,7 @@ impl TenantService {
             &tenant_id,
             "viewer",
             "只读用户",
-            &["task:read","datasource:read","monitor:read","alert:read"],
+            &["task:read", "datasource:read", "monitor:read", "alert:read"],
             true,
         )
         .await?;
@@ -92,19 +107,13 @@ impl TenantService {
         .await?;
 
         // 分配 admin 角色
-        sqlx::query(
-            "INSERT INTO user_role (user_id, role_id) VALUES ($1, $2)"
-        )
-        .bind(&user_id)
-        .bind(&admin_role_id)
-        .execute(&self.pool)
-        .await?;
+        sqlx::query("INSERT INTO user_role (user_id, role_id) VALUES ($1, $2)")
+            .bind(&user_id)
+            .bind(&admin_role_id)
+            .execute(&self.pool)
+            .await?;
 
-        log::info!(
-            "租户 '{}' 创建成功, 管理员: {}",
-            name,
-            admin_username
-        );
+        log::info!("租户 '{}' 创建成功, 管理员: {}", name, admin_username);
 
         Ok(tenant_id)
     }
@@ -131,13 +140,11 @@ impl TenantService {
         .await?;
 
         for perm in permissions {
-            sqlx::query(
-                "INSERT INTO role_permission (role_id, permission) VALUES ($1, $2)"
-            )
-            .bind(&role_id)
-            .bind(*perm)
-            .execute(&self.pool)
-            .await?;
+            sqlx::query("INSERT INTO role_permission (role_id, permission) VALUES ($1, $2)")
+                .bind(&role_id)
+                .bind(*perm)
+                .execute(&self.pool)
+                .await?;
         }
 
         Ok(role_id)
@@ -146,7 +153,7 @@ impl TenantService {
     /// 获取租户列表
     pub async fn list(&self) -> anyhow::Result<Vec<TenantInfo>> {
         let rows = sqlx::query_as::<_, TenantInfo>(
-            "SELECT id, name, slug, status, created_at FROM tenant ORDER BY created_at DESC"
+            "SELECT id, name, slug, status, created_at FROM tenant ORDER BY created_at DESC",
         )
         .fetch_all(&self.pool)
         .await?;
@@ -157,7 +164,7 @@ impl TenantService {
     /// 获取单个租户
     pub async fn get_by_id(&self, id: &str) -> anyhow::Result<TenantInfo> {
         let tenant = sqlx::query_as::<_, TenantInfo>(
-            "SELECT id, name, slug, status, created_at FROM tenant WHERE id = $1"
+            "SELECT id, name, slug, status, created_at FROM tenant WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -191,7 +198,7 @@ mod tests {
                 status TEXT NOT NULL DEFAULT 'active',
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            )"
+            )",
         )
         .execute(&pool)
         .await
@@ -206,7 +213,7 @@ mod tests {
                 is_system BOOLEAN NOT NULL DEFAULT FALSE,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 UNIQUE(tenant_id, name)
-            )"
+            )",
         )
         .execute(&pool)
         .await
@@ -217,7 +224,7 @@ mod tests {
                 role_id TEXT NOT NULL REFERENCES role(id) ON DELETE CASCADE,
                 permission TEXT NOT NULL,
                 PRIMARY KEY (role_id, permission)
-            )"
+            )",
         )
         .execute(&pool)
         .await
@@ -236,7 +243,7 @@ mod tests {
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 UNIQUE(tenant_id, username),
                 UNIQUE(tenant_id, email)
-            )"
+            )",
         )
         .execute(&pool)
         .await
@@ -247,7 +254,7 @@ mod tests {
                 user_id TEXT NOT NULL REFERENCES \"user\"(id) ON DELETE CASCADE,
                 role_id TEXT NOT NULL REFERENCES role(id) ON DELETE CASCADE,
                 PRIMARY KEY (user_id, role_id)
-            )"
+            )",
         )
         .execute(&pool)
         .await
@@ -294,22 +301,19 @@ mod tests {
             .await
             .unwrap();
 
-        let role_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM role WHERE tenant_id = $1"
-        )
-        .bind(&tenant_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let role_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM role WHERE tenant_id = $1")
+            .bind(&tenant_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
         assert_eq!(role_count, 3);
 
-        let roles: Vec<String> = sqlx::query_scalar(
-            "SELECT name FROM role WHERE tenant_id = $1 ORDER BY name"
-        )
-        .bind(&tenant_id)
-        .fetch_all(&pool)
-        .await
-        .unwrap();
+        let roles: Vec<String> =
+            sqlx::query_scalar("SELECT name FROM role WHERE tenant_id = $1 ORDER BY name")
+                .bind(&tenant_id)
+                .fetch_all(&pool)
+                .await
+                .unwrap();
         assert_eq!(roles, vec!["developer", "tenant_admin", "viewer"]);
     }
 
@@ -323,13 +327,12 @@ mod tests {
             .await
             .unwrap();
 
-        let username: String = sqlx::query_scalar(
-            "SELECT username FROM \"user\" WHERE tenant_id = $1"
-        )
-        .bind(&tenant_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let username: String =
+            sqlx::query_scalar("SELECT username FROM \"user\" WHERE tenant_id = $1")
+                .bind(&tenant_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
         assert_eq!(username, "root");
     }
 

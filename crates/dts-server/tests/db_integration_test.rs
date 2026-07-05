@@ -23,8 +23,16 @@ async fn run_migrations_creates_all_tables() {
     let pool = common::setup_test_db().await.unwrap();
 
     let tables = vec![
-        "tenant", "user", "role", "user_role", "role_permission",
-        "datasource", "sync_task", "task_run", "alert_rule", "audit_log",
+        "tenant",
+        "user",
+        "role",
+        "user_role",
+        "role_permission",
+        "datasource",
+        "sync_task",
+        "task_run",
+        "alert_rule",
+        "audit_log",
     ];
 
     for table in &tables {
@@ -88,7 +96,10 @@ async fn seed_default_data_is_idempotent() {
         .fetch_one(&pool)
         .await
         .unwrap();
-    assert_eq!(tenant_count, 1, "Idempotent seed should not create duplicate tenants");
+    assert_eq!(
+        tenant_count, 1,
+        "Idempotent seed should not create duplicate tenants"
+    );
 }
 
 #[actix_web::test]
@@ -106,5 +117,8 @@ async fn foreign_key_constraints_are_enforced() {
     .execute(&pool)
     .await;
 
-    assert!(result.is_err(), "FK constraint should prevent insert with invalid tenant_id");
+    assert!(
+        result.is_err(),
+        "FK constraint should prevent insert with invalid tenant_id"
+    );
 }

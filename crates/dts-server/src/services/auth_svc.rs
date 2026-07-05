@@ -1,12 +1,12 @@
 use crate::config::AppConfig;
 use crate::models::auth::*;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use sqlx::{Row, PgPool};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
+use sqlx::{PgPool, Row};
 
 /// 认证服务 — 处理登录、JWT签发/验证、密码哈希
 #[derive(Clone)]
@@ -24,7 +24,7 @@ impl AuthService {
     pub async fn login(&self, req: &LoginRequest) -> anyhow::Result<LoginResponse> {
         // 1. 查找租户
         let tenant = sqlx::query(
-            "SELECT id, name, status FROM tenant WHERE slug = $1 AND status = 'active'"
+            "SELECT id, name, status FROM tenant WHERE slug = $1 AND status = 'active'",
         )
         .bind(&req.tenant_slug)
         .fetch_optional(&self.pool)
@@ -37,7 +37,7 @@ impl AuthService {
         // 2. 查找用户
         let user = sqlx::query(
             "SELECT id, username, email, password_hash, display_name, status
-             FROM \"user\" WHERE tenant_id = $1 AND username = $2"
+             FROM \"user\" WHERE tenant_id = $1 AND username = $2",
         )
         .bind(&tenant_id)
         .bind(&req.username)
@@ -57,8 +57,8 @@ impl AuthService {
         }
 
         // 3. 验证密码
-        let parsed_hash = PasswordHash::new(&password_hash)
-            .map_err(|_| anyhow!("内部错误: 密码哈希格式无效"))?;
+        let parsed_hash =
+            PasswordHash::new(&password_hash).map_err(|_| anyhow!("内部错误: 密码哈希格式无效"))?;
         Argon2::default()
             .verify_password(req.password.as_bytes(), &parsed_hash)
             .map_err(|_| anyhow!("用户名或密码错误"))?;
@@ -67,7 +67,7 @@ impl AuthService {
         let roles: Vec<String> = sqlx::query_scalar(
             "SELECT r.name FROM role r
              INNER JOIN user_role ur ON r.id = ur.role_id
-             WHERE ur.user_id = $1"
+             WHERE ur.user_id = $1",
         )
         .bind(&user_id)
         .fetch_all(&self.pool)
@@ -77,7 +77,7 @@ impl AuthService {
         let permissions: Vec<String> = sqlx::query_scalar(
             "SELECT DISTINCT rp.permission FROM role_permission rp
              INNER JOIN user_role ur ON rp.role_id = ur.role_id
-             WHERE ur.user_id = $1"
+             WHERE ur.user_id = $1",
         )
         .bind(&user_id)
         .fetch_all(&self.pool)
@@ -89,8 +89,7 @@ impl AuthService {
             sub: user_id.clone(),
             tenant_id: tenant_id.clone(),
             username: username.clone(),
-            exp: (now + chrono::Duration::hours(self.config.jwt_expiry_hours)).timestamp()
-                as usize,
+            exp: (now + chrono::Duration::hours(self.config.jwt_expiry_hours)).timestamp() as usize,
             iat: now.timestamp() as usize,
         };
 
@@ -142,7 +141,7 @@ mod tests {
     use super::*;
     use crate::config::AppConfig;
     use argon2::PasswordVerifier;
-    use jsonwebtoken::{encode, EncodingKey, Header};
+    use jsonwebtoken::{EncodingKey, Header, encode};
     use pretty_assertions::assert_eq;
     use sqlx::PgPool;
 
@@ -217,8 +216,7 @@ mod tests {
         let password = "secret123";
         let hash = AuthService::hash_password_sync(password).unwrap();
         let parsed_hash = PasswordHash::new(&hash).unwrap();
-        let result = Argon2::default()
-            .verify_password(password.as_bytes(), &parsed_hash);
+        let result = Argon2::default().verify_password(password.as_bytes(), &parsed_hash);
         assert!(result.is_ok());
     }
 
@@ -226,8 +224,7 @@ mod tests {
     fn hash_password_sync_generated_hash_fails_with_wrong_password() {
         let hash = AuthService::hash_password_sync("correct_password").unwrap();
         let parsed_hash = PasswordHash::new(&hash).unwrap();
-        let result = Argon2::default()
-            .verify_password("wrong_password".as_bytes(), &parsed_hash);
+        let result = Argon2::default().verify_password("wrong_password".as_bytes(), &parsed_hash);
         assert!(result.is_err());
     }
 

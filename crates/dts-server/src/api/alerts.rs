@@ -1,4 +1,4 @@
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use serde::Deserialize;
 use sqlx::Row;
 use uuid::Uuid;
@@ -20,10 +20,7 @@ pub struct CreateAlertRequest {
 }
 
 /// GET /api/v1/alerts
-pub async fn list(
-    pool: web::Data<DbPool>,
-    req: HttpRequest,
-) -> Result<HttpResponse, AppError> {
+pub async fn list(pool: web::Data<DbPool>, req: HttpRequest) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
@@ -34,7 +31,7 @@ pub async fn list(
          FROM alert_rule ar
          LEFT JOIN sync_task st ON ar.task_id = st.id
          WHERE ar.tenant_id = $1
-         ORDER BY ar.created_at DESC"
+         ORDER BY ar.created_at DESC",
     )
     .bind(&claims.tenant_id)
     .fetch_all(pool.get_ref())
@@ -78,7 +75,7 @@ pub async fn create(
     sqlx::query(
         "INSERT INTO alert_rule (id, tenant_id, task_id, name, metric_type, operator,
          threshold, notify_channels)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
     )
     .bind(&id)
     .bind(&claims.tenant_id)
@@ -110,7 +107,7 @@ pub async fn toggle(
     sqlx::query(
         "UPDATE alert_rule SET enabled = NOT enabled,
          updated_at = NOW()
-         WHERE id = $1 AND tenant_id = $2"
+         WHERE id = $1 AND tenant_id = $2",
     )
     .bind(&alert_id)
     .bind(&claims.tenant_id)

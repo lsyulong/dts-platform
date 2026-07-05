@@ -37,10 +37,14 @@ pub async fn seed_default_data(pool: &PgPool) -> anyhow::Result<()> {
         "tenant_admin",
         "租户管理员",
         &[
-            "task:read", "task:write", "task:execute",
-            "datasource:read", "datasource:write",
+            "task:read",
+            "task:write",
+            "task:execute",
+            "datasource:read",
+            "datasource:write",
             "monitor:read",
-            "alert:read", "alert:write",
+            "alert:read",
+            "alert:write",
             "user:manage",
             "audit:read",
         ],
@@ -54,9 +58,13 @@ pub async fn seed_default_data(pool: &PgPool) -> anyhow::Result<()> {
         "developer",
         "开发运维",
         &[
-            "task:read", "task:write", "task:execute",
-            "datasource:read", "datasource:write",
-            "monitor:read", "alert:read",
+            "task:read",
+            "task:write",
+            "task:execute",
+            "datasource:read",
+            "datasource:write",
+            "monitor:read",
+            "alert:read",
         ],
         true,
     )
@@ -73,13 +81,13 @@ pub async fn seed_default_data(pool: &PgPool) -> anyhow::Result<()> {
     .await?;
 
     // 创建管理员用户
-    let admin_password_hash = AuthService::hash_password_sync("admin123")
-        .context("密码哈希失败")?;
+    let admin_password_hash =
+        AuthService::hash_password_sync("admin123").context("密码哈希失败")?;
 
     let user_id = Uuid::new_v4().to_string();
     sqlx::query(
         "INSERT INTO \"user\" (id, tenant_id, username, email, password_hash, display_name)
-         VALUES ($1, $2, $3, $4, $5, $6)"
+         VALUES ($1, $2, $3, $4, $5, $6)",
     )
     .bind(&user_id)
     .bind(&tenant_id)
@@ -162,13 +170,11 @@ async fn create_role(
     .await?;
 
     for perm in permissions {
-        sqlx::query(
-            "INSERT INTO role_permission (role_id, permission) VALUES ($1, $2)"
-        )
-        .bind(&role_id)
-        .bind(*perm)
-        .execute(pool)
-        .await?;
+        sqlx::query("INSERT INTO role_permission (role_id, permission) VALUES ($1, $2)")
+            .bind(&role_id)
+            .bind(*perm)
+            .execute(pool)
+            .await?;
     }
 
     Ok(role_id)

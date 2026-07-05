@@ -1,4 +1,4 @@
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use sqlx::Row;
 
 use crate::db::DbPool;
@@ -7,43 +7,38 @@ use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
 
 /// GET /api/v1/monitoring/overview
-pub async fn overview(
-    pool: web::Data<DbPool>,
-    req: HttpRequest,
-) -> Result<HttpResponse, AppError> {
+pub async fn overview(pool: web::Data<DbPool>, req: HttpRequest) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
-    let total_tasks: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM sync_task WHERE tenant_id = $1"
-    )
-    .bind(&claims.tenant_id)
-    .fetch_one(pool.get_ref())
-    .await?;
+    let total_tasks: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM sync_task WHERE tenant_id = $1")
+            .bind(&claims.tenant_id)
+            .fetch_one(pool.get_ref())
+            .await?;
 
     let running_tasks: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM sync_task WHERE tenant_id = $1 AND status = 'running'"
+        "SELECT COUNT(*) FROM sync_task WHERE tenant_id = $1 AND status = 'running'",
     )
     .bind(&claims.tenant_id)
     .fetch_one(pool.get_ref())
     .await?;
 
     let failed_tasks: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM sync_task WHERE tenant_id = $1 AND status = 'failed'"
+        "SELECT COUNT(*) FROM sync_task WHERE tenant_id = $1 AND status = 'failed'",
     )
     .bind(&claims.tenant_id)
     .fetch_one(pool.get_ref())
     .await?;
 
-    let total_datasources: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM datasource WHERE tenant_id = $1"
-    )
-    .bind(&claims.tenant_id)
-    .fetch_one(pool.get_ref())
-    .await?;
+    let total_datasources: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM datasource WHERE tenant_id = $1")
+            .bind(&claims.tenant_id)
+            .fetch_one(pool.get_ref())
+            .await?;
 
     let healthy_datasources: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM datasource WHERE tenant_id = $1 AND health_status = 'healthy'"
+        "SELECT COUNT(*) FROM datasource WHERE tenant_id = $1 AND health_status = 'healthy'",
     )
     .bind(&claims.tenant_id)
     .fetch_one(pool.get_ref())
@@ -52,7 +47,7 @@ pub async fn overview(
     let today_synced_rows: Option<i64> = sqlx::query_scalar(
         "SELECT SUM(rows_synced) FROM task_run tr
          JOIN sync_task st ON tr.task_id = st.id
-         WHERE st.tenant_id = $1 AND tr.start_time >= CURRENT_DATE"
+         WHERE st.tenant_id = $1 AND tr.start_time >= CURRENT_DATE",
     )
     .bind(&claims.tenant_id)
     .fetch_one(pool.get_ref())
@@ -61,7 +56,7 @@ pub async fn overview(
     let today_synced_bytes: Option<i64> = sqlx::query_scalar(
         "SELECT SUM(bytes_synced) FROM task_run tr
          JOIN sync_task st ON tr.task_id = st.id
-         WHERE st.tenant_id = $1 AND tr.start_time >= CURRENT_DATE"
+         WHERE st.tenant_id = $1 AND tr.start_time >= CURRENT_DATE",
     )
     .bind(&claims.tenant_id)
     .fetch_one(pool.get_ref())
@@ -73,7 +68,7 @@ pub async fn overview(
          FROM task_run tr
          JOIN sync_task st ON tr.task_id = st.id
          WHERE st.tenant_id = $1
-         ORDER BY tr.start_time DESC LIMIT 10"
+         ORDER BY tr.start_time DESC LIMIT 10",
     )
     .bind(&claims.tenant_id)
     .fetch_all(pool.get_ref())

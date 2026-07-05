@@ -1,4 +1,4 @@
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use uuid::Uuid;
@@ -35,10 +35,7 @@ pub struct DatasourceResponse {
 }
 
 /// GET /api/v1/datasources
-pub async fn list(
-    pool: web::Data<DbPool>,
-    req: HttpRequest,
-) -> Result<HttpResponse, AppError> {
+pub async fn list(pool: web::Data<DbPool>, req: HttpRequest) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
@@ -46,7 +43,7 @@ pub async fn list(
         "SELECT id, name, db_type, host, port, username, database_name,
          health_status, created_at
          FROM datasource WHERE tenant_id = $1
-         ORDER BY created_at DESC"
+         ORDER BY created_at DESC",
     )
     .bind(&claims.tenant_id)
     .fetch_all(pool.get_ref())
@@ -68,15 +65,12 @@ pub async fn create(
 
     let id = Uuid::new_v4().to_string();
 
-    let encrypted_pw = body
-        .password
-        .as_ref()
-        .map(|p| format!("enc:{}", p));
+    let encrypted_pw = body.password.as_ref().map(|p| format!("enc:{}", p));
 
     sqlx::query(
         "INSERT INTO datasource (id, tenant_id, name, db_type, host, port, username,
          encrypted_password, database_name, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
     )
     .bind(&id)
     .bind(&claims.tenant_id)
@@ -111,7 +105,7 @@ pub async fn get(
     let ds = sqlx::query(
         "SELECT id, name, db_type, host, port, username, encrypted_password,
          database_name, extra_params, health_status, last_test_at, created_at, updated_at
-         FROM datasource WHERE id = $1 AND tenant_id = $2"
+         FROM datasource WHERE id = $1 AND tenant_id = $2",
     )
     .bind(&ds_id)
     .bind(&claims.tenant_id)
@@ -152,13 +146,11 @@ pub async fn delete(
     let claims = auth::extract_claims(&req, &jwt_secret)?;
     let ds_id = path.into_inner();
 
-    let result = sqlx::query(
-        "DELETE FROM datasource WHERE id = $1 AND tenant_id = $2"
-    )
-    .bind(&ds_id)
-    .bind(&claims.tenant_id)
-    .execute(pool.get_ref())
-    .await?;
+    let result = sqlx::query("DELETE FROM datasource WHERE id = $1 AND tenant_id = $2")
+        .bind(&ds_id)
+        .bind(&claims.tenant_id)
+        .execute(pool.get_ref())
+        .await?;
 
     if result.rows_affected() == 0 {
         return Err(AppError::NotFound("数据源不存在".into()));

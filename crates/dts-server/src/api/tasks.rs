@@ -1,4 +1,4 @@
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use uuid::Uuid;
@@ -34,17 +34,14 @@ pub struct TaskResponse {
 }
 
 /// GET /api/v1/tasks
-pub async fn list(
-    pool: web::Data<DbPool>,
-    req: HttpRequest,
-) -> Result<HttpResponse, AppError> {
+pub async fn list(pool: web::Data<DbPool>, req: HttpRequest) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
     let tasks: Vec<TaskResponse> = sqlx::query_as::<_, TaskResponse>(
         "SELECT id, name, description, source_id, target_id, cron_expr, status, created_at
          FROM sync_task WHERE tenant_id = $1
-         ORDER BY created_at DESC"
+         ORDER BY created_at DESC",
     )
     .bind(&claims.tenant_id)
     .fetch_all(pool.get_ref())
@@ -68,13 +65,12 @@ pub async fn create(
 
     // 验证 source 和 target 存在
     for ds_id in [&body.source_id, &body.target_id] {
-        let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM datasource WHERE id = $1 AND tenant_id = $2"
-        )
-        .bind(ds_id.as_str())
-        .bind(&claims.tenant_id)
-        .fetch_one(pool.get_ref())
-        .await?;
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM datasource WHERE id = $1 AND tenant_id = $2")
+                .bind(ds_id.as_str())
+                .bind(&claims.tenant_id)
+                .fetch_one(pool.get_ref())
+                .await?;
 
         if count == 0 {
             return Err(AppError::BadRequest(format!("数据源 {} 不存在", ds_id)));
@@ -90,7 +86,7 @@ pub async fn create(
     sqlx::query(
         "INSERT INTO sync_task (id, tenant_id, name, description, source_id, target_id,
          cron_expr, config_json, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
     )
     .bind(&task_id)
     .bind(&claims.tenant_id)
@@ -131,7 +127,7 @@ pub async fn get(
          FROM sync_task t
          JOIN datasource s ON t.source_id = s.id
          JOIN datasource d ON t.target_id = d.id
-         WHERE t.id = $1 AND t.tenant_id = $2"
+         WHERE t.id = $1 AND t.tenant_id = $2",
     )
     .bind(&task_id)
     .bind(&claims.tenant_id)
@@ -144,7 +140,7 @@ pub async fn get(
         "SELECT id, status, start_time, end_time, rows_synced, bytes_synced,
          total_rows, total_bytes, error_message
          FROM task_run WHERE task_id = $1
-         ORDER BY start_time DESC LIMIT 10"
+         ORDER BY start_time DESC LIMIT 10",
     )
     .bind(&task_id)
     .fetch_all(pool.get_ref())
@@ -211,7 +207,7 @@ pub async fn update_status(
     }
 
     let result = sqlx::query(
-        "UPDATE sync_task SET status = $1, updated_at = NOW() WHERE id = $2 AND tenant_id = $3"
+        "UPDATE sync_task SET status = $1, updated_at = NOW() WHERE id = $2 AND tenant_id = $3",
     )
     .bind(&body.status)
     .bind(&task_id)

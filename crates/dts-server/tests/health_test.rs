@@ -2,7 +2,7 @@
 
 mod common;
 
-use actix_web::{test, App};
+use actix_web::{App, test};
 use dts_server::app;
 
 #[actix_web::test]

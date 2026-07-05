@@ -38,12 +38,7 @@ pub fn test_config() -> AppConfig {
 }
 
 /// 生成测试用 JWT Token
-pub fn generate_test_token(
-    secret: &str,
-    user_id: &str,
-    tenant_id: &str,
-    username: &str,
-) -> String {
+pub fn generate_test_token(secret: &str, user_id: &str, tenant_id: &str, username: &str) -> String {
     let now = chrono::Utc::now();
     let claims = Claims {
         sub: user_id.to_string(),
@@ -70,7 +65,7 @@ pub async fn get_admin_token(pool: &PgPool) -> String {
         "SELECT t.id as tenant_id, u.id as user_id, u.username
          FROM tenant t
          JOIN \"user\" u ON u.tenant_id = t.id
-         WHERE t.slug = 'default' AND u.username = 'admin'"
+         WHERE t.slug = 'default' AND u.username = 'admin'",
     )
     .fetch_one(pool)
     .await
