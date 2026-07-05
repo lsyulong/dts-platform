@@ -4,6 +4,7 @@ use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
 
 use crate::middleware::auth;
+use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
 
 /// 创建告警规则请求
@@ -22,7 +23,7 @@ pub async fn list(
     pool: web::Data<SqlitePool>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(&req);
+    let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
     let rows = sqlx::query(
@@ -66,7 +67,7 @@ pub async fn create(
     req: HttpRequest,
     body: web::Json<CreateAlertRequest>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(&req);
+    let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
     let id = Uuid::new_v4().to_string();
@@ -101,7 +102,7 @@ pub async fn toggle(
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(&req);
+    let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
     let alert_id = path.into_inner();
 
@@ -119,7 +120,151 @@ pub async fn toggle(
         "message": "告警规则状态已切换"
     })))
 }
+// get_jwt_secret 已集中到 crate::middleware::auth
 
-fn get_jwt_secret(_req: &HttpRequest) -> String {
-    std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev-secret-change-me".to_string())
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    // ========== CreateAlertRequest Tests ==========
+
+    #[test]
+    fn create_alert_request_with_all_fields() {
+        let json = serde_json::json!({
+            "name": "High Error Rate",
+            "task_id": "task-1",
+            "metric_type": "error_rate",
+            "operator": "gt",
+            "threshold": 5.0,
+            "notify_channels": ["email", "webhook"]
+        });
+        let req: CreateAlertRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(req.name, "High Error Rate");
+        assert_eq!(req.task_id, Some("task-1".into()));
+        assert_eq!(req.metric_type, "error_rate");
+        assert_eq!(req.operator, "gt");
+        assert_eq!(req.threshold, 5.0);
+        assert_eq!(
+            req.notify_channels,
+            Some(vec!["email".into(), "webhook".into()])
+        );
+    }
+
+    #[test]
+    fn create_alert_request_minimal_fields() {
+        let json = serde_json::json!({
+            "name": "Simple Alert",
+            "metric_type": "latency",
+            "operator": "gte",
+            "threshold": 100.0
+        });
+        let req: CreateAlertRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(req.name, "Simple Alert");
+        assert_eq!(req.metric_type, "latency");
+        assert_eq!(req.operator, "gte");
+        assert_eq!(req.threshold, 100.0);
+        assert_eq!(req.task_id, None);
+        assert_eq!(req.notify_channels, None);
+    }
+
+    #[test]
+    fn create_alert_request_missing_name_fails() {
+        let json = serde_json::json!({
+            "metric_type": "error_rate",
+            "operator": "gt",
+            "threshold": 5.0
+        });
+        let result = serde_json::from_value::<CreateAlertRequest>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn create_alert_request_missing_metric_type_fails() {
+        let json = serde_json::json!({
+            "name": "Alert",
+            "operator": "gt",
+            "threshold": 5.0
+        });
+        let result = serde_json::from_value::<CreateAlertRequest>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn create_alert_request_missing_operator_fails() {
+        let json = serde_json::json!({
+            "name": "Alert",
+            "metric_type": "error_rate",
+            "threshold": 5.0
+        });
+        let result = serde_json::from_value::<CreateAlertRequest>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn create_alert_request_missing_threshold_fails() {
+        let json = serde_json::json!({
+            "name": "Alert",
+            "metric_type": "error_rate",
+            "operator": "gt"
+        });
+        let result = serde_json::from_value::<CreateAlertRequest>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn create_alert_request_with_null_optionals() {
+        let json = serde_json::json!({
+            "name": "Alert",
+            "metric_type": "rows_synced",
+            "operator": "lt",
+            "threshold": 10.0,
+            "task_id": null,
+            "notify_channels": null
+        });
+        let req: CreateAlertRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(req.task_id, None);
+        assert_eq!(req.notify_channels, None);
+    }
+
+    #[test]
+    fn create_alert_request_empty_notify_channels() {
+        let json = serde_json::json!({
+            "name": "Alert",
+            "metric_type": "rows_synced",
+            "operator": "eq",
+            "threshold": 0.0,
+            "notify_channels": []
+        });
+        let req: CreateAlertRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(req.notify_channels, Some(vec![]));
+    }
+
+    #[test]
+    fn create_alert_request_various_operators() {
+        for op in &["gt", "gte", "lt", "lte", "eq", "neq"] {
+            let json = serde_json::json!({
+                "name": format!("{} alert", op),
+                "metric_type": "error_rate",
+                "operator": op,
+                "threshold": 1.0
+            });
+            let req: CreateAlertRequest = serde_json::from_value(json).unwrap();
+            assert_eq!(req.operator, *op);
+        }
+    }
+
+    #[test]
+    fn create_alert_request_metric_types() {
+        for metric in &["error_rate", "latency", "rows_synced", "bytes_synced"] {
+            let json = serde_json::json!({
+                "name": "Test",
+                "metric_type": metric,
+                "operator": "gt",
+                "threshold": 0.0
+            });
+            let req: CreateAlertRequest = serde_json::from_value(json).unwrap();
+            assert_eq!(req.metric_type, *metric);
+        }
+    }
 }

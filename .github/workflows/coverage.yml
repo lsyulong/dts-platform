@@ -1,0 +1,83 @@
+# DTS Platform - 代码覆盖率流水线
+# 触发条件: PR 到 main / 每周一定时运行
+
+name: Coverage
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    # 每周一 08:00 UTC+8
+    - cron: "0 0 * * 1"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # --------------------------------------------------
+  # Rust 代码覆盖率
+  # --------------------------------------------------
+  rust-coverage:
+    name: Rust 覆盖率
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Rust 工具链
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.88.0"
+
+      - name: Rust 缓存
+        uses: Swatinem/rust-cache@v2
+
+      - name: 安装 cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: 运行覆盖率测试
+        run: cargo llvm-cov --all-features --workspace --fail-under-lines 95 --lcov --output-path lcov.info
+
+      - name: 上传 Rust 覆盖率到 Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: lcov.info
+          flags: rust
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # --------------------------------------------------
+  # 前端代码覆盖率
+  # --------------------------------------------------
+  frontend-coverage:
+    name: 前端覆盖率
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 运行覆盖率测试
+        run: npx vitest run --coverage
+
+      - name: 上传前端覆盖率到 Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          directory: web/coverage
+          flags: frontend
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}

@@ -1,0 +1,25 @@
+# DTS Platform - PR 自动标签规则
+# 根据变更文件路径自动为 PR 添加标签
+
+rust:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+frontend:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "web/**"
+
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - ".github/**"
+
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "docs/**"
+      - "**/*.md"

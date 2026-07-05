@@ -89,10 +89,57 @@ pub async fn create_app(
 }
 
 /// 健康检查端点
-async fn health_check() -> HttpResponse {
+pub async fn health_check() -> HttpResponse {
     HttpResponse::Ok().json(serde_json::json!({
         "status": "healthy",
         "service": "dts-platform",
         "version": env!("CARGO_PKG_VERSION"),
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use actix_web::http::StatusCode;
+    use pretty_assertions::assert_eq;
+
+    // ========== health_check Tests ==========
+
+    #[tokio::test]
+    async fn health_check_returns_200() {
+        let resp = health_check().await;
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn health_check_returns_correct_json_structure() {
+        let resp = health_check().await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let content_type = resp
+            .headers()
+            .get("content-type")
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert!(content_type.contains("application/json"));
+    }
+
+    #[actix_web::test]
+    async fn health_check_body_contains_expected_fields() {
+        let resp = health_check().await;
+        let body = actix_web::body::to_bytes(resp.into_body()).await.unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "healthy");
+        assert_eq!(json["service"], "dts-platform");
+        assert!(json["version"].is_string());
+        assert!(!json["version"].as_str().unwrap().is_empty());
+    }
+
+    #[test]
+    fn health_check_version_is_not_empty() {
+        let expected_version = env!("CARGO_PKG_VERSION");
+        assert!(!expected_version.is_empty());
+    }
 }

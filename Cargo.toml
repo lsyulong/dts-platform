@@ -17,6 +17,22 @@ async-trait = "0.1"
 rand = "0.8"
 dotenv = "0.15"
 
+[workspace.lints.clippy]
+# 正确性 — 必须修复
+unwrap_used = "deny"
+expect_used = "deny"
+# 性能
+redundant_clone = "warn"
+clone_on_copy = "warn"
+# 错误处理
+manual_ok_or = "warn"
+# 复杂度
+too_many_arguments = "warn"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+unused_must_use = "warn"
+
 [profile.release]
 panic = 'unwind'
 opt-level = 3

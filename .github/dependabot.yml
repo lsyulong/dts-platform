@@ -1,0 +1,75 @@
+# DTS Platform - Dependabot 自动依赖更新配置
+
+version: 2
+
+updates:
+  # --------------------------------------------------
+  # Rust (Cargo) 依赖更新
+  # --------------------------------------------------
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Shanghai
+    labels:
+      - dependencies
+      - rust
+    open-pull-requests-limit: 10
+    versioning-strategy: auto
+    ignore:
+      # 忽略主版本更新，需人工评估
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      actix:
+        patterns:
+          - "actix-web"
+          - "actix-cors"
+          - "actix-ws"
+          - "actix-rt"
+      serde:
+        patterns:
+          - "serde"
+          - "serde_json"
+      sqlx:
+        patterns:
+          - "sqlx"
+          - "sqlx-*"
+
+  # --------------------------------------------------
+  # npm 依赖更新
+  # --------------------------------------------------
+  - package-ecosystem: npm
+    directory: "/web"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Shanghai
+    labels:
+      - dependencies
+      - frontend
+    open-pull-requests-limit: 10
+    versioning-strategy: auto
+    ignore:
+      # 忽略主版本更新，需人工评估
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      vite:
+        patterns:
+          - "vite"
+          - "@vitejs/plugin-react"
+      testing:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+          - "@testing-library/*"

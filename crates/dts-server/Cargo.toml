@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "企业级数据同步管理平台 - Web 后端服务"
 
+[lints]
+workspace = true
+
 [dependencies]
 actix-web = "4"
 actix-cors = "0.7"
@@ -26,3 +29,14 @@ sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite", "chrono"
 jsonwebtoken = "9"
 argon2 = "0.5"
 futures = "0.3"
+
+[dev-dependencies]
+actix-rt = "2"
+actix-test = "0.1"
+rstest = "0.24"
+mockall = "0.14"
+reqwest = { version = "0.12", features = ["json"] }
+serial_test = "3"
+tempfile = "3"
+tokio-test = "0.4"
+pretty_assertions = "1"

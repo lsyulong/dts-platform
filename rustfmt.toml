@@ -1,0 +1,35 @@
+# Rustfmt 配置 — DTS Platform
+# 遵循 Rust 社区标准格式化规则
+
+max_width = 100
+hard_tabs = false
+tab_spaces = 4
+newline_style = "Auto"
+use_small_heuristics = "Default"
+
+# 导入排序
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+reorder_imports = true
+
+# 代码风格
+match_block_trailing_comma = true
+match_arm_blocks = true
+trailing_comma = "Vertical"
+trailing_semicolon = true
+use_field_init_shorthand = true
+use_try_shorthand = true
+
+# 格式化细节
+format_code_in_doc_comments = true
+format_macro_matchers = true
+format_strings = false
+normalize_comments = false
+normalize_doc_attributes = false
+wrap_comments = false
+
+# 空行与空格
+blank_lines_upper_bound = 1
+blank_lines_lower_bound = 0
+edition = "2021"
+version = "Two"

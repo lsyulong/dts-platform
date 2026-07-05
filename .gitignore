@@ -29,3 +29,12 @@ Thumbs.db
 
 # Shadcn
 web/components/ui/
+
+# Coverage
+coverage/
+*.lcov
+htmlcov/
+lcov.info
+
+# Test
+*.proptest-regressions

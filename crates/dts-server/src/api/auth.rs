@@ -104,3 +104,89 @@ async fn get_user_info(pool: &sqlx::SqlitePool, user_id: &str) -> Result<UserInf
         permissions,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::AppConfig;
+    use pretty_assertions::assert_eq;
+    use sqlx::SqlitePool;
+
+    async fn create_test_pool() -> SqlitePool {
+        use sqlx::sqlite::SqlitePoolOptions;
+        SqlitePoolOptions::new()
+            .max_connections(5)
+            .connect("sqlite::memory:")
+            .await
+            .expect("Failed to create test pool")
+    }
+
+    fn test_config() -> AppConfig {
+        AppConfig::for_test()
+    }
+
+    // ========== LoginRequest Deserialization Tests ==========
+
+    #[test]
+    fn login_request_valid_json() {
+        let json = serde_json::json!({
+            "username": "admin",
+            "password": "secret123",
+            "tenant_slug": "default"
+        });
+        let req: LoginRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(req.username, "admin");
+        assert_eq!(req.password, "secret123");
+        assert_eq!(req.tenant_slug, "default");
+    }
+
+    #[test]
+    fn login_request_missing_username_fails() {
+        let json = serde_json::json!({
+            "password": "secret",
+            "tenant_slug": "default"
+        });
+        let result = serde_json::from_value::<LoginRequest>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn login_request_missing_password_fails() {
+        let json = serde_json::json!({
+            "username": "admin",
+            "tenant_slug": "default"
+        });
+        let result = serde_json::from_value::<LoginRequest>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn login_request_missing_tenant_slug_fails() {
+        let json = serde_json::json!({
+            "username": "admin",
+            "password": "secret"
+        });
+        let result = serde_json::from_value::<LoginRequest>(json);
+        assert!(result.is_err());
+    }
+
+    // ========== AuthService Construction Tests ==========
+
+    #[tokio::test]
+    async fn auth_service_new_creates_service() {
+        let pool = create_test_pool().await;
+        let config = test_config();
+        let svc = AuthService::new(pool, config);
+        // Just verify construction doesn't panic
+        assert_eq!(svc.config.jwt_expiry_hours, 24);
+    }
+
+    #[tokio::test]
+    async fn auth_service_clone_works() {
+        let pool = create_test_pool().await;
+        let config = test_config();
+        let svc = AuthService::new(pool, config);
+        let cloned = svc.clone();
+        assert_eq!(cloned.config.jwt_secret, svc.config.jwt_secret);
+    }
+}

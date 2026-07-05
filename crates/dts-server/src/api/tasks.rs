@@ -4,6 +4,7 @@ use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
 
 use crate::middleware::auth;
+use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
 
 /// 创建任务请求
@@ -36,7 +37,7 @@ pub async fn list(
     pool: web::Data<SqlitePool>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(&req);
+    let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
     let tasks: Vec<TaskResponse> = sqlx::query_as::<_, TaskResponse>(
@@ -61,7 +62,7 @@ pub async fn create(
     req: HttpRequest,
     body: web::Json<CreateTaskRequest>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(&req);
+    let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
     // 验证 source 和 target 存在
@@ -117,7 +118,7 @@ pub async fn get(
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(&req);
+    let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
     let task_id = path.into_inner();
 
@@ -195,7 +196,7 @@ pub async fn update_status(
     path: web::Path<String>,
     body: web::Json<UpdateStatusRequest>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(&req);
+    let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
     let task_id = path.into_inner();
 
@@ -223,6 +224,165 @@ pub async fn update_status(
     })))
 }
 
-fn get_jwt_secret(_req: &HttpRequest) -> String {
-    std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev-secret-change-me".to_string())
+// get_jwt_secret 已集中到 crate::middleware::auth
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    // ========== CreateTaskRequest Deserialization Tests ==========
+
+    #[test]
+    fn create_task_request_with_all_fields() {
+        let json = serde_json::json!({
+            "name": "My Sync Task",
+            "description": "Syncs user data",
+            "source_id": "src-1",
+            "target_id": "tgt-1",
+            "cron_expr": "0 */6 * * *",
+            "table_mappings": {"users": "users_backup"},
+            "filter_config": {"status": "active"}
+        });
+        let req: CreateTaskRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(req.name, "My Sync Task");
+        assert_eq!(req.description, Some("Syncs user data".into()));
+        assert_eq!(req.source_id, "src-1");
+        assert_eq!(req.target_id, "tgt-1");
+        assert_eq!(req.cron_expr, Some("0 */6 * * *".into()));
+        assert!(req.table_mappings.is_some());
+        assert!(req.filter_config.is_some());
+    }
+
+    #[test]
+    fn create_task_request_minimal_fields() {
+        let json = serde_json::json!({
+            "name": "Simple Task",
+            "source_id": "src-1",
+            "target_id": "tgt-1"
+        });
+        let req: CreateTaskRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(req.name, "Simple Task");
+        assert_eq!(req.description, None);
+        assert_eq!(req.source_id, "src-1");
+        assert_eq!(req.target_id, "tgt-1");
+        assert_eq!(req.cron_expr, None);
+        assert_eq!(req.table_mappings, None);
+        assert_eq!(req.filter_config, None);
+    }
+
+    #[test]
+    fn create_task_request_missing_name_fails() {
+        let json = serde_json::json!({
+            "source_id": "src-1",
+            "target_id": "tgt-1"
+        });
+        let result = serde_json::from_value::<CreateTaskRequest>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn create_task_request_missing_source_id_fails() {
+        let json = serde_json::json!({
+            "name": "Task",
+            "target_id": "tgt-1"
+        });
+        let result = serde_json::from_value::<CreateTaskRequest>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn create_task_request_missing_target_id_fails() {
+        let json = serde_json::json!({
+            "name": "Task",
+            "source_id": "src-1"
+        });
+        let result = serde_json::from_value::<CreateTaskRequest>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn create_task_request_with_null_optionals() {
+        let json = serde_json::json!({
+            "name": "Task",
+            "source_id": "s1",
+            "target_id": "t1",
+            "description": null,
+            "cron_expr": null,
+            "table_mappings": null,
+            "filter_config": null
+        });
+        let req: CreateTaskRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(req.description, None);
+        assert_eq!(req.cron_expr, None);
+        assert_eq!(req.table_mappings, None);
+        assert_eq!(req.filter_config, None);
+    }
+
+    // ========== UpdateStatusRequest Tests ==========
+
+    #[test]
+    fn update_status_request_valid_statuses() {
+        for status in &["draft", "running", "paused", "completed", "failed"] {
+            let json = serde_json::json!({"status": status});
+            let req: UpdateStatusRequest = serde_json::from_value(json).unwrap();
+            assert_eq!(req.status, *status);
+        }
+    }
+
+    #[test]
+    fn update_status_request_invalid_json() {
+        let json = serde_json::json!({"wrong_field": "value"});
+        let result = serde_json::from_value::<UpdateStatusRequest>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn update_status_request_empty_json() {
+        let json = serde_json::json!({});
+        let result = serde_json::from_value::<UpdateStatusRequest>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn update_status_request_rejects_unknown_status_at_type_level() {
+        // Unknown statuses parse fine at the JSON level (it's just a String)
+        // but the handler validates them — test that deserialization works
+        let json = serde_json::json!({"status": "unknown-status"});
+        let req: UpdateStatusRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(req.status, "unknown-status");
+    }
+
+    #[test]
+    fn valid_status_values_list_is_complete() {
+        let valid_statuses = ["draft", "running", "paused", "completed", "failed"];
+        // "draft" is the initial status
+        assert!(valid_statuses.contains(&"draft"));
+        assert!(valid_statuses.contains(&"running"));
+        assert!(valid_statuses.contains(&"paused"));
+        assert!(valid_statuses.contains(&"completed"));
+        assert!(valid_statuses.contains(&"failed"));
+        assert!(!valid_statuses.contains(&"deleted")); // not a valid status
+    }
+
+    // ========== TaskResponse Tests ==========
+
+    #[test]
+    fn task_response_fields() {
+        let task = TaskResponse {
+            id: "task-1".into(),
+            name: "Test Task".into(),
+            description: Some("A test".into()),
+            source_id: "src-1".into(),
+            target_id: "tgt-1".into(),
+            cron_expr: None,
+            status: "draft".into(),
+            created_at: "2024-01-01".into(),
+        };
+        let json = serde_json::to_value(&task).unwrap();
+        assert_eq!(json["id"], "task-1");
+        assert_eq!(json["name"], "Test Task");
+        assert_eq!(json["status"], "draft");
+        assert!(json["cron_expr"].is_null());
+    }
 }

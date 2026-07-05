@@ -1,0 +1,15 @@
+# release-plz 配置 — DTS Platform
+# 基于 Conventional Commits 自动版本管理和发布
+
+[workspace]
+changelog_update = true
+git_release_enable = true
+github_release_enable = true
+prerelease = false
+allow_dirty = false
+
+[[package]]
+name = "dts-server"
+changelog_path = "CHANGELOG.md"
+publish = false
+release = true

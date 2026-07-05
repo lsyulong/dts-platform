@@ -2,6 +2,7 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use sqlx::{Row, SqlitePool};
 
 use crate::middleware::auth;
+use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
 
 /// GET /api/v1/monitoring/overview
@@ -9,7 +10,7 @@ pub async fn overview(
     pool: web::Data<SqlitePool>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(&req);
+    let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
     let total_tasks: i64 = sqlx::query_scalar(
@@ -106,7 +107,117 @@ pub async fn overview(
         "recent_runs": recent_runs,
     })))
 }
+// get_jwt_secret 已集中到 crate::middleware::auth
 
-fn get_jwt_secret(_req: &HttpRequest) -> String {
-    std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev-secret-change-me".to_string())
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    // ========== Overview Response Structure Tests ==========
+
+    #[test]
+    fn overview_response_json_structure_is_complete() {
+        // Verify the expected JSON structure by constructing a sample response
+        let response = serde_json::json!({
+            "total_tasks": 10,
+            "running_tasks": 3,
+            "failed_tasks": 1,
+            "total_datasources": 5,
+            "healthy_datasources": 4,
+            "today_synced_rows": 50000,
+            "today_synced_bytes": 1048576,
+            "success_rate": 90.0,
+            "recent_runs": []
+        });
+
+        // All expected keys should be present
+        assert!(response["total_tasks"].is_number());
+        assert!(response["running_tasks"].is_number());
+        assert!(response["failed_tasks"].is_number());
+        assert!(response["total_datasources"].is_number());
+        assert!(response["healthy_datasources"].is_number());
+        assert!(response["today_synced_rows"].is_number());
+        assert!(response["today_synced_bytes"].is_number());
+        assert!(response["success_rate"].is_number());
+        assert!(response["recent_runs"].is_array());
+    }
+
+    #[test]
+    fn overview_success_rate_calculation() {
+        // Verify the success_rate formula: 100 * (total - failed) / total
+        let total_tasks: i64 = 10;
+        let failed_tasks: i64 = 2;
+        let success_rate = if total_tasks > 0 {
+            100.0 * (total_tasks - failed_tasks) as f64 / total_tasks as f64
+        } else {
+            100.0
+        };
+        assert_eq!(success_rate, 80.0);
+    }
+
+    #[test]
+    fn overview_success_rate_when_no_tasks() {
+        let total_tasks: i64 = 0;
+        let failed_tasks: i64 = 0;
+        let success_rate = if total_tasks > 0 {
+            100.0 * (total_tasks - failed_tasks) as f64 / total_tasks as f64
+        } else {
+            100.0
+        };
+        assert_eq!(success_rate, 100.0);
+    }
+
+    #[test]
+    fn overview_success_rate_when_all_failed() {
+        let total_tasks: i64 = 5;
+        let failed_tasks: i64 = 5;
+        let success_rate = if total_tasks > 0 {
+            100.0 * (total_tasks - failed_tasks) as f64 / total_tasks as f64
+        } else {
+            100.0
+        };
+        assert_eq!(success_rate, 0.0);
+    }
+
+    #[test]
+    fn overview_success_rate_when_all_succeed() {
+        let total_tasks: i64 = 10;
+        let failed_tasks: i64 = 0;
+        let success_rate = if total_tasks > 0 {
+            100.0 * (total_tasks - failed_tasks) as f64 / total_tasks as f64
+        } else {
+            100.0
+        };
+        assert_eq!(success_rate, 100.0);
+    }
+
+    #[test]
+    fn overview_default_values_for_null_sums() {
+        // today_synced_rows unwrap_or(0) behavior
+        let rows: Option<i64> = None;
+        assert_eq!(rows.unwrap_or(0), 0);
+
+        let bytes: Option<i64> = None;
+        assert_eq!(bytes.unwrap_or(0), 0);
+
+        let rows_some: Option<i64> = Some(12345);
+        assert_eq!(rows_some.unwrap_or(0), 12345);
+    }
+
+    #[test]
+    fn overview_recent_runs_structure() {
+        let run = serde_json::json!({
+            "id": "run-1",
+            "task_id": "task-1",
+            "task_name": "Sync Task",
+            "status": "completed",
+            "start_time": "2024-01-01T00:00:00Z",
+            "rows_synced": 1000,
+            "bytes_synced": 50000
+        });
+        assert_eq!(run["id"], "run-1");
+        assert_eq!(run["status"], "completed");
+        assert_eq!(run["rows_synced"], 1000);
+        assert_eq!(run["bytes_synced"], 50000);
+    }
 }

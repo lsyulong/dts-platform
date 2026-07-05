@@ -136,3 +136,192 @@ impl AuthService {
         Ok(hash.to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::AppConfig;
+    use argon2::PasswordVerifier;
+    use jsonwebtoken::{encode, EncodingKey, Header};
+    use pretty_assertions::assert_eq;
+    use sqlx::SqlitePool;
+
+    fn test_config() -> AppConfig {
+        AppConfig::for_test()
+    }
+
+    async fn create_test_pool() -> SqlitePool {
+        use sqlx::sqlite::SqlitePoolOptions;
+        SqlitePoolOptions::new()
+            .max_connections(5)
+            .connect("sqlite::memory:")
+            .await
+            .expect("Failed to create test pool")
+    }
+
+    /// Helper: generate a valid JWT for verify_token tests
+    fn generate_token(sub: &str, tenant_id: &str, secret: &str, hours_valid: i64) -> String {
+        let now = chrono::Utc::now();
+        let claims = Claims {
+            sub: sub.into(),
+            tenant_id: tenant_id.into(),
+            username: "testuser".into(),
+            exp: (now + chrono::Duration::hours(hours_valid)).timestamp() as usize,
+            iat: now.timestamp() as usize,
+        };
+        encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(secret.as_bytes()),
+        )
+        .unwrap()
+    }
+
+    /// Helper: generate an expired JWT
+    fn generate_expired_token(secret: &str) -> String {
+        let now = chrono::Utc::now();
+        let claims = Claims {
+            sub: "user-1".into(),
+            tenant_id: "tenant-1".into(),
+            username: "testuser".into(),
+            exp: (now - chrono::Duration::hours(1)).timestamp() as usize,
+            iat: (now - chrono::Duration::hours(2)).timestamp() as usize,
+        };
+        encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(secret.as_bytes()),
+        )
+        .unwrap()
+    }
+
+    // ========== hash_password_sync Tests ==========
+
+    #[test]
+    fn hash_password_sync_produces_valid_argon2_hash() {
+        let hash = AuthService::hash_password_sync("mypassword").unwrap();
+        // Argon2 hashes start with $argon2
+        assert!(hash.starts_with("$argon2"));
+        // Should contain version and parameters
+        assert!(hash.contains("$v="));
+        assert!(hash.contains("$m="));
+    }
+
+    #[test]
+    fn hash_password_sync_produces_different_hashes_for_same_password() {
+        let hash1 = AuthService::hash_password_sync("samepassword").unwrap();
+        let hash2 = AuthService::hash_password_sync("samepassword").unwrap();
+        // Different salts should produce different hashes
+        assert_ne!(hash1, hash2);
+    }
+
+    #[test]
+    fn hash_password_sync_generated_hash_can_be_verified() {
+        let password = "secret123";
+        let hash = AuthService::hash_password_sync(password).unwrap();
+
+        let parsed_hash = PasswordHash::new(&hash).unwrap();
+        let result = Argon2::default()
+            .verify_password(password.as_bytes(), &parsed_hash);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn hash_password_sync_generated_hash_fails_with_wrong_password() {
+        let hash = AuthService::hash_password_sync("correct_password").unwrap();
+
+        let parsed_hash = PasswordHash::new(&hash).unwrap();
+        let result = Argon2::default()
+            .verify_password("wrong_password".as_bytes(), &parsed_hash);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn hash_password_sync_empty_password_works() {
+        let hash = AuthService::hash_password_sync("").unwrap();
+        assert!(hash.starts_with("$argon2"));
+    }
+
+    #[test]
+    fn hash_password_sync_long_password_works() {
+        let long_pw = "a".repeat(1000);
+        let hash = AuthService::hash_password_sync(&long_pw).unwrap();
+        assert!(hash.starts_with("$argon2"));
+    }
+
+    #[test]
+    fn hash_password_sync_unicode_password_works() {
+        let hash = AuthService::hash_password_sync("密码123!@#").unwrap();
+        assert!(hash.starts_with("$argon2"));
+    }
+
+    // ========== verify_token Tests ==========
+
+    #[tokio::test]
+    async fn verify_token_valid_token_returns_claims() {
+        let pool = create_test_pool().await;
+        let config = test_config();
+        let svc = AuthService::new(pool, config);
+
+        let token = generate_token("user-1", "tenant-1", &svc.config.jwt_secret, 1);
+        let result = svc.verify_token(&token);
+        assert!(result.is_ok());
+        let claims = result.unwrap();
+        assert_eq!(claims.sub, "user-1");
+        assert_eq!(claims.tenant_id, "tenant-1");
+        assert_eq!(claims.username, "testuser");
+    }
+
+    #[tokio::test]
+    async fn verify_token_expired_token_returns_err() {
+        let pool = create_test_pool().await;
+        let config = test_config();
+        let svc = AuthService::new(pool, config);
+
+        let token = generate_expired_token(&svc.config.jwt_secret);
+        let result = svc.verify_token(&token);
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn verify_token_wrong_secret_returns_err() {
+        let pool = create_test_pool().await;
+        let config = test_config();
+        let svc = AuthService::new(pool, config);
+
+        let token = generate_token("user-1", "tenant-1", "wrong-secret-key", 1);
+        let result = svc.verify_token(&token);
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn verify_token_malformed_token_returns_err() {
+        let pool = create_test_pool().await;
+        let config = test_config();
+        let svc = AuthService::new(pool, config);
+
+        let result = svc.verify_token("not-a-valid-jwt");
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn verify_token_empty_token_returns_err() {
+        let pool = create_test_pool().await;
+        let config = test_config();
+        let svc = AuthService::new(pool, config);
+
+        let result = svc.verify_token("");
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn verify_token_token_with_three_parts_but_invalid_returns_err() {
+        let pool = create_test_pool().await;
+        let config = test_config();
+        let svc = AuthService::new(pool, config);
+
+        // Looks like JWT format but has invalid base64 content
+        let result = svc.verify_token("header.payload.signature");
+        assert!(result.is_err());
+    }
+}

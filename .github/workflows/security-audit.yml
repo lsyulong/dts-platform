@@ -1,0 +1,85 @@
+# DTS Platform - 安全审计流水线
+# 触发条件: 依赖文件变更 / 每周一定时运行
+
+name: Security Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "web/package.json"
+      - "web/package-lock.json"
+  pull_request:
+    branches: [main]
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "web/package.json"
+      - "web/package-lock.json"
+  schedule:
+    # 每周一 08:00 UTC+8
+    - cron: "0 0 * * 1"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # --------------------------------------------------
+  # cargo-audit: Rust 依赖漏洞扫描
+  # --------------------------------------------------
+  cargo-audit:
+    name: Cargo Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 运行 cargo-audit 安全扫描
+        uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # --------------------------------------------------
+  # cargo-deny: Rust 依赖许可证与安全检查
+  # --------------------------------------------------
+  cargo-deny:
+    name: Cargo Deny
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        checks:
+          - advisories
+          - bans
+          - licenses
+          - sources
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 运行 cargo-deny (${{ matrix.checks }})
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check ${{ matrix.checks }}
+
+  # --------------------------------------------------
+  # npm-audit: Node 依赖审计
+  # --------------------------------------------------
+  npm-audit:
+    name: npm Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: npm 安全审计
+        run: npm audit --audit-level=high

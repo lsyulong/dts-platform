@@ -167,3 +167,270 @@ impl TenantService {
         Ok(tenant)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use sqlx::SqlitePool;
+
+    async fn create_test_pool() -> SqlitePool {
+        use sqlx::sqlite::SqlitePoolOptions;
+        let pool = SqlitePoolOptions::new()
+            .max_connections(5)
+            .connect("sqlite::memory:")
+            .await
+            .expect("Failed to create test pool");
+
+        // Create schema
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS tenant (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                slug TEXT NOT NULL UNIQUE,
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )"
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS role (
+                id TEXT PRIMARY KEY,
+                tenant_id TEXT NOT NULL REFERENCES tenant(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                description TEXT,
+                is_system INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE(tenant_id, name)
+            )"
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS role_permission (
+                role_id TEXT NOT NULL REFERENCES role(id) ON DELETE CASCADE,
+                permission TEXT NOT NULL,
+                PRIMARY KEY (role_id, permission)
+            )"
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS user (
+                id TEXT PRIMARY KEY,
+                tenant_id TEXT NOT NULL REFERENCES tenant(id) ON DELETE CASCADE,
+                username TEXT NOT NULL,
+                email TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                display_name TEXT,
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE(tenant_id, username),
+                UNIQUE(tenant_id, email)
+            )"
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS user_role (
+                user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+                role_id TEXT NOT NULL REFERENCES role(id) ON DELETE CASCADE,
+                PRIMARY KEY (user_id, role_id)
+            )"
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        pool
+    }
+
+    // ========== create_tenant Tests ==========
+
+    #[tokio::test]
+    async fn create_tenant_creates_new_tenant_and_returns_id() {
+        let pool = create_test_pool().await;
+        let svc = TenantService::new(pool.clone());
+
+        let tenant_id = svc
+            .create_tenant(
+                "Test Tenant",
+                "test-tenant",
+                "admin",
+                "admin@test.com",
+                "hashed_password",
+            )
+            .await
+            .unwrap();
+
+        assert!(!tenant_id.is_empty());
+
+        // Verify tenant exists in DB
+        let name: String = sqlx::query_scalar("SELECT name FROM tenant WHERE id = ?")
+            .bind(&tenant_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(name, "Test Tenant");
+    }
+
+    #[tokio::test]
+    async fn create_tenant_creates_default_roles() {
+        let pool = create_test_pool().await;
+        let svc = TenantService::new(pool.clone());
+
+        let tenant_id = svc
+            .create_tenant("T", "t", "admin", "a@t.com", "pw")
+            .await
+            .unwrap();
+
+        // Check that 3 default roles were created
+        let role_count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM role WHERE tenant_id = ?"
+        )
+        .bind(&tenant_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(role_count, 3);
+
+        // Verify role names
+        let roles: Vec<String> = sqlx::query_scalar(
+            "SELECT name FROM role WHERE tenant_id = ? ORDER BY name"
+        )
+        .bind(&tenant_id)
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        assert_eq!(roles, vec!["developer", "tenant_admin", "viewer"]);
+    }
+
+    #[tokio::test]
+    async fn create_tenant_creates_admin_user() {
+        let pool = create_test_pool().await;
+        let svc = TenantService::new(pool.clone());
+
+        let tenant_id = svc
+            .create_tenant("MyOrg", "my-org", "root", "root@myorg.com", "secret_hash")
+            .await
+            .unwrap();
+
+        let username: String = sqlx::query_scalar(
+            "SELECT username FROM user WHERE tenant_id = ?"
+        )
+        .bind(&tenant_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(username, "root");
+    }
+
+    #[tokio::test]
+    async fn create_tenant_duplicate_slug_fails() {
+        let pool = create_test_pool().await;
+        let svc = TenantService::new(pool.clone());
+
+        svc.create_tenant("First", "unique-slug", "admin", "a@t.com", "pw")
+            .await
+            .unwrap();
+
+        let result = svc
+            .create_tenant("Second", "unique-slug", "admin2", "b@t.com", "pw")
+            .await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("已存在"));
+    }
+
+    // ========== list Tests ==========
+
+    #[tokio::test]
+    async fn list_returns_empty_vec_when_no_tenants() {
+        let pool = create_test_pool().await;
+        let svc = TenantService::new(pool);
+
+        let tenants = svc.list().await.unwrap();
+        assert!(tenants.is_empty());
+    }
+
+    #[tokio::test]
+    async fn list_returns_all_tenants() {
+        let pool = create_test_pool().await;
+        let svc = TenantService::new(pool.clone());
+
+        svc.create_tenant("T1", "t1", "admin", "a1@t.com", "pw")
+            .await
+            .unwrap();
+        svc.create_tenant("T2", "t2", "admin", "a2@t.com", "pw")
+            .await
+            .unwrap();
+
+        let tenants = svc.list().await.unwrap();
+        assert_eq!(tenants.len(), 2);
+
+        let slugs: Vec<&str> = tenants.iter().map(|t| t.slug.as_str()).collect();
+        assert!(slugs.contains(&"t1"));
+        assert!(slugs.contains(&"t2"));
+    }
+
+    #[tokio::test]
+    async fn list_returns_active_status_by_default() {
+        let pool = create_test_pool().await;
+        let svc = TenantService::new(pool.clone());
+
+        svc.create_tenant("Active Corp", "active-corp", "admin", "a@ac.com", "pw")
+            .await
+            .unwrap();
+
+        let tenants = svc.list().await.unwrap();
+        assert_eq!(tenants[0].status, "active");
+    }
+
+    // ========== get_by_id Tests ==========
+
+    #[tokio::test]
+    async fn get_by_id_returns_tenant_when_found() {
+        let pool = create_test_pool().await;
+        let svc = TenantService::new(pool.clone());
+
+        let tenant_id = svc
+            .create_tenant("FindMe", "find-me", "admin", "a@fm.com", "pw")
+            .await
+            .unwrap();
+
+        let tenant = svc.get_by_id(&tenant_id).await.unwrap();
+        assert_eq!(tenant.id, tenant_id);
+        assert_eq!(tenant.name, "FindMe");
+        assert_eq!(tenant.slug, "find-me");
+    }
+
+    #[tokio::test]
+    async fn get_by_id_non_existent_returns_error() {
+        let pool = create_test_pool().await;
+        let svc = TenantService::new(pool);
+
+        let result = svc.get_by_id("non-existent-id").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("不存在"));
+    }
+
+    #[tokio::test]
+    async fn get_by_id_empty_string_returns_error() {
+        let pool = create_test_pool().await;
+        let svc = TenantService::new(pool);
+
+        let result = svc.get_by_id("").await;
+        assert!(result.is_err());
+    }
+}

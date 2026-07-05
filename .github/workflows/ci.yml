@@ -1,0 +1,165 @@
+# DTS Platform - 主 CI 流水线
+# 触发条件: PR 到 main 分支 / 推送到 main 分支
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  # --------------------------------------------------
+  # 变更检测：跳过不需要运行的工作
+  # --------------------------------------------------
+  changes:
+    name: 变更检测
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      ci-config: ${{ steps.filter.outputs.ci-config }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 检测文件变更
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - '**/*.rs'
+              - '**/Cargo.toml'
+              - '**/Cargo.lock'
+              - 'rust-toolchain.toml'
+            frontend:
+              - 'web/**'
+            ci-config:
+              - '.github/workflows/**'
+              - '.github/dependabot.yml'
+              - 'codecov.yml'
+              - 'deny.toml'
+
+  # --------------------------------------------------
+  # Rust 静态检查与测试
+  # --------------------------------------------------
+  rust-checks:
+    name: Rust 检查与测试
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' || needs.changes.outputs.ci-config == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Rust 工具链
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.88.0"
+          components: rustfmt, clippy
+
+      - name: Rust 缓存
+        uses: Swatinem/rust-cache@v2
+
+      - name: 格式化检查 (cargo fmt)
+        run: cargo fmt --all -- --check
+
+      - name: Clippy 代码检查
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: 编译检查 (cargo check)
+        run: cargo check --all-targets --all-features
+
+      - name: 运行单元测试
+        run: cargo test --all-features
+
+  # --------------------------------------------------
+  # 前端静态检查与测试
+  # --------------------------------------------------
+  frontend-checks:
+    name: 前端检查与测试
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' || needs.changes.outputs.ci-config == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: Oxlint 代码检查
+        run: npx oxlint
+
+      - name: TypeScript 类型检查
+        run: npx tsc -b
+
+      - name: 运行单元测试
+        run: npx vitest run
+
+  # --------------------------------------------------
+  # 构建（仅在校验通过后执行）
+  # --------------------------------------------------
+  build:
+    name: 生产构建
+    needs: [rust-checks, frontend-checks]
+    # 即使 rust-checks 或 frontend-checks 被跳过（因为无变更），也应该继续构建
+    # 但如果任一项失败（不是跳过），则构建也会被跳过
+    if: |
+      always() &&
+      (needs.rust-checks.result == 'success' || needs.rust-checks.result == 'skipped') &&
+      (needs.frontend-checks.result == 'success' || needs.frontend-checks.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Rust 构建 ---
+      - name: 安装 Rust 工具链
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.88.0"
+
+      - name: Rust 缓存
+        uses: Swatinem/rust-cache@v2
+
+      - name: 构建 Rust (release)
+        run: cargo build --release
+
+      # --- 前端构建 ---
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: 安装前端依赖
+        working-directory: web
+        run: npm ci
+
+      - name: 构建前端 (production)
+        working-directory: web
+        run: npm run build

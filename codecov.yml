@@ -1,0 +1,54 @@
+# DTS Platform - Codecov 覆盖率配置
+
+# 在报告前等待 CI 完成
+codecov:
+  require_ci_to_pass: true
+
+# 全局 CI 配置
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
+
+# 覆盖率状态检查
+coverage:
+  status:
+    # 项目级别覆盖率
+    project:
+      default:
+        target: 95%
+        threshold: 1%
+        base: auto
+      rust:
+        target: 95%
+        threshold: 1%
+        flags:
+          - rust
+      frontend:
+        target: 95%
+        threshold: 1%
+        flags:
+          - frontend
+
+    # 补丁级别覆盖率（增量代码）
+    patch:
+      default:
+        target: 95%
+        threshold: 0%
+
+# 各标志位的独立配置
+flags:
+  rust:
+    carryforward: false
+    paths:
+      - "crates/"
+  frontend:
+    carryforward: false
+    paths:
+      - "web/src/"
+
+# 忽略不需要统计覆盖率的路径
+ignore:
+  - "crates/*/tests/**"
+  - "web/vite.config.ts"
+  - "web/src/vite-env.d.ts"
