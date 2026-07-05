@@ -32,7 +32,7 @@ impl WsHub {
     /// 向任务频道推送进度
     pub fn push_progress(&self, task_id: &str, rows_synced: u64, bytes_synced: u64, total_rows: u64) {
         let percentage = if total_rows > 0 {
-            (rows_synced as f64 / total_rows as f64 * 100.0)
+            rows_synced as f64 / total_rows as f64 * 100.0
         } else {
             0.0
         };

@@ -67,7 +67,7 @@ pub struct TenantInfo {
     pub name: String,
     pub slug: String,
     pub status: String,
-    pub created_at: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[cfg(test)]
@@ -200,7 +200,7 @@ mod tests {
             name: "Test Tenant".into(),
             slug: "test".into(),
             status: "active".into(),
-            created_at: "2024-01-01T00:00:00Z".into(),
+            created_at: chrono::Utc::now(),
         };
         assert_eq!(info.id, "t1");
         assert_eq!(info.name, "Test Tenant");

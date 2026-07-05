@@ -13,6 +13,7 @@ async fn health_check_returns_200_with_healthy_status() {
     let app = test::init_service(
         App::new()
             .app_data(actix_web::web::Data::new(pool))
+            .app_data(actix_web::web::Data::new(config))
             .route("/health", actix_web::web::get().to(app::health_check)),
     )
     .await;
@@ -27,10 +28,12 @@ async fn health_check_returns_200_with_healthy_status() {
 #[actix_web::test]
 async fn health_check_returns_correct_json_structure() {
     let pool = common::setup_test_db().await.unwrap();
+    let config = common::test_config();
 
     let app = test::init_service(
         App::new()
             .app_data(actix_web::web::Data::new(pool))
+            .app_data(actix_web::web::Data::new(config))
             .route("/health", actix_web::web::get().to(app::health_check)),
     )
     .await;

@@ -31,10 +31,10 @@ impl AppConfig {
         }
     }
 
-    /// 测试用默认配置（使用内存 SQLite + 固定密钥）
+    /// 测试用默认配置
     pub fn for_test() -> Self {
         Self {
-            database_url: "sqlite::memory:".to_string(),
+            database_url: "postgres://localhost:5432/dts_test".to_string(),
             jwt_secret: "test-secret-key-for-unit-tests".to_string(),
             jwt_expiry_hours: 24,
             server_host: "127.0.0.1".to_string(),
@@ -49,7 +49,7 @@ impl AppConfig {
 
         Ok(Self {
             database_url: env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "sqlite:./data/dts.db?mode=rwc".to_string()),
+                .unwrap_or_else(|_| "postgres://localhost:5432/dts".to_string()),
             jwt_secret: env::var("JWT_SECRET")
                 .unwrap_or_else(|_| "dev-secret-change-me".to_string()),
             jwt_expiry_hours: env::var("JWT_EXPIRY_HOURS")
@@ -74,14 +74,14 @@ mod tests {
     #[test]
     fn new_creates_config_with_given_values() {
         let config = AppConfig::new(
-            "sqlite::memory:",
+            "postgres://localhost/dts",
             "my-secret",
             48,
             "127.0.0.1",
             3000,
             "/tmp/data",
         );
-        assert_eq!(config.database_url, "sqlite::memory:");
+        assert_eq!(config.database_url, "postgres://localhost/dts");
         assert_eq!(config.jwt_secret, "my-secret");
         assert_eq!(config.jwt_expiry_hours, 48);
         assert_eq!(config.server_host, "127.0.0.1");
@@ -90,10 +90,10 @@ mod tests {
     }
 
     #[test]
-    fn for_test_creates_memory_db_config() {
+    fn for_test_creates_postgres_config() {
         let config = AppConfig::for_test();
-        assert_eq!(config.database_url, "sqlite::memory:");
-        assert!(config.server_port == 0); // OS 自动分配
+        assert!(config.database_url.starts_with("postgres://"));
+        assert!(config.server_port == 0);
     }
 
     #[test]

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Database, Search, Trash2, Wifi, WifiOff } from 'lucide-react';
+import { Plus, Trash2, Wifi, WifiOff } from 'lucide-react';
 import client from '../api/client';
 
 interface Datasource {

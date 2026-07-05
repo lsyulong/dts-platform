@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Play, Pause, Trash2 } from 'lucide-react';
+import { Plus, Search, Play, Pause } from 'lucide-react';
 import client from '../../api/client';
 
 interface Task {

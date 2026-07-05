@@ -6,17 +6,19 @@ use dts_server::config::AppConfig;
 use dts_server::db;
 use dts_server::models::auth::Claims;
 use jsonwebtoken::{EncodingKey, Header};
-use sqlx::{Row, SqlitePool};
+use sqlx::PgPool;
 
-/// 创建测试用内存数据库并运行迁移
-pub async fn setup_test_db() -> anyhow::Result<SqlitePool> {
-    let pool = db::create_pool("sqlite::memory:").await?;
+/// 创建测试用数据库连接并运行迁移
+pub async fn setup_test_db() -> anyhow::Result<PgPool> {
+    let database_url = std::env::var("TEST_DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://localhost:5432/dts_test".to_string());
+    let pool = db::create_pool(&database_url).await?;
     db::run_migrations(&pool).await?;
     Ok(pool)
 }
 
 /// 创建测试用数据库（含种子数据）
-pub async fn setup_test_db_with_seed() -> anyhow::Result<SqlitePool> {
+pub async fn setup_test_db_with_seed() -> anyhow::Result<PgPool> {
     let pool = setup_test_db().await?;
     db::seed_default_data(&pool).await?;
     Ok(pool)
@@ -25,7 +27,8 @@ pub async fn setup_test_db_with_seed() -> anyhow::Result<SqlitePool> {
 /// 创建测试用 AppConfig（使用固定的 JWT 密钥便于测试）
 pub fn test_config() -> AppConfig {
     AppConfig::new(
-        "sqlite::memory:",
+        std::env::var("TEST_DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://localhost:5432/dts_test".to_string()),
         "test-jwt-secret-for-integration-tests",
         24,
         "127.0.0.1",
@@ -59,14 +62,14 @@ pub fn generate_test_token(
 }
 
 /// 获取默认租户的管理员 token（假设 seed 数据已初始化）
-pub async fn get_admin_token(pool: &SqlitePool) -> String {
+pub async fn get_admin_token(pool: &PgPool) -> String {
     let config = test_config();
 
     // 从数据库查询默认租户和 admin 用户
     let row = sqlx::query(
         "SELECT t.id as tenant_id, u.id as user_id, u.username
          FROM tenant t
-         JOIN user u ON u.tenant_id = t.id
+         JOIN \"user\" u ON u.tenant_id = t.id
          WHERE t.slug = 'default' AND u.username = 'admin'"
     )
     .fetch_one(pool)

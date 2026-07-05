@@ -1,48 +1,49 @@
 use actix_web::{web, HttpRequest, HttpResponse};
-use sqlx::{Row, SqlitePool};
+use sqlx::Row;
 
+use crate::db::DbPool;
 use crate::middleware::auth;
 use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
 
 /// GET /api/v1/monitoring/overview
 pub async fn overview(
-    pool: web::Data<SqlitePool>,
+    pool: web::Data<DbPool>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
     let total_tasks: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM sync_task WHERE tenant_id = ?"
+        "SELECT COUNT(*) FROM sync_task WHERE tenant_id = $1"
     )
     .bind(&claims.tenant_id)
     .fetch_one(pool.get_ref())
     .await?;
 
     let running_tasks: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM sync_task WHERE tenant_id = ? AND status = 'running'"
+        "SELECT COUNT(*) FROM sync_task WHERE tenant_id = $1 AND status = 'running'"
     )
     .bind(&claims.tenant_id)
     .fetch_one(pool.get_ref())
     .await?;
 
     let failed_tasks: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM sync_task WHERE tenant_id = ? AND status = 'failed'"
+        "SELECT COUNT(*) FROM sync_task WHERE tenant_id = $1 AND status = 'failed'"
     )
     .bind(&claims.tenant_id)
     .fetch_one(pool.get_ref())
     .await?;
 
     let total_datasources: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM datasource WHERE tenant_id = ?"
+        "SELECT COUNT(*) FROM datasource WHERE tenant_id = $1"
     )
     .bind(&claims.tenant_id)
     .fetch_one(pool.get_ref())
     .await?;
 
     let healthy_datasources: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM datasource WHERE tenant_id = ? AND health_status = 'healthy'"
+        "SELECT COUNT(*) FROM datasource WHERE tenant_id = $1 AND health_status = 'healthy'"
     )
     .bind(&claims.tenant_id)
     .fetch_one(pool.get_ref())
@@ -51,7 +52,7 @@ pub async fn overview(
     let today_synced_rows: Option<i64> = sqlx::query_scalar(
         "SELECT SUM(rows_synced) FROM task_run tr
          JOIN sync_task st ON tr.task_id = st.id
-         WHERE st.tenant_id = ? AND tr.start_time >= date('now')"
+         WHERE st.tenant_id = $1 AND tr.start_time >= CURRENT_DATE"
     )
     .bind(&claims.tenant_id)
     .fetch_one(pool.get_ref())
@@ -60,7 +61,7 @@ pub async fn overview(
     let today_synced_bytes: Option<i64> = sqlx::query_scalar(
         "SELECT SUM(bytes_synced) FROM task_run tr
          JOIN sync_task st ON tr.task_id = st.id
-         WHERE st.tenant_id = ? AND tr.start_time >= date('now')"
+         WHERE st.tenant_id = $1 AND tr.start_time >= CURRENT_DATE"
     )
     .bind(&claims.tenant_id)
     .fetch_one(pool.get_ref())
@@ -71,7 +72,7 @@ pub async fn overview(
          tr.start_time, tr.rows_synced, tr.bytes_synced
          FROM task_run tr
          JOIN sync_task st ON tr.task_id = st.id
-         WHERE st.tenant_id = ?
+         WHERE st.tenant_id = $1
          ORDER BY tr.start_time DESC LIMIT 10"
     )
     .bind(&claims.tenant_id)
@@ -79,12 +80,13 @@ pub async fn overview(
     .await?
     .into_iter()
     .map(|r| {
+        let start_time: chrono::DateTime<chrono::Utc> = r.get(4);
         serde_json::json!({
             "id": r.get::<String, _>(0),
             "task_id": r.get::<String, _>(1),
             "task_name": r.get::<String, _>(2),
             "status": r.get::<String, _>(3),
-            "start_time": r.get::<String, _>(4),
+            "start_time": start_time.to_rfc3339(),
             "rows_synced": r.get::<i64, _>(5),
             "bytes_synced": r.get::<i64, _>(6),
         })
@@ -107,7 +109,6 @@ pub async fn overview(
         "recent_runs": recent_runs,
     })))
 }
-// get_jwt_secret 已集中到 crate::middleware::auth
 
 #[cfg(test)]
 mod tests {
@@ -117,7 +118,6 @@ mod tests {
 
     #[test]
     fn overview_response_json_structure_is_complete() {
-        // Verify the expected JSON structure by constructing a sample response
         let response = serde_json::json!({
             "total_tasks": 10,
             "running_tasks": 3,
@@ -130,7 +130,6 @@ mod tests {
             "recent_runs": []
         });
 
-        // All expected keys should be present
         assert!(response["total_tasks"].is_number());
         assert!(response["running_tasks"].is_number());
         assert!(response["failed_tasks"].is_number());
@@ -144,7 +143,6 @@ mod tests {
 
     #[test]
     fn overview_success_rate_calculation() {
-        // Verify the success_rate formula: 100 * (total - failed) / total
         let total_tasks: i64 = 10;
         let failed_tasks: i64 = 2;
         let success_rate = if total_tasks > 0 {
@@ -193,7 +191,6 @@ mod tests {
 
     #[test]
     fn overview_default_values_for_null_sums() {
-        // today_synced_rows unwrap_or(0) behavior
         let rows: Option<i64> = None;
         assert_eq!(rows.unwrap_or(0), 0);
 

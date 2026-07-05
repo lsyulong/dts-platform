@@ -1,8 +1,9 @@
 use actix_web::{web, HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
-use sqlx::{Row, SqlitePool}; // Already correct
+use sqlx::Row;
 use uuid::Uuid;
 
+use crate::db::DbPool;
 use crate::middleware::auth;
 use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
@@ -30,12 +31,12 @@ pub struct DatasourceResponse {
     pub username: Option<String>,
     pub database_name: Option<String>,
     pub health_status: String,
-    pub created_at: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 /// GET /api/v1/datasources
 pub async fn list(
-    pool: web::Data<SqlitePool>,
+    pool: web::Data<DbPool>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
@@ -44,7 +45,7 @@ pub async fn list(
     let datasources: Vec<DatasourceResponse> = sqlx::query_as::<_, DatasourceResponse>(
         "SELECT id, name, db_type, host, port, username, database_name,
          health_status, created_at
-         FROM datasource WHERE tenant_id = ?
+         FROM datasource WHERE tenant_id = $1
          ORDER BY created_at DESC"
     )
     .bind(&claims.tenant_id)
@@ -58,7 +59,7 @@ pub async fn list(
 
 /// POST /api/v1/datasources
 pub async fn create(
-    pool: web::Data<SqlitePool>,
+    pool: web::Data<DbPool>,
     req: HttpRequest,
     body: web::Json<CreateDatasourceRequest>,
 ) -> Result<HttpResponse, AppError> {
@@ -75,7 +76,7 @@ pub async fn create(
     sqlx::query(
         "INSERT INTO datasource (id, tenant_id, name, db_type, host, port, username,
          encrypted_password, database_name, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
     )
     .bind(&id)
     .bind(&claims.tenant_id)
@@ -99,7 +100,7 @@ pub async fn create(
 
 /// GET /api/v1/datasources/{id}
 pub async fn get(
-    pool: web::Data<SqlitePool>,
+    pool: web::Data<DbPool>,
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
@@ -110,7 +111,7 @@ pub async fn get(
     let ds = sqlx::query(
         "SELECT id, name, db_type, host, port, username, encrypted_password,
          database_name, extra_params, health_status, last_test_at, created_at, updated_at
-         FROM datasource WHERE id = ? AND tenant_id = ?"
+         FROM datasource WHERE id = $1 AND tenant_id = $2"
     )
     .bind(&ds_id)
     .bind(&claims.tenant_id)
@@ -120,6 +121,9 @@ pub async fn get(
 
     let encrypted: Option<String> = ds.get(6);
     let password_masked = encrypted.map(|_| "******".to_string());
+    let last_test_at: Option<chrono::DateTime<chrono::Utc>> = ds.get(10);
+    let created_at: chrono::DateTime<chrono::Utc> = ds.get(11);
+    let updated_at: chrono::DateTime<chrono::Utc> = ds.get(12);
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "id": ds.get::<String, _>(0),
@@ -132,15 +136,15 @@ pub async fn get(
         "database_name": ds.get::<Option<String>, _>(7),
         "extra_params": ds.get::<Option<String>, _>(8),
         "health_status": ds.get::<String, _>(9),
-        "last_test_at": ds.get::<Option<String>, _>(10),
-        "created_at": ds.get::<String, _>(11),
-        "updated_at": ds.get::<String, _>(12),
+        "last_test_at": last_test_at.map(|dt| dt.to_rfc3339()),
+        "created_at": created_at.to_rfc3339(),
+        "updated_at": updated_at.to_rfc3339(),
     })))
 }
 
 /// DELETE /api/v1/datasources/{id}
 pub async fn delete(
-    pool: web::Data<SqlitePool>,
+    pool: web::Data<DbPool>,
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
@@ -149,7 +153,7 @@ pub async fn delete(
     let ds_id = path.into_inner();
 
     let result = sqlx::query(
-        "DELETE FROM datasource WHERE id = ? AND tenant_id = ?"
+        "DELETE FROM datasource WHERE id = $1 AND tenant_id = $2"
     )
     .bind(&ds_id)
     .bind(&claims.tenant_id)
@@ -164,8 +168,6 @@ pub async fn delete(
         "message": "数据源已删除"
     })))
 }
-
-// get_jwt_secret 已集中到 crate::middleware::auth
 
 #[cfg(test)]
 mod tests {
@@ -301,7 +303,7 @@ mod tests {
             username: Some("admin".into()),
             database_name: Some("mydb".into()),
             health_status: "healthy".into(),
-            created_at: "2024-01-01".into(),
+            created_at: chrono::Utc::now(),
         };
         let json = serde_json::to_value(&ds).unwrap();
         assert_eq!(json["id"], "ds-1");

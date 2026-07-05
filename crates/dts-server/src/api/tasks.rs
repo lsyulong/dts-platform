@@ -1,8 +1,9 @@
 use actix_web::{web, HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
-use sqlx::{Row, SqlitePool};
+use sqlx::Row;
 use uuid::Uuid;
 
+use crate::db::DbPool;
 use crate::middleware::auth;
 use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
@@ -29,12 +30,12 @@ pub struct TaskResponse {
     pub target_id: String,
     pub cron_expr: Option<String>,
     pub status: String,
-    pub created_at: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 /// GET /api/v1/tasks
 pub async fn list(
-    pool: web::Data<SqlitePool>,
+    pool: web::Data<DbPool>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
@@ -42,7 +43,7 @@ pub async fn list(
 
     let tasks: Vec<TaskResponse> = sqlx::query_as::<_, TaskResponse>(
         "SELECT id, name, description, source_id, target_id, cron_expr, status, created_at
-         FROM sync_task WHERE tenant_id = ?
+         FROM sync_task WHERE tenant_id = $1
          ORDER BY created_at DESC"
     )
     .bind(&claims.tenant_id)
@@ -58,7 +59,7 @@ pub async fn list(
 
 /// POST /api/v1/tasks
 pub async fn create(
-    pool: web::Data<SqlitePool>,
+    pool: web::Data<DbPool>,
     req: HttpRequest,
     body: web::Json<CreateTaskRequest>,
 ) -> Result<HttpResponse, AppError> {
@@ -68,7 +69,7 @@ pub async fn create(
     // 验证 source 和 target 存在
     for ds_id in [&body.source_id, &body.target_id] {
         let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM datasource WHERE id = ? AND tenant_id = ?"
+            "SELECT COUNT(*) FROM datasource WHERE id = $1 AND tenant_id = $2"
         )
         .bind(ds_id.as_str())
         .bind(&claims.tenant_id)
@@ -89,7 +90,7 @@ pub async fn create(
     sqlx::query(
         "INSERT INTO sync_task (id, tenant_id, name, description, source_id, target_id,
          cron_expr, config_json, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
     )
     .bind(&task_id)
     .bind(&claims.tenant_id)
@@ -114,7 +115,7 @@ pub async fn create(
 
 /// GET /api/v1/tasks/{id}
 pub async fn get(
-    pool: web::Data<SqlitePool>,
+    pool: web::Data<DbPool>,
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
@@ -130,7 +131,7 @@ pub async fn get(
          FROM sync_task t
          JOIN datasource s ON t.source_id = s.id
          JOIN datasource d ON t.target_id = d.id
-         WHERE t.id = ? AND t.tenant_id = ?"
+         WHERE t.id = $1 AND t.tenant_id = $2"
     )
     .bind(&task_id)
     .bind(&claims.tenant_id)
@@ -142,7 +143,7 @@ pub async fn get(
     let runs: Vec<serde_json::Value> = sqlx::query(
         "SELECT id, status, start_time, end_time, rows_synced, bytes_synced,
          total_rows, total_bytes, error_message
-         FROM task_run WHERE task_id = ?
+         FROM task_run WHERE task_id = $1
          ORDER BY start_time DESC LIMIT 10"
     )
     .bind(&task_id)
@@ -150,11 +151,13 @@ pub async fn get(
     .await?
     .into_iter()
     .map(|r| {
+        let start_time: chrono::DateTime<chrono::Utc> = r.get(2);
+        let end_time: Option<chrono::DateTime<chrono::Utc>> = r.get(3);
         serde_json::json!({
             "id": r.get::<String, _>(0),
             "status": r.get::<String, _>(1),
-            "start_time": r.get::<String, _>(2),
-            "end_time": r.get::<Option<String>, _>(3),
+            "start_time": start_time.to_rfc3339(),
+            "end_time": end_time.map(|dt| dt.to_rfc3339()),
             "rows_synced": r.get::<i64, _>(4),
             "bytes_synced": r.get::<i64, _>(5),
             "total_rows": r.get::<Option<i64>, _>(6),
@@ -164,6 +167,8 @@ pub async fn get(
     })
     .collect();
 
+    let created_at: chrono::DateTime<chrono::Utc> = task.get(9);
+    let updated_at: chrono::DateTime<chrono::Utc> = task.get(10);
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "id": task.get::<String, _>(0),
         "name": task.get::<String, _>(1),
@@ -178,8 +183,8 @@ pub async fn get(
         "status": task.get::<String, _>(6),
         "config_json": task.get::<String, _>(7),
         "created_by": task.get::<String, _>(8),
-        "created_at": task.get::<String, _>(9),
-        "updated_at": task.get::<String, _>(10),
+        "created_at": created_at.to_rfc3339(),
+        "updated_at": updated_at.to_rfc3339(),
         "recent_runs": runs,
     })))
 }
@@ -191,7 +196,7 @@ pub struct UpdateStatusRequest {
 }
 
 pub async fn update_status(
-    pool: web::Data<SqlitePool>,
+    pool: web::Data<DbPool>,
     req: HttpRequest,
     path: web::Path<String>,
     body: web::Json<UpdateStatusRequest>,
@@ -206,7 +211,7 @@ pub async fn update_status(
     }
 
     let result = sqlx::query(
-        "UPDATE sync_task SET status = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?"
+        "UPDATE sync_task SET status = $1, updated_at = NOW() WHERE id = $2 AND tenant_id = $3"
     )
     .bind(&body.status)
     .bind(&task_id)
@@ -223,8 +228,6 @@ pub async fn update_status(
         "status": body.status,
     })))
 }
-
-// get_jwt_secret 已集中到 crate::middleware::auth
 
 #[cfg(test)]
 mod tests {
@@ -346,8 +349,6 @@ mod tests {
 
     #[test]
     fn update_status_request_rejects_unknown_status_at_type_level() {
-        // Unknown statuses parse fine at the JSON level (it's just a String)
-        // but the handler validates them — test that deserialization works
         let json = serde_json::json!({"status": "unknown-status"});
         let req: UpdateStatusRequest = serde_json::from_value(json).unwrap();
         assert_eq!(req.status, "unknown-status");
@@ -356,13 +357,12 @@ mod tests {
     #[test]
     fn valid_status_values_list_is_complete() {
         let valid_statuses = ["draft", "running", "paused", "completed", "failed"];
-        // "draft" is the initial status
         assert!(valid_statuses.contains(&"draft"));
         assert!(valid_statuses.contains(&"running"));
         assert!(valid_statuses.contains(&"paused"));
         assert!(valid_statuses.contains(&"completed"));
         assert!(valid_statuses.contains(&"failed"));
-        assert!(!valid_statuses.contains(&"deleted")); // not a valid status
+        assert!(!valid_statuses.contains(&"deleted"));
     }
 
     // ========== TaskResponse Tests ==========
@@ -377,7 +377,7 @@ mod tests {
             target_id: "tgt-1".into(),
             cron_expr: None,
             status: "draft".into(),
-            created_at: "2024-01-01".into(),
+            created_at: chrono::Utc::now(),
         };
         let json = serde_json::to_value(&task).unwrap();
         assert_eq!(json["id"], "task-1");

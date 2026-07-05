@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Database, CheckCircle, AlertTriangle, Activity } from 'lucide-react';
+import { Database, CheckCircle, Activity } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import LogConsole from '../components/LogConsole';
 import client from '../api/client';

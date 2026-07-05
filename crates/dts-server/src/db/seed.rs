@@ -1,11 +1,11 @@
 use anyhow::Context;
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::services::auth_svc::AuthService;
 
 /// 初始化种子数据：默认租户和管理员用户
-pub async fn seed_default_data(pool: &SqlitePool) -> anyhow::Result<()> {
+pub async fn seed_default_data(pool: &PgPool) -> anyhow::Result<()> {
     // 检查是否已有租户
     let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM tenant")
         .fetch_one(pool)
@@ -23,7 +23,7 @@ pub async fn seed_default_data(pool: &SqlitePool) -> anyhow::Result<()> {
     let tenant_name = "默认租户";
     let tenant_slug = "default";
 
-    sqlx::query("INSERT INTO tenant (id, name, slug) VALUES (?, ?, ?)")
+    sqlx::query("INSERT INTO tenant (id, name, slug) VALUES ($1, $2, $3)")
         .bind(&tenant_id)
         .bind(tenant_name)
         .bind(tenant_slug)
@@ -78,8 +78,8 @@ pub async fn seed_default_data(pool: &SqlitePool) -> anyhow::Result<()> {
 
     let user_id = Uuid::new_v4().to_string();
     sqlx::query(
-        "INSERT INTO user (id, tenant_id, username, email, password_hash, display_name)
-         VALUES (?, ?, ?, ?, ?, ?)"
+        "INSERT INTO \"user\" (id, tenant_id, username, email, password_hash, display_name)
+         VALUES ($1, $2, $3, $4, $5, $6)"
     )
     .bind(&user_id)
     .bind(&tenant_id)
@@ -90,7 +90,7 @@ pub async fn seed_default_data(pool: &SqlitePool) -> anyhow::Result<()> {
     .execute(pool)
     .await?;
 
-    sqlx::query("INSERT INTO user_role (user_id, role_id) VALUES (?, ?)")
+    sqlx::query("INSERT INTO user_role (user_id, role_id) VALUES ($1, $2)")
         .bind(&user_id)
         .bind(&admin_role_id)
         .execute(pool)
@@ -100,7 +100,7 @@ pub async fn seed_default_data(pool: &SqlitePool) -> anyhow::Result<()> {
     let mysql_id = Uuid::new_v4().to_string();
     sqlx::query(
         "INSERT INTO datasource (id, tenant_id, name, db_type, host, port, username, encrypted_password, database_name, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
     )
     .bind(&mysql_id)
     .bind(&tenant_id)
@@ -118,7 +118,7 @@ pub async fn seed_default_data(pool: &SqlitePool) -> anyhow::Result<()> {
     let pg_id = Uuid::new_v4().to_string();
     sqlx::query(
         "INSERT INTO datasource (id, tenant_id, name, db_type, host, port, username, encrypted_password, database_name, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
     )
     .bind(&pg_id)
     .bind(&tenant_id)
@@ -142,7 +142,7 @@ pub async fn seed_default_data(pool: &SqlitePool) -> anyhow::Result<()> {
 }
 
 async fn create_role(
-    pool: &SqlitePool,
+    pool: &PgPool,
     tenant_id: &str,
     name: &str,
     description: &str,
@@ -151,19 +151,19 @@ async fn create_role(
 ) -> anyhow::Result<String> {
     let role_id = Uuid::new_v4().to_string();
     sqlx::query(
-        "INSERT INTO role (id, tenant_id, name, description, is_system) VALUES (?, ?, ?, ?, ?)"
+        "INSERT INTO role (id, tenant_id, name, description, is_system) VALUES ($1, $2, $3, $4, $5)"
     )
     .bind(&role_id)
     .bind(tenant_id)
     .bind(name)
     .bind(description)
-    .bind(is_system as i32)
+    .bind(is_system)
     .execute(pool)
     .await?;
 
     for perm in permissions {
         sqlx::query(
-            "INSERT INTO role_permission (role_id, permission) VALUES (?, ?)"
+            "INSERT INTO role_permission (role_id, permission) VALUES ($1, $2)"
         )
         .bind(&role_id)
         .bind(*perm)

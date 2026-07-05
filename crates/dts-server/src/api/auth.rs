@@ -43,7 +43,7 @@ pub async fn my_permissions(
     let permissions: Vec<String> = sqlx::query_scalar(
         "SELECT DISTINCT rp.permission FROM role_permission rp
          INNER JOIN user_role ur ON rp.role_id = ur.role_id
-         WHERE ur.user_id = ?"
+         WHERE ur.user_id = $1"
     )
     .bind(&claims.sub)
     .fetch_all(&auth_svc.pool)
@@ -55,13 +55,13 @@ pub async fn my_permissions(
 }
 
 /// 获取用户详细信息
-async fn get_user_info(pool: &sqlx::SqlitePool, user_id: &str) -> Result<UserInfo, AppError> {
+async fn get_user_info(pool: &sqlx::PgPool, user_id: &str) -> Result<UserInfo, AppError> {
     let row = sqlx::query(
         "SELECT u.id, u.username, u.email, u.display_name, u.tenant_id,
                 t.name as tenant_name
-         FROM user u
+         FROM \"user\" u
          JOIN tenant t ON u.tenant_id = t.id
-         WHERE u.id = ?"
+         WHERE u.id = $1"
     )
     .bind(user_id)
     .fetch_optional(pool)
@@ -78,7 +78,7 @@ async fn get_user_info(pool: &sqlx::SqlitePool, user_id: &str) -> Result<UserInf
     let roles: Vec<String> = sqlx::query_scalar(
         "SELECT r.name FROM role r
          INNER JOIN user_role ur ON r.id = ur.role_id
-         WHERE ur.user_id = ?"
+         WHERE ur.user_id = $1"
     )
     .bind(user_id)
     .fetch_all(pool)
@@ -87,7 +87,7 @@ async fn get_user_info(pool: &sqlx::SqlitePool, user_id: &str) -> Result<UserInf
     let permissions: Vec<String> = sqlx::query_scalar(
         "SELECT DISTINCT rp.permission FROM role_permission rp
          INNER JOIN user_role ur ON rp.role_id = ur.role_id
-         WHERE ur.user_id = ?"
+         WHERE ur.user_id = $1"
     )
     .bind(user_id)
     .fetch_all(pool)
@@ -110,13 +110,13 @@ mod tests {
     use super::*;
     use crate::config::AppConfig;
     use pretty_assertions::assert_eq;
-    use sqlx::SqlitePool;
+    use sqlx::PgPool;
 
-    async fn create_test_pool() -> SqlitePool {
-        use sqlx::sqlite::SqlitePoolOptions;
-        SqlitePoolOptions::new()
+    async fn create_test_pool() -> PgPool {
+        use sqlx::postgres::PgPoolOptions;
+        PgPoolOptions::new()
             .max_connections(5)
-            .connect("sqlite::memory:")
+            .connect("postgres://localhost:5432/dts_test")
             .await
             .expect("Failed to create test pool")
     }
@@ -177,7 +177,6 @@ mod tests {
         let pool = create_test_pool().await;
         let config = test_config();
         let svc = AuthService::new(pool, config);
-        // Just verify construction doesn't panic
         assert_eq!(svc.config.jwt_expiry_hours, 24);
     }
 

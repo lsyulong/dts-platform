@@ -6,8 +6,8 @@ use dts_server::db;
 use sqlx::Row;
 
 #[actix_web::test]
-async fn create_pool_with_memory_db_works() {
-    let pool = db::create_pool("sqlite::memory:").await;
+async fn create_pool_with_valid_url_works() {
+    let pool = db::create_pool("postgres://localhost:5432/dts_test").await;
     assert!(pool.is_ok());
     let pool = pool.unwrap();
 
@@ -29,8 +29,9 @@ async fn run_migrations_creates_all_tables() {
 
     for table in &tables {
         let count: i64 = sqlx::query_scalar(
-            &format!("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='{}'", table)
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1"
         )
+        .bind(table)
         .fetch_one(&pool)
         .await
         .unwrap();
@@ -63,7 +64,7 @@ async fn seed_default_data_creates_initial_data() {
         .unwrap();
     assert_eq!(role_count, 3, "Should create 3 default roles");
 
-    let user_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM user")
+    let user_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM \"user\"")
         .fetch_one(&pool)
         .await
         .unwrap();
@@ -95,7 +96,7 @@ async fn foreign_key_constraints_are_enforced() {
     let pool = common::setup_test_db().await.unwrap();
 
     let result = sqlx::query(
-        "INSERT INTO user (id, tenant_id, username, email, password_hash) VALUES (?, ?, ?, ?, ?)"
+        "INSERT INTO \"user\" (id, tenant_id, username, email, password_hash) VALUES ($1, $2, $3, $4, $5)"
     )
     .bind("bad-user")
     .bind("non-existent-tenant")

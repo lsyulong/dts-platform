@@ -1,0 +1,26 @@
+# DTS Platform - Fly.io 部署配置
+# 生成命令: flyctl launch
+
+app = "dts-platform-api"
+primary_region = "nrt"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  SERVER_HOST = "0.0.0.0"
+  SERVER_PORT = "8080"
+  RUST_LOG = "info,dts_server=debug"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

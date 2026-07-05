@@ -6,17 +6,17 @@ use argon2::{
     Argon2,
 };
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use sqlx::{Row, SqlitePool};
+use sqlx::{Row, PgPool};
 
 /// 认证服务 — 处理登录、JWT签发/验证、密码哈希
 #[derive(Clone)]
 pub struct AuthService {
-    pub pool: SqlitePool,
+    pub pool: PgPool,
     pub config: AppConfig,
 }
 
 impl AuthService {
-    pub fn new(pool: SqlitePool, config: AppConfig) -> Self {
+    pub fn new(pool: PgPool, config: AppConfig) -> Self {
         Self { pool, config }
     }
 
@@ -24,7 +24,7 @@ impl AuthService {
     pub async fn login(&self, req: &LoginRequest) -> anyhow::Result<LoginResponse> {
         // 1. 查找租户
         let tenant = sqlx::query(
-            "SELECT id, name, status FROM tenant WHERE slug = ? AND status = 'active'"
+            "SELECT id, name, status FROM tenant WHERE slug = $1 AND status = 'active'"
         )
         .bind(&req.tenant_slug)
         .fetch_optional(&self.pool)
@@ -37,7 +37,7 @@ impl AuthService {
         // 2. 查找用户
         let user = sqlx::query(
             "SELECT id, username, email, password_hash, display_name, status
-             FROM user WHERE tenant_id = ? AND username = ?"
+             FROM \"user\" WHERE tenant_id = $1 AND username = $2"
         )
         .bind(&tenant_id)
         .bind(&req.username)
@@ -67,7 +67,7 @@ impl AuthService {
         let roles: Vec<String> = sqlx::query_scalar(
             "SELECT r.name FROM role r
              INNER JOIN user_role ur ON r.id = ur.role_id
-             WHERE ur.user_id = ?"
+             WHERE ur.user_id = $1"
         )
         .bind(&user_id)
         .fetch_all(&self.pool)
@@ -77,7 +77,7 @@ impl AuthService {
         let permissions: Vec<String> = sqlx::query_scalar(
             "SELECT DISTINCT rp.permission FROM role_permission rp
              INNER JOIN user_role ur ON rp.role_id = ur.role_id
-             WHERE ur.user_id = ?"
+             WHERE ur.user_id = $1"
         )
         .bind(&user_id)
         .fetch_all(&self.pool)
@@ -144,17 +144,17 @@ mod tests {
     use argon2::PasswordVerifier;
     use jsonwebtoken::{encode, EncodingKey, Header};
     use pretty_assertions::assert_eq;
-    use sqlx::SqlitePool;
+    use sqlx::PgPool;
 
     fn test_config() -> AppConfig {
         AppConfig::for_test()
     }
 
-    async fn create_test_pool() -> SqlitePool {
-        use sqlx::sqlite::SqlitePoolOptions;
-        SqlitePoolOptions::new()
+    async fn create_test_pool() -> PgPool {
+        use sqlx::postgres::PgPoolOptions;
+        PgPoolOptions::new()
             .max_connections(5)
-            .connect("sqlite::memory:")
+            .connect("postgres://localhost:5432/dts_test")
             .await
             .expect("Failed to create test pool")
     }
@@ -200,9 +200,7 @@ mod tests {
     #[test]
     fn hash_password_sync_produces_valid_argon2_hash() {
         let hash = AuthService::hash_password_sync("mypassword").unwrap();
-        // Argon2 hashes start with $argon2
         assert!(hash.starts_with("$argon2"));
-        // Should contain version and parameters
         assert!(hash.contains("$v="));
         assert!(hash.contains("$m="));
     }
@@ -211,7 +209,6 @@ mod tests {
     fn hash_password_sync_produces_different_hashes_for_same_password() {
         let hash1 = AuthService::hash_password_sync("samepassword").unwrap();
         let hash2 = AuthService::hash_password_sync("samepassword").unwrap();
-        // Different salts should produce different hashes
         assert_ne!(hash1, hash2);
     }
 
@@ -219,7 +216,6 @@ mod tests {
     fn hash_password_sync_generated_hash_can_be_verified() {
         let password = "secret123";
         let hash = AuthService::hash_password_sync(password).unwrap();
-
         let parsed_hash = PasswordHash::new(&hash).unwrap();
         let result = Argon2::default()
             .verify_password(password.as_bytes(), &parsed_hash);
@@ -229,7 +225,6 @@ mod tests {
     #[test]
     fn hash_password_sync_generated_hash_fails_with_wrong_password() {
         let hash = AuthService::hash_password_sync("correct_password").unwrap();
-
         let parsed_hash = PasswordHash::new(&hash).unwrap();
         let result = Argon2::default()
             .verify_password("wrong_password".as_bytes(), &parsed_hash);
@@ -320,7 +315,6 @@ mod tests {
         let config = test_config();
         let svc = AuthService::new(pool, config);
 
-        // Looks like JWT format but has invalid base64 content
         let result = svc.verify_token("header.payload.signature");
         assert!(result.is_err());
     }

@@ -1,16 +1,16 @@
 use crate::models::auth::TenantInfo;
 use anyhow::anyhow;
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 /// 租户管理服务
 #[derive(Clone)]
 pub struct TenantService {
-    pub pool: SqlitePool,
+    pub pool: PgPool,
 }
 
 impl TenantService {
-    pub fn new(pool: SqlitePool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
@@ -25,7 +25,7 @@ impl TenantService {
     ) -> anyhow::Result<String> {
         // 检查 slug 唯一性
         let existing: Option<String> = sqlx::query_scalar(
-            "SELECT id FROM tenant WHERE slug = ?"
+            "SELECT id FROM tenant WHERE slug = $1"
         )
         .bind(slug)
         .fetch_optional(&self.pool)
@@ -39,7 +39,7 @@ impl TenantService {
 
         // 创建租户
         sqlx::query(
-            "INSERT INTO tenant (id, name, slug) VALUES (?, ?, ?)"
+            "INSERT INTO tenant (id, name, slug) VALUES ($1, $2, $3)"
         )
         .bind(&tenant_id)
         .bind(name)
@@ -79,8 +79,8 @@ impl TenantService {
         // 创建管理员用户
         let user_id = Uuid::new_v4().to_string();
         sqlx::query(
-            "INSERT INTO user (id, tenant_id, username, email, password_hash, display_name, status)
-             VALUES (?, ?, ?, ?, ?, ?, 'active')"
+            "INSERT INTO \"user\" (id, tenant_id, username, email, password_hash, display_name, status)
+             VALUES ($1, $2, $3, $4, $5, $6, 'active')"
         )
         .bind(&user_id)
         .bind(&tenant_id)
@@ -93,7 +93,7 @@ impl TenantService {
 
         // 分配 admin 角色
         sqlx::query(
-            "INSERT INTO user_role (user_id, role_id) VALUES (?, ?)"
+            "INSERT INTO user_role (user_id, role_id) VALUES ($1, $2)"
         )
         .bind(&user_id)
         .bind(&admin_role_id)
@@ -120,19 +120,19 @@ impl TenantService {
     ) -> anyhow::Result<String> {
         let role_id = Uuid::new_v4().to_string();
         sqlx::query(
-            "INSERT INTO role (id, tenant_id, name, description, is_system) VALUES (?, ?, ?, ?, ?)"
+            "INSERT INTO role (id, tenant_id, name, description, is_system) VALUES ($1, $2, $3, $4, $5)"
         )
         .bind(&role_id)
         .bind(tenant_id)
         .bind(name)
         .bind(description)
-        .bind(is_system as i32)
+        .bind(is_system)
         .execute(&self.pool)
         .await?;
 
         for perm in permissions {
             sqlx::query(
-                "INSERT INTO role_permission (role_id, permission) VALUES (?, ?)"
+                "INSERT INTO role_permission (role_id, permission) VALUES ($1, $2)"
             )
             .bind(&role_id)
             .bind(*perm)
@@ -157,7 +157,7 @@ impl TenantService {
     /// 获取单个租户
     pub async fn get_by_id(&self, id: &str) -> anyhow::Result<TenantInfo> {
         let tenant = sqlx::query_as::<_, TenantInfo>(
-            "SELECT id, name, slug, status, created_at FROM tenant WHERE id = ?"
+            "SELECT id, name, slug, status, created_at FROM tenant WHERE id = $1"
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -172,13 +172,13 @@ impl TenantService {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-    use sqlx::SqlitePool;
+    use sqlx::PgPool;
 
-    async fn create_test_pool() -> SqlitePool {
-        use sqlx::sqlite::SqlitePoolOptions;
-        let pool = SqlitePoolOptions::new()
+    async fn create_test_pool() -> PgPool {
+        use sqlx::postgres::PgPoolOptions;
+        let pool = PgPoolOptions::new()
             .max_connections(5)
-            .connect("sqlite::memory:")
+            .connect("postgres://localhost:5432/dts_test")
             .await
             .expect("Failed to create test pool");
 
@@ -189,8 +189,8 @@ mod tests {
                 name TEXT NOT NULL,
                 slug TEXT NOT NULL UNIQUE,
                 status TEXT NOT NULL DEFAULT 'active',
-                created_at TEXT NOT NULL DEFAULT (datetime('now')),
-                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             )"
         )
         .execute(&pool)
@@ -203,8 +203,8 @@ mod tests {
                 tenant_id TEXT NOT NULL REFERENCES tenant(id) ON DELETE CASCADE,
                 name TEXT NOT NULL,
                 description TEXT,
-                is_system INTEGER NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                is_system BOOLEAN NOT NULL DEFAULT FALSE,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 UNIQUE(tenant_id, name)
             )"
         )
@@ -224,7 +224,7 @@ mod tests {
         .unwrap();
 
         sqlx::query(
-            "CREATE TABLE IF NOT EXISTS user (
+            "CREATE TABLE IF NOT EXISTS \"user\" (
                 id TEXT PRIMARY KEY,
                 tenant_id TEXT NOT NULL REFERENCES tenant(id) ON DELETE CASCADE,
                 username TEXT NOT NULL,
@@ -232,8 +232,8 @@ mod tests {
                 password_hash TEXT NOT NULL,
                 display_name TEXT,
                 status TEXT NOT NULL DEFAULT 'active',
-                created_at TEXT NOT NULL DEFAULT (datetime('now')),
-                updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 UNIQUE(tenant_id, username),
                 UNIQUE(tenant_id, email)
             )"
@@ -244,7 +244,7 @@ mod tests {
 
         sqlx::query(
             "CREATE TABLE IF NOT EXISTS user_role (
-                user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+                user_id TEXT NOT NULL REFERENCES \"user\"(id) ON DELETE CASCADE,
                 role_id TEXT NOT NULL REFERENCES role(id) ON DELETE CASCADE,
                 PRIMARY KEY (user_id, role_id)
             )"
@@ -276,8 +276,7 @@ mod tests {
 
         assert!(!tenant_id.is_empty());
 
-        // Verify tenant exists in DB
-        let name: String = sqlx::query_scalar("SELECT name FROM tenant WHERE id = ?")
+        let name: String = sqlx::query_scalar("SELECT name FROM tenant WHERE id = $1")
             .bind(&tenant_id)
             .fetch_one(&pool)
             .await
@@ -295,9 +294,8 @@ mod tests {
             .await
             .unwrap();
 
-        // Check that 3 default roles were created
         let role_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM role WHERE tenant_id = ?"
+            "SELECT COUNT(*) FROM role WHERE tenant_id = $1"
         )
         .bind(&tenant_id)
         .fetch_one(&pool)
@@ -305,9 +303,8 @@ mod tests {
         .unwrap();
         assert_eq!(role_count, 3);
 
-        // Verify role names
         let roles: Vec<String> = sqlx::query_scalar(
-            "SELECT name FROM role WHERE tenant_id = ? ORDER BY name"
+            "SELECT name FROM role WHERE tenant_id = $1 ORDER BY name"
         )
         .bind(&tenant_id)
         .fetch_all(&pool)
@@ -327,7 +324,7 @@ mod tests {
             .unwrap();
 
         let username: String = sqlx::query_scalar(
-            "SELECT username FROM user WHERE tenant_id = ?"
+            "SELECT username FROM \"user\" WHERE tenant_id = $1"
         )
         .bind(&tenant_id)
         .fetch_one(&pool)

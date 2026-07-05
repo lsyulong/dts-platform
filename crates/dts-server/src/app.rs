@@ -1,6 +1,6 @@
 use actix_cors::Cors;
 use actix_web::{web, App, HttpServer, HttpResponse, middleware as actix_middleware};
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 
 use crate::config::AppConfig;
 use crate::services::auth_svc::AuthService;
@@ -9,7 +9,7 @@ use crate::ws::task_log::WsHub;
 
 /// 创建并配置 actix-web 应用
 pub async fn create_app(
-    pool: SqlitePool,
+    pool: PgPool,
     config: AppConfig,
 ) -> anyhow::Result<actix_web::dev::Server> {
     let bind_addr = format!("{}:{}", config.server_host, config.server_port);

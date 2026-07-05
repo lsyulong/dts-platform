@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Pause, Play, Settings } from 'lucide-react';
+import { ArrowLeft, Pause, Play } from 'lucide-react';
 import client from '../../api/client';
 import MetricCard from '../../components/MetricCard';
 
