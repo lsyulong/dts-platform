@@ -8,13 +8,25 @@ description = "企业级数据同步管理平台 - Web 后端服务"
 workspace = true
 
 [dependencies]
+# 本地 crate
+dts-backend = { path = "../dts-backend" }
+dts-backend-rdbms = { path = "../dts-backend-rdbms" }
+dts-backend-postgres = { path = "../dts-backend-postgres" }
+
+# Web 框架
 actix-web = "4"
 actix-cors = "0.7"
 actix-ws = "0.3"
 actix-rt = "2"
+
+# 序列化
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+
+# 异步运行时
 tokio = { workspace = true }
+
+# 工具
 uuid = { workspace = true, features = ["v4"] }
 chrono = { workspace = true }
 thiserror = { workspace = true }
@@ -25,7 +37,8 @@ dashmap = { workspace = true }
 async-trait = { workspace = true }
 rand = { workspace = true }
 dotenv = { workspace = true }
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
+
+# 认证
 jsonwebtoken = "9"
 argon2 = "0.5"
 futures = "0.3"

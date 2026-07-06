@@ -898,6 +898,46 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1435fa1053d8b2fbbe9be7e97eca7f33d37b28409959813daefc1446a14247f1"
 
 [[package]]
+name = "dts-backend"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "serde",
+ "thiserror",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "dts-backend-postgres"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "argon2",
+ "async-trait",
+ "chrono",
+ "dts-backend",
+ "dts-backend-rdbms",
+ "log",
+ "sqlx",
+ "uuid",
+]
+
+[[package]]
+name = "dts-backend-rdbms"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "dts-backend",
+ "log",
+ "sqlx",
+ "thiserror",
+]
+
+[[package]]
 name = "dts-server"
 version = "0.1.0"
 dependencies = [
@@ -912,6 +952,9 @@ dependencies = [
  "chrono",
  "dashmap",
  "dotenv",
+ "dts-backend",
+ "dts-backend-postgres",
+ "dts-backend-rdbms",
  "env_logger",
  "futures",
  "jsonwebtoken",
@@ -924,7 +967,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serial_test",
- "sqlx",
  "tempfile",
  "thiserror",
  "tokio",

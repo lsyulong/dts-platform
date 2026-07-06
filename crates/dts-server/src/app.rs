@@ -1,15 +1,35 @@
 use actix_cors::Cors;
 use actix_web::{App, HttpResponse, HttpServer, middleware as actix_middleware, web};
-use sqlx::PgPool;
+use dts_backend::pool::BackendPool;
 
 use crate::config::AppConfig;
+use crate::db::BackendContext;
 use crate::services::auth_svc::AuthService;
 use crate::services::tenant_svc::TenantService;
 use crate::ws::task_log::WsHub;
 
 /// 创建并配置 actix-web 应用
-pub async fn create_app(pool: PgPool, config: AppConfig) -> anyhow::Result<actix_web::dev::Server> {
+pub async fn create_app(ctx: BackendContext, config: AppConfig) -> anyhow::Result<actix_web::dev::Server> {
     let bind_addr = format!("{}:{}", config.server_host, config.server_port);
+
+    let auth_svc = AuthService::new(
+        ctx.tenant_repo.clone(),
+        ctx.user_repo.clone(),
+        ctx.role_repo.clone(),
+        config.jwt_secret.clone(),
+        config.jwt_expiry_hours,
+    );
+
+    let tenant_svc = TenantService::new(
+        ctx.tenant_repo.clone(),
+        ctx.role_repo.clone(),
+        ctx.user_repo.clone(),
+    );
+
+    let ws_hub = WsHub::new();
+
+    // 验证 backend 连接
+    ctx.pool.ping().await?;
 
     let server = HttpServer::new(move || {
         let cors = Cors::default()
@@ -18,17 +38,24 @@ pub async fn create_app(pool: PgPool, config: AppConfig) -> anyhow::Result<actix
             .allow_any_header()
             .max_age(3600);
 
-        let auth_svc = AuthService::new(pool.clone(), config.clone());
-        let tenant_svc = TenantService::new(pool.clone());
-        let ws_hub = WsHub::new();
-
         App::new()
             .wrap(cors)
             .wrap(actix_middleware::Logger::default())
-            .app_data(web::Data::new(pool.clone()))
-            .app_data(web::Data::new(auth_svc))
-            .app_data(web::Data::new(tenant_svc))
-            .app_data(web::Data::new(ws_hub))
+            // 后端连接池 (用于健康检查等)
+            .app_data(web::Data::new(ctx.pool.clone()))
+            // 认证服务
+            .app_data(web::Data::new(auth_svc.clone()))
+            // 租户服务
+            .app_data(web::Data::new(tenant_svc.clone()))
+            // Repository traits
+            .app_data(web::Data::new(ctx.user_repo.clone()))
+            .app_data(web::Data::new(ctx.role_repo.clone()))
+            .app_data(web::Data::new(ctx.datasource_repo.clone()))
+            .app_data(web::Data::new(ctx.task_repo.clone()))
+            .app_data(web::Data::new(ctx.alert_repo.clone()))
+            .app_data(web::Data::new(ctx.monitoring_repo.clone()))
+            // WebSocket Hub
+            .app_data(web::Data::new(ws_hub.clone()))
             // REST API v1
             .service(
                 web::scope("/api/v1")

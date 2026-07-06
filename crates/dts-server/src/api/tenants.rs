@@ -9,7 +9,6 @@ use crate::services::tenant_svc::TenantService;
 /// POST /api/v1/tenants
 pub async fn create(
     tenant_svc: web::Data<TenantService>,
-    _auth_svc: web::Data<AuthService>,
     body: web::Json<CreateTenantRequest>,
 ) -> Result<HttpResponse, AppError> {
     let password_hash = AuthService::hash_password_sync("admin123")

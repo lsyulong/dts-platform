@@ -1,0 +1,13 @@
+[package]
+name = "dts-backend-rdbms"
+version = "0.1.0"
+edition = "2021"
+description = "DTS Platform — 关系型数据库存储后端公共层（对应 DataX 的 plugin-rdbms-util）"
+
+[dependencies]
+dts-backend = { path = "../dts-backend" }
+async-trait = "0.1"
+thiserror = "2"
+anyhow = "1"
+log = "0.4"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls"] }

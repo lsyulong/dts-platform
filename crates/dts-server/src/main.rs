@@ -14,18 +14,13 @@ async fn main() -> anyhow::Result<()> {
     // 加载配置
     let config = AppConfig::from_env()?;
     log::info!("服务地址: {}:{}", config.server_host, config.server_port);
+    log::info!("存储后端: {}", config.database_backend);
 
-    // 创建数据库连接池
-    let pool = db::create_pool(&config.database_url).await?;
-
-    // 运行数据库迁移
-    db::run_migrations(&pool).await?;
-
-    // 初始化种子数据（仅在空数据库时）
-    db::seed_default_data(&pool).await?;
+    // 初始化存储后端
+    let ctx = db::init_postgres(&config.database_url).await?;
 
     // 启动 Web 服务
-    let server = app::create_app(pool, config.clone()).await?;
+    let server = app::create_app(ctx, config.clone()).await?;
     log::info!("服务已启动!");
     log::info!("健康检查: http://localhost:{}/health", config.server_port);
     log::info!("API 文档: 见 docs/api/ 目录");

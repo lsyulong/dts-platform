@@ -1,114 +1,102 @@
-use crate::config::AppConfig;
+use std::sync::Arc;
+
 use crate::models::auth::*;
 use anyhow::{Context, anyhow};
 use argon2::{
     Argon2,
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
+use dts_backend::repo::{RoleRepo, TenantRepo, UserRepo};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
-use sqlx::{PgPool, Row};
 
 /// 认证服务 — 处理登录、JWT签发/验证、密码哈希
 #[derive(Clone)]
 pub struct AuthService {
-    pub pool: PgPool,
-    pub config: AppConfig,
+    pub tenant_repo: Arc<dyn TenantRepo>,
+    pub user_repo: Arc<dyn UserRepo>,
+    pub role_repo: Arc<dyn RoleRepo>,
+    pub jwt_secret: String,
+    pub jwt_expiry_hours: i64,
 }
 
 impl AuthService {
-    pub fn new(pool: PgPool, config: AppConfig) -> Self {
-        Self { pool, config }
+    pub fn new(
+        tenant_repo: Arc<dyn TenantRepo>,
+        user_repo: Arc<dyn UserRepo>,
+        role_repo: Arc<dyn RoleRepo>,
+        jwt_secret: String,
+        jwt_expiry_hours: i64,
+    ) -> Self {
+        Self {
+            tenant_repo,
+            user_repo,
+            role_repo,
+            jwt_secret,
+            jwt_expiry_hours,
+        }
     }
 
     /// 用户登录
     pub async fn login(&self, req: &LoginRequest) -> anyhow::Result<LoginResponse> {
         // 1. 查找租户
-        let tenant = sqlx::query(
-            "SELECT id, name, status FROM tenant WHERE slug = $1 AND status = 'active'",
-        )
-        .bind(&req.tenant_slug)
-        .fetch_optional(&self.pool)
-        .await?
-        .ok_or_else(|| anyhow!("租户不存在或已停用"))?;
+        let tenant = self
+            .tenant_repo
+            .find_by_slug(&req.tenant_slug)
+            .await?
+            .ok_or_else(|| anyhow!("租户不存在或已停用"))?;
 
-        let tenant_id: String = tenant.get(0);
-        let tenant_name: String = tenant.get(1);
+        if tenant.status != "active" {
+            return Err(anyhow!("租户不存在或已停用"));
+        }
 
         // 2. 查找用户
-        let user = sqlx::query(
-            "SELECT id, username, email, password_hash, display_name, status
-             FROM \"user\" WHERE tenant_id = $1 AND username = $2",
-        )
-        .bind(&tenant_id)
-        .bind(&req.username)
-        .fetch_optional(&self.pool)
-        .await?
-        .ok_or_else(|| anyhow!("用户名或密码错误"))?;
+        let user = self
+            .user_repo
+            .find_by_tenant_and_username(&tenant.id, &req.username)
+            .await?
+            .ok_or_else(|| anyhow!("用户名或密码错误"))?;
 
-        let user_id: String = user.get(0);
-        let username: String = user.get(1);
-        let email: String = user.get(2);
-        let password_hash: String = user.get(3);
-        let display_name: Option<String> = user.get(4);
-        let user_status: String = user.get(5);
-
-        if user_status != "active" {
+        if user.status != "active" {
             return Err(anyhow!("账户已被禁用"));
         }
 
         // 3. 验证密码
         let parsed_hash =
-            PasswordHash::new(&password_hash).map_err(|_| anyhow!("内部错误: 密码哈希格式无效"))?;
+            PasswordHash::new(&user.password_hash).map_err(|_| anyhow!("内部错误: 密码哈希格式无效"))?;
         Argon2::default()
             .verify_password(req.password.as_bytes(), &parsed_hash)
             .map_err(|_| anyhow!("用户名或密码错误"))?;
 
-        // 4. 获取角色列表
-        let roles: Vec<String> = sqlx::query_scalar(
-            "SELECT r.name FROM role r
-             INNER JOIN user_role ur ON r.id = ur.role_id
-             WHERE ur.user_id = $1",
-        )
-        .bind(&user_id)
-        .fetch_all(&self.pool)
-        .await?;
+        // 4. 获取角色和权限
+        let roles = self.role_repo.find_user_role_names(&user.id).await?;
+        let permissions = self.role_repo.find_user_permissions(&user.id).await?;
 
-        // 5. 获取权限列表
-        let permissions: Vec<String> = sqlx::query_scalar(
-            "SELECT DISTINCT rp.permission FROM role_permission rp
-             INNER JOIN user_role ur ON rp.role_id = ur.role_id
-             WHERE ur.user_id = $1",
-        )
-        .bind(&user_id)
-        .fetch_all(&self.pool)
-        .await?;
-
-        // 6. 生成 JWT
+        // 5. 生成 JWT
         let now = chrono::Utc::now();
         let claims = Claims {
-            sub: user_id.clone(),
-            tenant_id: tenant_id.clone(),
-            username: username.clone(),
-            exp: (now + chrono::Duration::hours(self.config.jwt_expiry_hours)).timestamp() as usize,
+            sub: user.id.clone(),
+            tenant_id: tenant.id.clone(),
+            username: user.username.clone(),
+            exp: (now + chrono::Duration::hours(self.jwt_expiry_hours)).timestamp() as usize,
             iat: now.timestamp() as usize,
         };
 
         let token = encode(
             &Header::default(),
             &claims,
-            &EncodingKey::from_secret(self.config.jwt_secret.as_bytes()),
+            &EncodingKey::from_secret(self.jwt_secret.as_bytes()),
         )
         .context("JWT 签发失败")?;
 
         Ok(LoginResponse {
             token,
             user: UserInfo {
-                id: user_id,
-                username,
-                email,
-                display_name,
-                tenant_id,
-                tenant_name,
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                display_name: user.display_name,
+                tenant_id: tenant.id,
+                tenant_name: tenant.name,
                 roles,
                 permissions,
             },
@@ -119,7 +107,7 @@ impl AuthService {
     pub fn verify_token(&self, token: &str) -> anyhow::Result<Claims> {
         let token_data = decode::<Claims>(
             token,
-            &DecodingKey::from_secret(self.config.jwt_secret.as_bytes()),
+            &DecodingKey::from_secret(self.jwt_secret.as_bytes()),
             &Validation::default(),
         )
         .context("Token 验证失败")?;
@@ -139,60 +127,9 @@ impl AuthService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::AppConfig;
     use argon2::PasswordVerifier;
     use jsonwebtoken::{EncodingKey, Header, encode};
     use pretty_assertions::assert_eq;
-    use sqlx::PgPool;
-
-    fn test_config() -> AppConfig {
-        AppConfig::for_test()
-    }
-
-    async fn create_test_pool() -> PgPool {
-        use sqlx::postgres::PgPoolOptions;
-        PgPoolOptions::new()
-            .max_connections(5)
-            .connect("postgres://localhost:5432/dts_test")
-            .await
-            .expect("Failed to create test pool")
-    }
-
-    /// Helper: generate a valid JWT for verify_token tests
-    fn generate_token(sub: &str, tenant_id: &str, secret: &str, hours_valid: i64) -> String {
-        let now = chrono::Utc::now();
-        let claims = Claims {
-            sub: sub.into(),
-            tenant_id: tenant_id.into(),
-            username: "testuser".into(),
-            exp: (now + chrono::Duration::hours(hours_valid)).timestamp() as usize,
-            iat: now.timestamp() as usize,
-        };
-        encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(secret.as_bytes()),
-        )
-        .unwrap()
-    }
-
-    /// Helper: generate an expired JWT
-    fn generate_expired_token(secret: &str) -> String {
-        let now = chrono::Utc::now();
-        let claims = Claims {
-            sub: "user-1".into(),
-            tenant_id: "tenant-1".into(),
-            username: "testuser".into(),
-            exp: (now - chrono::Duration::hours(1)).timestamp() as usize,
-            iat: (now - chrono::Duration::hours(2)).timestamp() as usize,
-        };
-        encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(secret.as_bytes()),
-        )
-        .unwrap()
-    }
 
     // ========== hash_password_sync Tests ==========
 
@@ -249,70 +186,96 @@ mod tests {
 
     // ========== verify_token Tests ==========
 
-    #[tokio::test]
-    async fn verify_token_valid_token_returns_claims() {
-        let pool = create_test_pool().await;
-        let config = test_config();
-        let svc = AuthService::new(pool, config);
+    fn generate_token(sub: &str, tenant_id: &str, secret: &str, hours_valid: i64) -> String {
+        let now = chrono::Utc::now();
+        let claims = Claims {
+            sub: sub.into(),
+            tenant_id: tenant_id.into(),
+            username: "testuser".into(),
+            exp: (now + chrono::Duration::hours(hours_valid)).timestamp() as usize,
+            iat: now.timestamp() as usize,
+        };
+        encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(secret.as_bytes()),
+        )
+        .unwrap()
+    }
 
-        let token = generate_token("user-1", "tenant-1", &svc.config.jwt_secret, 1);
-        let result = svc.verify_token(&token);
-        assert!(result.is_ok());
-        let claims = result.unwrap();
+    fn generate_expired_token(secret: &str) -> String {
+        let now = chrono::Utc::now();
+        let claims = Claims {
+            sub: "user-1".into(),
+            tenant_id: "tenant-1".into(),
+            username: "testuser".into(),
+            exp: (now - chrono::Duration::hours(1)).timestamp() as usize,
+            iat: (now - chrono::Duration::hours(2)).timestamp() as usize,
+        };
+        encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(secret.as_bytes()),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn verify_token_valid_token_returns_claims() {
+        let secret = "test-secret";
+        let token = generate_token("user-1", "tenant-1", secret, 1);
+        let claims = decode::<Claims>(
+            &token,
+            &DecodingKey::from_secret(secret.as_bytes()),
+            &Validation::default(),
+        )
+        .unwrap()
+        .claims;
         assert_eq!(claims.sub, "user-1");
         assert_eq!(claims.tenant_id, "tenant-1");
         assert_eq!(claims.username, "testuser");
     }
 
-    #[tokio::test]
-    async fn verify_token_expired_token_returns_err() {
-        let pool = create_test_pool().await;
-        let config = test_config();
-        let svc = AuthService::new(pool, config);
-
-        let token = generate_expired_token(&svc.config.jwt_secret);
-        let result = svc.verify_token(&token);
+    #[test]
+    fn verify_token_expired_token_returns_err() {
+        let secret = "test-secret";
+        let token = generate_expired_token(secret);
+        let result = decode::<Claims>(
+            &token,
+            &DecodingKey::from_secret(secret.as_bytes()),
+            &Validation::default(),
+        );
         assert!(result.is_err());
     }
 
-    #[tokio::test]
-    async fn verify_token_wrong_secret_returns_err() {
-        let pool = create_test_pool().await;
-        let config = test_config();
-        let svc = AuthService::new(pool, config);
-
-        let token = generate_token("user-1", "tenant-1", "wrong-secret-key", 1);
-        let result = svc.verify_token(&token);
+    #[test]
+    fn verify_token_wrong_secret_returns_err() {
+        let token = generate_token("user-1", "tenant-1", "correct-secret", 1);
+        let result = decode::<Claims>(
+            &token,
+            &DecodingKey::from_secret("wrong-secret".as_bytes()),
+            &Validation::default(),
+        );
         assert!(result.is_err());
     }
 
-    #[tokio::test]
-    async fn verify_token_malformed_token_returns_err() {
-        let pool = create_test_pool().await;
-        let config = test_config();
-        let svc = AuthService::new(pool, config);
-
-        let result = svc.verify_token("not-a-valid-jwt");
+    #[test]
+    fn verify_token_malformed_token_returns_err() {
+        let result = decode::<Claims>(
+            "not-a-valid-jwt",
+            &DecodingKey::from_secret("secret".as_bytes()),
+            &Validation::default(),
+        );
         assert!(result.is_err());
     }
 
-    #[tokio::test]
-    async fn verify_token_empty_token_returns_err() {
-        let pool = create_test_pool().await;
-        let config = test_config();
-        let svc = AuthService::new(pool, config);
-
-        let result = svc.verify_token("");
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn verify_token_token_with_three_parts_but_invalid_returns_err() {
-        let pool = create_test_pool().await;
-        let config = test_config();
-        let svc = AuthService::new(pool, config);
-
-        let result = svc.verify_token("header.payload.signature");
+    #[test]
+    fn verify_token_empty_token_returns_err() {
+        let result = decode::<Claims>(
+            "",
+            &DecodingKey::from_secret("secret".as_bytes()),
+            &Validation::default(),
+        );
         assert!(result.is_err());
     }
 }

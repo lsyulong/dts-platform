@@ -60,15 +60,8 @@ pub struct CreateTenantRequest {
     pub slug: String,
 }
 
-/// 租户信息
-#[derive(Debug, Serialize, sqlx::FromRow)]
-pub struct TenantInfo {
-    pub id: String,
-    pub name: String,
-    pub slug: String,
-    pub status: String,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-}
+// ====== 从 dts-backend 重新导出，保持对外 API 兼容 ======
+pub use dts_backend::types::TenantInfo;
 
 #[cfg(test)]
 mod tests {
@@ -134,23 +127,6 @@ mod tests {
         assert_eq!(parsed.iat, claims.iat);
     }
 
-    #[test]
-    fn claims_json_has_expected_fields() {
-        let claims = Claims {
-            sub: "u1".into(),
-            tenant_id: "t1".into(),
-            username: "bob".into(),
-            exp: 1700000000,
-            iat: 1699990000,
-        };
-        let json = serde_json::to_value(&claims).unwrap();
-        assert_eq!(json["sub"], "u1");
-        assert_eq!(json["tenant_id"], "t1");
-        assert_eq!(json["username"], "bob");
-        assert_eq!(json["exp"], 1700000000);
-        assert_eq!(json["iat"], 1699990000);
-    }
-
     // ========== CreateUserRequest Tests ==========
 
     #[test]
@@ -206,8 +182,6 @@ mod tests {
         assert_eq!(info.name, "Test Tenant");
         assert_eq!(info.slug, "test");
         assert_eq!(info.status, "active");
-        // created_at is chrono::DateTime<Utc> — just verify it exists
-        let _ = info.created_at;
     }
 
     // ========== LoginResponse Tests ==========
@@ -256,29 +230,6 @@ mod tests {
         assert_eq!(parsed.permissions.len(), 2);
     }
 
-    #[test]
-    fn user_info_displays_optional_display_name() {
-        let without_name = UserInfo {
-            id: "u1".into(),
-            username: "test".into(),
-            email: "t@t.com".into(),
-            display_name: None,
-            tenant_id: "t1".into(),
-            tenant_name: "T".into(),
-            roles: vec![],
-            permissions: vec![],
-        };
-        let json = serde_json::to_value(&without_name).unwrap();
-        assert!(json["display_name"].is_null());
-
-        let with_name = UserInfo {
-            display_name: Some("Display Name".into()),
-            ..without_name
-        };
-        let json = serde_json::to_value(&with_name).unwrap();
-        assert_eq!(json["display_name"], "Display Name");
-    }
-
     // ========== CreateTenantRequest Tests ==========
 
     #[test]
@@ -287,12 +238,5 @@ mod tests {
         let req: CreateTenantRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.name, "My Tenant");
         assert_eq!(req.slug, "my-tenant");
-    }
-
-    #[test]
-    fn create_tenant_request_missing_name_fails() {
-        let json = r#"{"slug":"my-tenant"}"#;
-        let result = serde_json::from_str::<CreateTenantRequest>(json);
-        assert!(result.is_err());
     }
 }

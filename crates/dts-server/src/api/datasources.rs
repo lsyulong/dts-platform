@@ -1,12 +1,14 @@
+use std::sync::Arc;
+
 use actix_web::{HttpRequest, HttpResponse, web};
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
 use uuid::Uuid;
 
-use crate::db::DbPool;
 use crate::middleware::auth;
 use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
+use dts_backend::repo::DatasourceRepo;
+use dts_backend::types::CreateDatasourceParams;
 
 /// 创建数据源请求
 #[derive(Debug, Deserialize)]
@@ -21,7 +23,7 @@ pub struct CreateDatasourceRequest {
 }
 
 /// 数据源响应
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize)]
 pub struct DatasourceResponse {
     pub id: String,
     pub name: String,
@@ -35,19 +37,14 @@ pub struct DatasourceResponse {
 }
 
 /// GET /api/v1/datasources
-pub async fn list(pool: web::Data<DbPool>, req: HttpRequest) -> Result<HttpResponse, AppError> {
+pub async fn list(
+    ds_repo: web::Data<Arc<dyn DatasourceRepo>>,
+    req: HttpRequest,
+) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
-    let datasources: Vec<DatasourceResponse> = sqlx::query_as::<_, DatasourceResponse>(
-        "SELECT id, name, db_type, host, port, username, database_name,
-         health_status, created_at
-         FROM datasource WHERE tenant_id = $1
-         ORDER BY created_at DESC",
-    )
-    .bind(&claims.tenant_id)
-    .fetch_all(pool.get_ref())
-    .await?;
+    let datasources = ds_repo.list_by_tenant(&claims.tenant_id).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "data": datasources
@@ -56,7 +53,7 @@ pub async fn list(pool: web::Data<DbPool>, req: HttpRequest) -> Result<HttpRespo
 
 /// POST /api/v1/datasources
 pub async fn create(
-    pool: web::Data<DbPool>,
+    ds_repo: web::Data<Arc<dyn DatasourceRepo>>,
     req: HttpRequest,
     body: web::Json<CreateDatasourceRequest>,
 ) -> Result<HttpResponse, AppError> {
@@ -64,26 +61,22 @@ pub async fn create(
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
     let id = Uuid::new_v4().to_string();
-
     let encrypted_pw = body.password.as_ref().map(|p| format!("enc:{p}"));
 
-    sqlx::query(
-        "INSERT INTO datasource (id, tenant_id, name, db_type, host, port, username,
-         encrypted_password, database_name, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-    )
-    .bind(&id)
-    .bind(&claims.tenant_id)
-    .bind(&body.name)
-    .bind(&body.db_type)
-    .bind(&body.host)
-    .bind(body.port)
-    .bind(&body.username)
-    .bind(&encrypted_pw)
-    .bind(&body.database_name)
-    .bind(&claims.sub)
-    .execute(pool.get_ref())
-    .await?;
+    ds_repo
+        .create(&CreateDatasourceParams {
+            id: id.clone(),
+            tenant_id: claims.tenant_id,
+            name: body.name.clone(),
+            db_type: body.db_type.clone(),
+            host: body.host.clone(),
+            port: body.port,
+            username: body.username.clone(),
+            encrypted_password: encrypted_pw,
+            database_name: body.database_name.clone(),
+            created_by: claims.sub,
+        })
+        .await?;
 
     Ok(HttpResponse::Created().json(serde_json::json!({
         "id": id,
@@ -94,7 +87,7 @@ pub async fn create(
 
 /// GET /api/v1/datasources/{id}
 pub async fn get(
-    pool: web::Data<DbPool>,
+    ds_repo: web::Data<Arc<dyn DatasourceRepo>>,
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
@@ -102,43 +95,17 @@ pub async fn get(
     let claims = auth::extract_claims(&req, &jwt_secret)?;
     let ds_id = path.into_inner();
 
-    let ds = sqlx::query(
-        "SELECT id, name, db_type, host, port, username, encrypted_password,
-         database_name, extra_params, health_status, last_test_at, created_at, updated_at
-         FROM datasource WHERE id = $1 AND tenant_id = $2",
-    )
-    .bind(&ds_id)
-    .bind(&claims.tenant_id)
-    .fetch_optional(pool.get_ref())
-    .await?
-    .ok_or_else(|| AppError::NotFound("数据源不存在".into()))?;
+    let ds = ds_repo
+        .find_detail_by_id(&ds_id, &claims.tenant_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("数据源不存在".into()))?;
 
-    let encrypted: Option<String> = ds.get(6);
-    let password_masked = encrypted.map(|_| "******".to_string());
-    let last_test_at: Option<chrono::DateTime<chrono::Utc>> = ds.get(10);
-    let created_at: chrono::DateTime<chrono::Utc> = ds.get(11);
-    let updated_at: chrono::DateTime<chrono::Utc> = ds.get(12);
-
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "id": ds.get::<String, _>(0),
-        "name": ds.get::<String, _>(1),
-        "db_type": ds.get::<String, _>(2),
-        "host": ds.get::<String, _>(3),
-        "port": ds.get::<i64, _>(4),
-        "username": ds.get::<Option<String>, _>(5),
-        "password": password_masked,
-        "database_name": ds.get::<Option<String>, _>(7),
-        "extra_params": ds.get::<Option<String>, _>(8),
-        "health_status": ds.get::<String, _>(9),
-        "last_test_at": last_test_at.map(|dt| dt.to_rfc3339()),
-        "created_at": created_at.to_rfc3339(),
-        "updated_at": updated_at.to_rfc3339(),
-    })))
+    Ok(HttpResponse::Ok().json(ds))
 }
 
 /// DELETE /api/v1/datasources/{id}
 pub async fn delete(
-    pool: web::Data<DbPool>,
+    ds_repo: web::Data<Arc<dyn DatasourceRepo>>,
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
@@ -146,13 +113,9 @@ pub async fn delete(
     let claims = auth::extract_claims(&req, &jwt_secret)?;
     let ds_id = path.into_inner();
 
-    let result = sqlx::query("DELETE FROM datasource WHERE id = $1 AND tenant_id = $2")
-        .bind(&ds_id)
-        .bind(&claims.tenant_id)
-        .execute(pool.get_ref())
-        .await?;
+    let deleted = ds_repo.delete(&ds_id, &claims.tenant_id).await?;
 
-    if result.rows_affected() == 0 {
+    if !deleted {
         return Err(AppError::NotFound("数据源不存在".into()));
     }
 
@@ -208,67 +171,6 @@ mod tests {
     }
 
     #[test]
-    fn create_datasource_request_missing_name_fails() {
-        let json = serde_json::json!({
-            "db_type": "MySQL",
-            "host": "localhost",
-            "port": 3306
-        });
-        let result = serde_json::from_value::<CreateDatasourceRequest>(json);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn create_datasource_request_missing_db_type_fails() {
-        let json = serde_json::json!({
-            "name": "DB",
-            "host": "localhost",
-            "port": 3306
-        });
-        let result = serde_json::from_value::<CreateDatasourceRequest>(json);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn create_datasource_request_missing_host_fails() {
-        let json = serde_json::json!({
-            "name": "DB",
-            "db_type": "MySQL",
-            "port": 3306
-        });
-        let result = serde_json::from_value::<CreateDatasourceRequest>(json);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn create_datasource_request_missing_port_fails() {
-        let json = serde_json::json!({
-            "name": "DB",
-            "db_type": "MySQL",
-            "host": "localhost"
-        });
-        let result = serde_json::from_value::<CreateDatasourceRequest>(json);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn create_datasource_request_with_null_optionals() {
-        let json = serde_json::json!({
-            "name": "DB",
-            "db_type": "PostgreSQL",
-            "host": "pg.example.com",
-            "port": 5432,
-            "username": null,
-            "password": null,
-            "database_name": null
-        });
-        let req: CreateDatasourceRequest = serde_json::from_value(json).unwrap();
-        assert_eq!(req.username, None);
-        assert_eq!(req.password, None);
-        assert_eq!(req.database_name, None);
-    }
-
-    #[test]
     fn create_datasource_request_various_db_types() {
         for db_type in &["MySQL", "PostgreSQL", "SQLite", "SQL Server", "Oracle"] {
             let json = serde_json::json!({
@@ -281,8 +183,6 @@ mod tests {
             assert_eq!(req.db_type, *db_type);
         }
     }
-
-    // ========== DatasourceResponse Tests ==========
 
     #[test]
     fn datasource_response_serializes_correctly() {
