@@ -23,7 +23,13 @@ impl SqliteTenantRepo {
                 chrono::NaiveDateTime::parse_from_str(&created_at_str, "%Y-%m-%d %H:%M:%S")
                     .map(|dt| dt.and_utc())
             })
-            .unwrap_or_else(|_| chrono::Utc::now());
+            .unwrap_or_else(|_| {
+                log::warn!(
+                    "无法解析 created_at 时间戳 '{}'，使用当前时间作为降级值",
+                    created_at_str
+                );
+                chrono::Utc::now()
+            });
         TenantInfo {
             id: r.get(0),
             name: r.get(1),
