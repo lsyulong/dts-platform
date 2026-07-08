@@ -44,11 +44,11 @@ pub async fn create_pool(database_url: &str) -> Result<SqliteBackendPool, Backen
         .map_err(map_sqlx_error)?;
 
     // 启用 WAL 模式和外键约束
-    sqlx::query("PRAGMA journal_mode=WAL;")
+    sqlx::query("PRAGMA journal_mode=WAL")
         .execute(&pool)
         .await
         .map_err(map_sqlx_error)?;
-    sqlx::query("PRAGMA foreign_keys=ON;")
+    sqlx::query("PRAGMA foreign_keys=ON")
         .execute(&pool)
         .await
         .map_err(map_sqlx_error)?;

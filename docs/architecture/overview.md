@@ -25,7 +25,7 @@ DTS Platform 是基于 ape-dts 数据同步引擎构建的企业级数据同步�
 │  └── 实时推送 (WebSocket)                             │
 │         │                                           │
 │         ├── 调用 ape-dts (git 依赖)                   │
-│         └── SQLite 持久化 (配置/历史/用户/租户)          │
+│         └── 多后端存储 (SQLite 开发 / PostgreSQL 生产)    │
 └─────────────────────────────────────────────────────┘
                       │
 ┌─────────────────────┴───────────────────────────────┐
@@ -69,6 +69,10 @@ DTS Platform 是基于 ape-dts 数据同步引擎构建的企业级数据同步�
 4. **不可变模式**：始终创建新对象，不修改现有对象
 5. **错误显式处理**：使用 `thiserror` + `anyhow`，不静默吞掉错误
 
+## 相关文档
+
+- [数据库后端架构设计](./database-backend.md) — 多后端存储的详细设计（trait 层次、feature flags、迁移策略、如何新增后端）
+
 ## 技术栈
 
 | 层级 | 技术 | 说明 |
@@ -80,17 +84,17 @@ DTS Platform 是基于 ape-dts 数据同步引擎构建的企业级数据同步�
 | 表格 | TanStack Table | 任务/数据源表格 |
 | 后端 | actix-web 4.x | Rust Web 框架 |
 | ORM | sqlx 0.8.x | 异步 SQL 工具 |
-| 数据库 | SQLite (Phase 1) | 嵌入式数据库 |
-| 数据库 (Phase 2) | Supabase/PostgreSQL | 生产数据库 |
+| 数据库 | SQLite (开发默认) | 零配置、文件存储、内存测试 |
+| 数据库 (生产) | Supabase/PostgreSQL | 生产级高并发，PostgreSQL 协议兼容 |
 | 密码哈希 | argon2 | 安全密码存储 |
 | JWT | jsonwebtoken | 无状态认证 |
 | 引擎 | ape-dts (git dep) | 数据同步引擎 |
 
 ## Phase 演进路线
 
-### Phase 1 — 单机可用 (本次实现)
+### Phase 1 — 单机可用 ✅
 - dts-server: API + 直接调用 dt-task library
-- SQLite 数据库
+- 多后端存储：SQLite (开发) + PostgreSQL (生产)
 - 完整前端 (6 个页面)
 - 本地开发 + Vercel 部署前端
 
@@ -98,10 +102,10 @@ DTS Platform 是基于 ape-dts 数据同步引擎构建的企业级数据同步�
 - 给 dt-task 增加进度回调接口
 - WebSocket 实时日志/进度推送
 - Prometheus metrics 完善
+- DTS 同步引擎驱动（MySQL、PG、SQL Server、Oracle）
 
 ### Phase 3 — 分布式 (生产级扩展)
 - EngineService trait 抽象
 - Coordinator-Worker 拆分
 - NATS 消息队列
-- PostgreSQL/Supabase 替换 SQLite
 - K8s Helm Chart

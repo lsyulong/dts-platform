@@ -904,6 +904,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "dts-core",
  "serde",
  "thiserror",
  "tokio",
@@ -935,6 +936,29 @@ dependencies = [
  "log",
  "sqlx",
  "thiserror",
+]
+
+[[package]]
+name = "dts-backend-sqlite"
+version = "0.1.0"
+dependencies = [
+ "argon2",
+ "async-trait",
+ "chrono",
+ "dts-backend",
+ "dts-backend-rdbms",
+ "dts-core",
+ "log",
+ "sqlx",
+ "uuid",
+]
+
+[[package]]
+name = "dts-core"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
 ]
 
 [[package]]
@@ -1819,6 +1843,7 @@ version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e99fb7a497b1e3339bc746195567ed8d3e24945ecd636e3619d20b9de9e9149"
 dependencies = [
+ "cc",
  "pkg-config",
  "vcpkg",
 ]

@@ -1,8 +1,6 @@
-use async_trait::async_trait;
-use dts_backend::{BackendError, repo::DatasourceRepo};
-use dts_backend_rdbms::map_sqlx_error;
 use sqlx::SqlitePool;
 
+#[allow(dead_code)]
 pub struct SqliteDatasourceRepo {
     pool: SqlitePool,
 }
