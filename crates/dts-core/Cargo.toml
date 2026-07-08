@@ -1,0 +1,9 @@
+[package]
+name = "dts-core"
+version = "0.1.0"
+edition = "2021"
+description = "DTS Platform 共享基础类型"
+
+[dependencies]
+serde = { workspace = true }
+chrono = { workspace = true }

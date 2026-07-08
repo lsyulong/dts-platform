@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/dts-server", "crates/dts-backend", "crates/dts-backend-rdbms", "crates/dts-backend-postgres"]
+members = ["crates/dts-server", "crates/dts-backend", "crates/dts-backend-rdbms", "crates/dts-backend-postgres", "crates/dts-core"]
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }

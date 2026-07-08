@@ -12,7 +12,9 @@
 pub mod error;
 pub mod pool;
 pub mod repo;
-pub mod types;
+
+// Re-export types from dts-core (backward compatible)
+pub use dts_core::*;
 
 pub use error::BackendError;
 pub use pool::{BackendPool, BackendPoolFactory};
