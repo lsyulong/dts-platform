@@ -25,8 +25,7 @@ impl SqliteTenantRepo {
             })
             .unwrap_or_else(|_| {
                 log::warn!(
-                    "无法解析 created_at 时间戳 '{}'，使用当前时间作为降级值",
-                    created_at_str
+                    "无法解析 created_at 时间戳 '{created_at_str}'，使用当前时间作为降级值"
                 );
                 chrono::Utc::now()
             });

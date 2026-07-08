@@ -6,6 +6,7 @@ pub mod seed;
 pub mod task;
 pub mod tenant;
 pub mod user;
+mod util;
 
 pub use alert::SqliteAlertRepo;
 pub use datasource::SqliteDatasourceRepo;

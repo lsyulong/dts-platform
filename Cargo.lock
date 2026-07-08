@@ -949,6 +949,7 @@ dependencies = [
  "dts-backend-rdbms",
  "dts-core",
  "log",
+ "rand_core 0.6.4",
  "sqlx",
  "tokio",
  "uuid",
