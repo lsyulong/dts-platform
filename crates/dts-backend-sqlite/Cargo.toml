@@ -17,3 +17,11 @@ chrono = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 log = { workspace = true }
 argon2 = "0.5"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros"] }
+uuid = { workspace = true, features = ["v4"] }
+dts-backend = { path = "../dts-backend" }
+dts-core = { path = "../dts-core" }
+dts-backend-rdbms = { path = "../dts-backend-rdbms" }
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }

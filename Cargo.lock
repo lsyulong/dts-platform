@@ -950,6 +950,7 @@ dependencies = [
  "dts-core",
  "log",
  "sqlx",
+ "tokio",
  "uuid",
 ]
 
