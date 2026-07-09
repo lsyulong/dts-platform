@@ -37,7 +37,6 @@ uuid = { workspace = true, features = ["v4"] }
 chrono = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-log = { workspace = true }
 dashmap = { workspace = true }
 async-trait = { workspace = true }
 rand = { workspace = true }

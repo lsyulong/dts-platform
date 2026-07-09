@@ -48,6 +48,6 @@ pub async fn create_pool(database_url: &str) -> Result<PgBackendPool, BackendErr
         .await
         .map_err(map_sqlx_error)?;
 
-    log::info!("PostgreSQL 连接池已创建");
+    tracing::info!("PostgreSQL 连接池已创建");
     Ok(PgBackendPool::new(pool))
 }

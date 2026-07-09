@@ -1,4 +1,4 @@
-use crate::models::auth::Claims;
+use crate::services::token::Claims;
 use crate::models::error::AppError;
 
 /// 验证请求者是否属于目标租户

@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use crate::models::auth::*;
+use crate::services::token::{self, Claims};
 use anyhow::{Context, anyhow};
 use argon2::{
     Argon2,
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
 use dts_backend::repo::{RoleRepo, TenantRepo, UserRepo};
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 
 /// 认证服务 — 处理登录、JWT签发/验证、密码哈希
 #[derive(Clone)]
@@ -81,12 +81,8 @@ impl AuthService {
             iat: now.timestamp() as usize,
         };
 
-        let token = encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(self.jwt_secret.as_bytes()),
-        )
-        .context("JWT 签发失败")?;
+        let token = token::create_token(&claims, &self.jwt_secret)
+            .context("JWT 签发失败")?;
 
         Ok(LoginResponse {
             token,
@@ -105,13 +101,8 @@ impl AuthService {
 
     /// 验签 JWT，返回 Claims
     pub fn verify_token(&self, token: &str) -> anyhow::Result<Claims> {
-        let token_data = decode::<Claims>(
-            token,
-            &DecodingKey::from_secret(self.jwt_secret.as_bytes()),
-            &Validation::default(),
-        )
-        .context("Token 验证失败")?;
-        Ok(token_data.claims)
+        token::validate_token(token, &self.jwt_secret)
+            .context("Token 验证失败")
     }
 
     /// 哈希密码 (同步方法，用于初始化种子数据)
@@ -128,7 +119,6 @@ impl AuthService {
 mod tests {
     use super::*;
     use argon2::PasswordVerifier;
-    use jsonwebtoken::{EncodingKey, Header, encode};
     use pretty_assertions::assert_eq;
 
     // ========== hash_password_sync Tests ==========
@@ -195,12 +185,7 @@ mod tests {
             exp: (now + chrono::Duration::hours(hours_valid)).timestamp() as usize,
             iat: now.timestamp() as usize,
         };
-        encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(secret.as_bytes()),
-        )
-        .unwrap()
+        token::create_token(&claims, secret).unwrap()
     }
 
     fn generate_expired_token(secret: &str) -> String {
@@ -212,25 +197,14 @@ mod tests {
             exp: (now - chrono::Duration::hours(1)).timestamp() as usize,
             iat: (now - chrono::Duration::hours(2)).timestamp() as usize,
         };
-        encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(secret.as_bytes()),
-        )
-        .unwrap()
+        token::create_token(&claims, secret).unwrap()
     }
 
     #[test]
     fn verify_token_valid_token_returns_claims() {
         let secret = "test-secret";
         let token = generate_token("user-1", "tenant-1", secret, 1);
-        let claims = decode::<Claims>(
-            &token,
-            &DecodingKey::from_secret(secret.as_bytes()),
-            &Validation::default(),
-        )
-        .unwrap()
-        .claims;
+        let claims = token::validate_token(&token, secret).unwrap();
         assert_eq!(claims.sub, "user-1");
         assert_eq!(claims.tenant_id, "tenant-1");
         assert_eq!(claims.username, "testuser");
@@ -240,42 +214,26 @@ mod tests {
     fn verify_token_expired_token_returns_err() {
         let secret = "test-secret";
         let token = generate_expired_token(secret);
-        let result = decode::<Claims>(
-            &token,
-            &DecodingKey::from_secret(secret.as_bytes()),
-            &Validation::default(),
-        );
+        let result = token::validate_token(&token, secret);
         assert!(result.is_err());
     }
 
     #[test]
     fn verify_token_wrong_secret_returns_err() {
         let token = generate_token("user-1", "tenant-1", "correct-secret", 1);
-        let result = decode::<Claims>(
-            &token,
-            &DecodingKey::from_secret("wrong-secret".as_bytes()),
-            &Validation::default(),
-        );
+        let result = token::validate_token(&token, "wrong-secret");
         assert!(result.is_err());
     }
 
     #[test]
     fn verify_token_malformed_token_returns_err() {
-        let result = decode::<Claims>(
-            "not-a-valid-jwt",
-            &DecodingKey::from_secret("secret".as_bytes()),
-            &Validation::default(),
-        );
+        let result = token::validate_token("not-a-valid-jwt", "secret");
         assert!(result.is_err());
     }
 
     #[test]
     fn verify_token_empty_token_returns_err() {
-        let result = decode::<Claims>(
-            "",
-            &DecodingKey::from_secret("secret".as_bytes()),
-            &Validation::default(),
-        );
+        let result = token::validate_token("", "secret");
         assert!(result.is_err());
     }
 }

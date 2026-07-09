@@ -1,5 +1,5 @@
 use actix_web::{HttpResponse, web};
-use log::info;
+use tracing::info;
 
 use crate::models::auth::CreateTenantRequest;
 use crate::models::error::AppError;

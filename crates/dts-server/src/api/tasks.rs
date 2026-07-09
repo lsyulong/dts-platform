@@ -2,13 +2,12 @@ use std::sync::Arc;
 
 use actix_web::{HttpRequest, HttpResponse, web};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::middleware::auth;
 use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
-use dts_backend::repo::{DatasourceRepo, TaskRepo};
-use dts_backend::types::CreateTaskParams;
+use crate::services::task_svc::TaskService;
+use dts_backend::repo::TaskRepo;
 
 /// 创建任务请求
 #[derive(Debug, Deserialize)]
@@ -37,13 +36,13 @@ pub struct TaskResponse {
 
 /// GET /api/v1/tasks
 pub async fn list(
-    task_repo: web::Data<Arc<dyn TaskRepo>>,
+    task_svc: web::Data<TaskService>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
-    let tasks = task_repo.list_by_tenant(&claims.tenant_id).await?;
+    let tasks = task_svc.list_by_tenant(&claims.tenant_id).await?;
     let total = tasks.len();
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
@@ -54,43 +53,32 @@ pub async fn list(
 
 /// POST /api/v1/tasks
 pub async fn create(
-    task_repo: web::Data<Arc<dyn TaskRepo>>,
-    ds_repo: web::Data<Arc<dyn DatasourceRepo>>,
+    task_svc: web::Data<TaskService>,
     req: HttpRequest,
     body: web::Json<CreateTaskRequest>,
 ) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
-    // 验证 source 和 target 存在
-    for ds_id in [&body.source_id, &body.target_id] {
-        let exists = ds_repo.exists(ds_id, &claims.tenant_id).await?;
-        if !exists {
-            return Err(AppError::BadRequest(format!("数据源 {ds_id} 不存在")));
-        }
-    }
-
-    let task_id = Uuid::new_v4().to_string();
     let config_json = serde_json::json!({
         "table_mappings": body.table_mappings,
         "filter_config": body.filter_config,
     });
 
-    task_repo
-        .create(&CreateTaskParams {
-            id: task_id.clone(),
-            tenant_id: claims.tenant_id.clone(),
-            name: body.name.clone(),
-            description: body.description.clone(),
-            source_id: body.source_id.clone(),
-            target_id: body.target_id.clone(),
-            cron_expr: body.cron_expr.clone(),
-            config_json: config_json.to_string(),
-            created_by: claims.sub,
-        })
+    let task_id = task_svc
+        .create(
+            &claims.tenant_id,
+            &body.name,
+            body.description.as_deref(),
+            &body.source_id,
+            &body.target_id,
+            body.cron_expr.as_deref(),
+            &config_json.to_string(),
+            &claims.sub,
+        )
         .await?;
 
-    log::info!("任务创建: {} (租户: {})", body.name, claims.tenant_id);
+    tracing::info!("任务创建: {} (租户: {})", body.name, claims.tenant_id);
 
     Ok(HttpResponse::Created().json(serde_json::json!({
         "id": task_id,
@@ -124,7 +112,7 @@ pub struct UpdateStatusRequest {
 }
 
 pub async fn update_status(
-    task_repo: web::Data<Arc<dyn TaskRepo>>,
+    task_svc: web::Data<TaskService>,
     req: HttpRequest,
     path: web::Path<String>,
     body: web::Json<UpdateStatusRequest>,
@@ -133,18 +121,9 @@ pub async fn update_status(
     let claims = auth::extract_claims(&req, &jwt_secret)?;
     let task_id = path.into_inner();
 
-    let valid_statuses = ["draft", "running", "paused", "completed", "failed"];
-    if !valid_statuses.contains(&body.status.as_str()) {
-        return Err(AppError::BadRequest(format!("无效状态: {}", body.status)));
-    }
-
-    let updated = task_repo
+    task_svc
         .update_status(&task_id, &claims.tenant_id, &body.status)
         .await?;
-
-    if !updated {
-        return Err(AppError::NotFound("任务不存在".into()));
-    }
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "id": task_id,

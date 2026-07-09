@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use actix_web::{HttpRequest, HttpResponse, web};
-use log::info;
+use tracing::info;
 
 use crate::middleware::auth;
 use crate::models::auth::*;

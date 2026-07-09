@@ -1,21 +1,19 @@
-use std::sync::Arc;
-
 use actix_web::{HttpRequest, HttpResponse, web};
 
 use crate::middleware::auth;
 use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
-use dts_backend::repo::MonitoringRepo;
+use crate::services::monitoring_svc::MonitoringService;
 
 /// GET /api/v1/monitoring/overview
 pub async fn overview(
-    monitoring_repo: web::Data<Arc<dyn MonitoringRepo>>,
+    monitoring_svc: web::Data<MonitoringService>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
-    let overview = monitoring_repo.get_overview(&claims.tenant_id).await?;
+    let overview = monitoring_svc.get_overview(&claims.tenant_id).await?;
 
     Ok(HttpResponse::Ok().json(overview))
 }

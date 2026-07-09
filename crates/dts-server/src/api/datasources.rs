@@ -2,13 +2,12 @@ use std::sync::Arc;
 
 use actix_web::{HttpRequest, HttpResponse, web};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::middleware::auth;
 use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
+use crate::services::datasource_svc::DatasourceService;
 use dts_backend::repo::DatasourceRepo;
-use dts_backend::types::CreateDatasourceParams;
 
 /// 创建数据源请求
 #[derive(Debug, Deserialize)]
@@ -38,13 +37,13 @@ pub struct DatasourceResponse {
 
 /// GET /api/v1/datasources
 pub async fn list(
-    ds_repo: web::Data<Arc<dyn DatasourceRepo>>,
+    datasource_svc: web::Data<DatasourceService>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
-    let datasources = ds_repo.list_by_tenant(&claims.tenant_id).await?;
+    let datasources = datasource_svc.list_by_tenant(&claims.tenant_id).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "data": datasources
@@ -53,29 +52,25 @@ pub async fn list(
 
 /// POST /api/v1/datasources
 pub async fn create(
-    ds_repo: web::Data<Arc<dyn DatasourceRepo>>,
+    datasource_svc: web::Data<DatasourceService>,
     req: HttpRequest,
     body: web::Json<CreateDatasourceRequest>,
 ) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
-    let id = Uuid::new_v4().to_string();
-    let encrypted_pw = body.password.as_ref().map(|p| format!("enc:{p}"));
-
-    ds_repo
-        .create(&CreateDatasourceParams {
-            id: id.clone(),
-            tenant_id: claims.tenant_id,
-            name: body.name.clone(),
-            db_type: body.db_type.clone(),
-            host: body.host.clone(),
-            port: body.port,
-            username: body.username.clone(),
-            encrypted_password: encrypted_pw,
-            database_name: body.database_name.clone(),
-            created_by: claims.sub,
-        })
+    let id = datasource_svc
+        .create(
+            &claims.tenant_id,
+            &body.name,
+            &body.db_type,
+            &body.host,
+            body.port,
+            body.username.as_deref(),
+            body.password.as_deref(),
+            body.database_name.as_deref(),
+            &claims.sub,
+        )
         .await?;
 
     Ok(HttpResponse::Created().json(serde_json::json!({

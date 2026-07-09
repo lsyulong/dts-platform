@@ -14,7 +14,7 @@ pub fn parse_timestamp(s: &str) -> chrono::DateTime<chrono::Utc> {
                 .map(|dt| dt.and_utc())
         })
         .unwrap_or_else(|_| {
-            log::warn!("无法解析时间戳 '{s}'，使用当前时间作为降级值");
+            tracing::warn!("无法解析时间戳 '{s}'，使用当前时间作为降级值");
             chrono::Utc::now()
         })
 }

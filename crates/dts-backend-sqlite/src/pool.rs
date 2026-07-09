@@ -53,6 +53,6 @@ pub async fn create_pool(database_url: &str) -> Result<SqliteBackendPool, Backen
         .await
         .map_err(map_sqlx_error)?;
 
-    log::info!("SQLite 连接池已创建");
+    tracing::info!("SQLite 连接池已创建");
     Ok(SqliteBackendPool::new(pool))
 }

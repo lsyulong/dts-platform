@@ -31,7 +31,7 @@ impl SeedRepo for PgSeedRepo {
     }
 
     async fn seed(&self) -> Result<(), BackendError> {
-        log::info!("初始化默认种子数据...");
+        tracing::info!("初始化默认种子数据...");
 
         let tenant_repo = PgTenantRepo::new(self.pool.clone());
         let role_repo = PgRoleRepo::new(self.pool.clone());
@@ -104,7 +104,7 @@ impl SeedRepo for PgSeedRepo {
             })
             .await?;
 
-        log::info!("种子数据初始化完成: 租户='{tenant_name}', 管理员='admin', 密码='admin123'");
+        tracing::info!("种子数据初始化完成: 租户='{tenant_name}', 管理员='admin', 密码='admin123'");
         Ok(())
     }
 }

@@ -70,7 +70,7 @@ pub async fn task_log_ws(
 ) -> Result<HttpResponse, AppError> {
     let task_id = path.into_inner();
 
-    log::info!("WebSocket 连接请求: task_id={task_id}");
+    tracing::info!("WebSocket 连接请求: task_id={task_id}");
 
     let (response, mut session, mut msg_stream) = actix_ws::handle(&req, stream)?;
     let mut rx = hub.tx.subscribe();
@@ -89,7 +89,7 @@ pub async fn task_log_ws(
                         }
                         Ok(_) => {}
                         Err(broadcast::error::RecvError::Lagged(n)) => {
-                            log::warn!("WebSocket 广播落后 {n} 条消息");
+                            tracing::warn!("WebSocket 广播落后 {n} 条消息");
                         }
                         Err(_) => break,
                     }
@@ -110,7 +110,7 @@ pub async fn task_log_ws(
                 }
             }
         }
-        log::info!("WebSocket 连接关闭: task_id={task_id}");
+        tracing::info!("WebSocket 连接关闭: task_id={task_id}");
     });
 
     Ok(response)

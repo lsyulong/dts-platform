@@ -32,7 +32,7 @@ impl MigrationRunner for SqliteMigrationRunner {
                 .map_err(|e| BackendError::Migration(format!("SQLite 迁移失败: {e}")))?;
         }
 
-        log::info!("SQLite 数据库迁移完成");
+        tracing::info!("SQLite 数据库迁移完成");
         Ok(())
     }
 }

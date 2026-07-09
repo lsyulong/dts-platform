@@ -1,8 +1,7 @@
 use crate::config::AppConfig;
-use crate::models::auth::Claims;
 use crate::models::error::AppError;
+use crate::services::token::{self, Claims};
 use actix_web::HttpRequest;
-use jsonwebtoken::{DecodingKey, Validation, decode};
 
 /// 从 HTTP 请求中提取并验证 JWT Claims
 pub fn extract_claims(req: &HttpRequest, jwt_secret: &str) -> Result<Claims, AppError> {
@@ -16,13 +15,8 @@ pub fn extract_claims(req: &HttpRequest, jwt_secret: &str) -> Result<Claims, App
         AppError::Unauthorized("Authorization 格式错误，应为 Bearer <token>".into())
     })?;
 
-    decode::<Claims>(
-        token,
-        &DecodingKey::from_secret(jwt_secret.as_bytes()),
-        &Validation::default(),
-    )
-    .map(|data| data.claims)
-    .map_err(|e| AppError::Unauthorized(format!("Token 无效或已过期: {e}")))
+    token::validate_token(token, jwt_secret)
+        .map_err(|e| AppError::Unauthorized(format!("Token 无效或已过期: {e}")))
 }
 
 /// 从 AppConfig 获取 JWT Secret（用于 API handler 中统一获取 secret）
@@ -36,8 +30,7 @@ pub fn get_jwt_secret(config: Option<&AppConfig>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::auth::Claims;
-    use jsonwebtoken::{EncodingKey, Header, encode};
+    use crate::services::token::Claims;
     use pretty_assertions::assert_eq;
 
     const TEST_SECRET: &str = "test-secret-for-unit-tests";
@@ -52,12 +45,7 @@ mod tests {
             exp: (now + chrono::Duration::hours(1)).timestamp() as usize,
             iat: now.timestamp() as usize,
         };
-        encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(secret.as_bytes()),
-        )
-        .unwrap()
+        token::create_token(&claims, secret).unwrap()
     }
 
     /// Helper: generate an expired JWT
@@ -70,12 +58,7 @@ mod tests {
             exp: (now - chrono::Duration::hours(1)).timestamp() as usize,
             iat: (now - chrono::Duration::hours(2)).timestamp() as usize,
         };
-        encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(secret.as_bytes()),
-        )
-        .unwrap()
+        token::create_token(&claims, secret).unwrap()
     }
 
     // ========== extract_claims Tests ==========

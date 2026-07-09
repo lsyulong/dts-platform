@@ -21,7 +21,7 @@ impl MigrationRunner for PgMigrationRunner {
             .run(&self.pool)
             .await
             .map_err(|e| BackendError::Migration(format!("数据库迁移失败: {e}")))?;
-        log::info!("PostgreSQL 数据库迁移完成");
+        tracing::info!("PostgreSQL 数据库迁移完成");
         Ok(())
     }
 }

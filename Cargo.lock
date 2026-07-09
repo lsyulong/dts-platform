@@ -834,8 +834,8 @@ dependencies = [
  "chrono",
  "dts-backend",
  "dts-backend-rdbms",
- "log",
  "sqlx",
+ "tracing",
  "uuid",
 ]
 
@@ -846,7 +846,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "dts-backend",
- "log",
  "sqlx",
  "thiserror",
 ]
@@ -861,10 +860,10 @@ dependencies = [
  "dts-backend",
  "dts-backend-rdbms",
  "dts-core",
- "log",
  "rand_core 0.6.4",
  "sqlx",
  "tokio",
+ "tracing",
  "uuid",
 ]
 
@@ -897,7 +896,6 @@ dependencies = [
  "dts-backend-sqlite",
  "futures",
  "jsonwebtoken",
- "log",
  "mockall",
  "pretty_assertions",
  "rand 0.8.6",

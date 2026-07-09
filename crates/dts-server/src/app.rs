@@ -3,7 +3,11 @@ use actix_web::{App, HttpResponse, HttpServer, middleware as actix_middleware, w
 
 use crate::config::AppConfig;
 use crate::db::BackendContext;
+use crate::services::alert_svc::AlertService;
 use crate::services::auth_svc::AuthService;
+use crate::services::datasource_svc::DatasourceService;
+use crate::services::monitoring_svc::MonitoringService;
+use crate::services::task_svc::TaskService;
 use crate::services::tenant_svc::TenantService;
 use crate::ws::task_log::WsHub;
 
@@ -24,6 +28,11 @@ pub async fn create_app(ctx: BackendContext, config: AppConfig) -> anyhow::Resul
         ctx.role_repo.clone(),
         ctx.user_repo.clone(),
     );
+
+    let task_svc = TaskService::new(ctx.task_repo.clone(), ctx.datasource_repo.clone());
+    let datasource_svc = DatasourceService::new(ctx.datasource_repo.clone());
+    let alert_svc = AlertService::new(ctx.alert_repo.clone());
+    let monitoring_svc = MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
 
     let ws_hub = WsHub::new();
 
@@ -46,13 +55,16 @@ pub async fn create_app(ctx: BackendContext, config: AppConfig) -> anyhow::Resul
             .app_data(web::Data::new(auth_svc.clone()))
             // 租户服务
             .app_data(web::Data::new(tenant_svc.clone()))
-            // Repository traits
+            // 业务服务
+            .app_data(web::Data::new(task_svc.clone()))
+            .app_data(web::Data::new(datasource_svc.clone()))
+            .app_data(web::Data::new(alert_svc.clone()))
+            .app_data(web::Data::new(monitoring_svc.clone()))
+            // Repository traits (仍被部分 handler 直接使用)
             .app_data(web::Data::new(ctx.user_repo.clone()))
             .app_data(web::Data::new(ctx.role_repo.clone()))
             .app_data(web::Data::new(ctx.datasource_repo.clone()))
             .app_data(web::Data::new(ctx.task_repo.clone()))
-            .app_data(web::Data::new(ctx.alert_repo.clone()))
-            .app_data(web::Data::new(ctx.monitoring_repo.clone()))
             // WebSocket Hub
             .app_data(web::Data::new(ws_hub.clone()))
             // REST API v1

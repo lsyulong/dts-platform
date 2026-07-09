@@ -38,21 +38,6 @@ pub struct UserInfo {
     pub permissions: Vec<String>,
 }
 
-/// JWT Claims
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Claims {
-    /// 用户 ID
-    pub sub: String,
-    /// 租户 ID
-    pub tenant_id: String,
-    /// 用户名
-    pub username: String,
-    /// 过期时间 (unix timestamp seconds)
-    pub exp: usize,
-    /// 签发时间
-    pub iat: usize,
-}
-
 /// 创建租户请求
 #[derive(Debug, Deserialize)]
 pub struct CreateTenantRequest {
@@ -66,6 +51,7 @@ pub use dts_backend::types::TenantInfo;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::services::token::Claims;
     use pretty_assertions::assert_eq;
 
     // ========== LoginRequest Tests ==========
