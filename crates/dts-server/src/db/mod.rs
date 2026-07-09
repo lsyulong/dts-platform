@@ -12,6 +12,7 @@ use dts_backend::pool::BackendPool;
 use dts_backend::repo::{
     AlertRepo, DatasourceRepo, MonitoringRepo, RoleRepo, SeedRepo, TaskRepo, TenantRepo, UserRepo,
 };
+#[cfg(any(feature = "sqlite", feature = "postgres"))]
 use dts_backend_rdbms::MigrationRunner;
 
 /// 后端上下文 — 持有连接池和所有 Repository
@@ -34,6 +35,7 @@ pub struct BackendContext {
 ///
 /// 在运行时根据 `backend_type` 分发到对应的初始化函数。
 /// 可用的后端由编译时的 feature flags 决定。
+#[allow(unused_variables)]
 pub async fn init_backend(database_url: &str, backend_type: &str) -> anyhow::Result<BackendContext> {
     match backend_type {
         #[cfg(feature = "sqlite")]
