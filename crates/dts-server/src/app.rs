@@ -1,6 +1,5 @@
 use actix_cors::Cors;
 use actix_web::{App, HttpResponse, HttpServer, middleware as actix_middleware, web};
-use dts_backend::pool::BackendPool;
 
 use crate::config::AppConfig;
 use crate::db::BackendContext;

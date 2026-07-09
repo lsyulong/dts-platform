@@ -34,11 +34,11 @@ impl AppConfig {
         }
     }
 
-    /// 测试用默认配置
+    /// 测试用默认配置（SQLite 内存模式）
     pub fn for_test() -> Self {
         Self {
-            database_url: "postgres://localhost:5432/dts_test".to_string(),
-            database_backend: "postgres".to_string(),
+            database_url: "sqlite::memory:".to_string(),
+            database_backend: "sqlite".to_string(),
             jwt_secret: "test-secret-key-for-unit-tests".to_string(),
             jwt_expiry_hours: 24,
             server_host: "127.0.0.1".to_string(),
@@ -53,9 +53,9 @@ impl AppConfig {
 
         Ok(Self {
             database_url: env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "postgres://localhost:5432/dts".to_string()),
+                .unwrap_or_else(|_| "sqlite://data/dts.db?mode=rwc".to_string()),
             database_backend: env::var("DATABASE_BACKEND")
-                .unwrap_or_else(|_| "postgres".to_string()),
+                .unwrap_or_else(|_| "sqlite".to_string()),
             jwt_secret: env::var("JWT_SECRET")
                 .unwrap_or_else(|_| "dev-secret-change-me".to_string()),
             jwt_expiry_hours: env::var("JWT_EXPIRY_HOURS")
@@ -79,16 +79,16 @@ mod tests {
     #[test]
     fn new_creates_config_with_given_values() {
         let config = AppConfig::new(
-            "postgres://localhost/dts",
-            "postgres",
+            "sqlite://data/dts.db?mode=rwc",
+            "sqlite",
             "my-secret",
             48,
             "127.0.0.1",
             3000,
             "/tmp/data",
         );
-        assert_eq!(config.database_url, "postgres://localhost/dts");
-        assert_eq!(config.database_backend, "postgres");
+        assert_eq!(config.database_url, "sqlite://data/dts.db?mode=rwc");
+        assert_eq!(config.database_backend, "sqlite");
         assert_eq!(config.jwt_secret, "my-secret");
         assert_eq!(config.jwt_expiry_hours, 48);
         assert_eq!(config.server_host, "127.0.0.1");
@@ -97,10 +97,10 @@ mod tests {
     }
 
     #[test]
-    fn for_test_creates_postgres_config() {
+    fn for_test_creates_sqlite_config() {
         let config = AppConfig::for_test();
-        assert!(config.database_url.starts_with("postgres://"));
-        assert_eq!(config.database_backend, "postgres");
+        assert_eq!(config.database_url, "sqlite::memory:");
+        assert_eq!(config.database_backend, "sqlite");
         assert!(config.server_port == 0);
     }
 

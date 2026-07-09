@@ -2,10 +2,12 @@ use crate::error::BackendError;
 
 /// 存储后端连接池抽象
 ///
-/// 各协议实现（postgres, mysql, oracle 等）需要提供对应的连接池类型，
-/// 并通过 `acquire` 方法返回可执行查询的连接句柄。
+/// 各协议实现（sqlite, postgres, mysql, oracle 等）需要提供对应的连接池类型，
+/// 并通过 `ping` 方法执行健康检查。
+///
+/// 上层代码通过 `Arc<dyn BackendPool>` 持有，不依赖具体后端类型。
 #[async_trait::async_trait]
-pub trait BackendPool: Send + Sync + Clone + 'static {
+pub trait BackendPool: Send + Sync + 'static {
     /// 后端协议名称，如 "postgres"、"mysql"、"oracle"
     fn backend_name(&self) -> &'static str;
 
