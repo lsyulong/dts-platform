@@ -1,0 +1,18 @@
+[package]
+name = "dts-engine"
+version = "0.1.0"
+edition = "2021"
+description = "DTS Engine — 数据同步引擎抽象层"
+
+[lints]
+workspace = true
+
+[dependencies]
+dts-core = { path = "../dts-core" }
+async-trait = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+thiserror = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = "1"

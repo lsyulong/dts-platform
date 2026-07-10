@@ -19,5 +19,6 @@ pub use dts_core::*;
 pub use error::BackendError;
 pub use pool::{BackendPool, BackendPoolFactory};
 pub use repo::{
-    AlertRepo, DatasourceRepo, MonitoringRepo, RoleRepo, SeedRepo, TaskRepo, TenantRepo, UserRepo,
+    AlertRepo, CreateTaskRunParams, DatasourceRepo, MonitoringRepo, RoleRepo, SeedRepo, TaskRepo,
+    TaskRunRepo, TenantRepo, UpdateTaskRunParams, UserRepo,
 };

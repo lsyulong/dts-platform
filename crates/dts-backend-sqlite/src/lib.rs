@@ -12,5 +12,5 @@ pub use migrate::SqliteMigrationRunner;
 pub use pool::{SqliteBackendPool, create_pool};
 pub use repo::{
     SqliteAlertRepo, SqliteDatasourceRepo, SqliteMonitoringRepo, SqliteRoleRepo, SqliteSeedRepo,
-    SqliteTaskRepo, SqliteTenantRepo, SqliteUserRepo,
+    SqliteTaskRepo, SqliteTaskRunRepo, SqliteTenantRepo, SqliteUserRepo,
 };

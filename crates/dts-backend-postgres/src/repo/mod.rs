@@ -4,6 +4,7 @@ mod monitoring;
 mod role;
 mod seed;
 mod task;
+mod task_run;
 mod tenant;
 mod user;
 
@@ -13,5 +14,6 @@ pub use monitoring::PgMonitoringRepo;
 pub use role::PgRoleRepo;
 pub use seed::PgSeedRepo;
 pub use task::PgTaskRepo;
+pub use task_run::PgTaskRunRepo;
 pub use tenant::PgTenantRepo;
 pub use user::PgUserRepo;

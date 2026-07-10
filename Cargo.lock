@@ -878,6 +878,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "dts-engine"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dts-core",
+ "pretty_assertions",
+ "serde",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "dts-engine-ape"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dts-core",
+ "dts-engine",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "dts-server"
 version = "0.1.0"
 dependencies = [
@@ -896,6 +920,8 @@ dependencies = [
  "dts-backend-postgres",
  "dts-backend-rdbms",
  "dts-backend-sqlite",
+ "dts-engine",
+ "dts-engine-ape",
  "futures",
  "jsonwebtoken",
  "mockall",

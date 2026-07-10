@@ -17,5 +17,5 @@ pub use migrate::PgMigrationRunner;
 pub use pool::{PgBackendPool, create_pool};
 pub use repo::{
     PgAlertRepo, PgDatasourceRepo, PgMonitoringRepo, PgRoleRepo, PgSeedRepo, PgTaskRepo,
-    PgTenantRepo, PgUserRepo,
+    PgTaskRunRepo, PgTenantRepo, PgUserRepo,
 };

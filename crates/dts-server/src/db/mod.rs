@@ -10,7 +10,8 @@ use std::sync::Arc;
 
 use dts_backend::pool::BackendPool;
 use dts_backend::repo::{
-    AlertRepo, DatasourceRepo, MonitoringRepo, RoleRepo, SeedRepo, TaskRepo, TenantRepo, UserRepo,
+    AlertRepo, DatasourceRepo, MonitoringRepo, RoleRepo, SeedRepo, TaskRepo, TaskRunRepo, TenantRepo,
+    UserRepo,
 };
 #[cfg(any(feature = "sqlite", feature = "postgres"))]
 use dts_backend_rdbms::MigrationRunner;
@@ -26,6 +27,7 @@ pub struct BackendContext {
     pub role_repo: Arc<dyn RoleRepo>,
     pub datasource_repo: Arc<dyn DatasourceRepo>,
     pub task_repo: Arc<dyn TaskRepo>,
+    pub task_run_repo: Arc<dyn TaskRunRepo>,
     pub alert_repo: Arc<dyn AlertRepo>,
     pub monitoring_repo: Arc<dyn MonitoringRepo>,
     pub seed_repo: Arc<dyn SeedRepo>,
@@ -71,7 +73,8 @@ pub async fn init_backend(database_url: &str, backend_type: &str) -> anyhow::Res
 async fn init_sqlite(database_url: &str) -> anyhow::Result<BackendContext> {
     use dts_backend_sqlite::{
         SqliteAlertRepo, SqliteDatasourceRepo, SqliteMigrationRunner, SqliteMonitoringRepo,
-        SqliteRoleRepo, SqliteSeedRepo, SqliteTaskRepo, SqliteTenantRepo, SqliteUserRepo,
+        SqliteRoleRepo, SqliteSeedRepo, SqliteTaskRepo, SqliteTaskRunRepo, SqliteTenantRepo,
+        SqliteUserRepo,
     };
 
     // 1. 创建连接池
@@ -98,6 +101,7 @@ async fn init_sqlite(database_url: &str) -> anyhow::Result<BackendContext> {
         role_repo: Arc::new(SqliteRoleRepo::new(inner_pool.clone())),
         datasource_repo: Arc::new(SqliteDatasourceRepo::new(inner_pool.clone())),
         task_repo: Arc::new(SqliteTaskRepo::new(inner_pool.clone())),
+        task_run_repo: Arc::new(SqliteTaskRunRepo::new(inner_pool.clone())),
         alert_repo: Arc::new(SqliteAlertRepo::new(inner_pool.clone())),
         monitoring_repo: Arc::new(SqliteMonitoringRepo::new(inner_pool.clone())),
         seed_repo,
@@ -115,7 +119,7 @@ async fn init_sqlite(database_url: &str) -> anyhow::Result<BackendContext> {
 async fn init_postgres(database_url: &str) -> anyhow::Result<BackendContext> {
     use dts_backend_postgres::{
         PgAlertRepo, PgDatasourceRepo, PgMigrationRunner, PgMonitoringRepo, PgRoleRepo, PgSeedRepo,
-        PgTaskRepo, PgTenantRepo, PgUserRepo,
+        PgTaskRepo, PgTaskRunRepo, PgTenantRepo, PgUserRepo,
     };
 
     // 1. 创建连接池
@@ -142,6 +146,7 @@ async fn init_postgres(database_url: &str) -> anyhow::Result<BackendContext> {
         role_repo: Arc::new(PgRoleRepo::new(inner_pool.clone())),
         datasource_repo: Arc::new(PgDatasourceRepo::new(inner_pool.clone())),
         task_repo: Arc::new(PgTaskRepo::new(inner_pool.clone())),
+        task_run_repo: Arc::new(PgTaskRunRepo::new(inner_pool.clone())),
         alert_repo: Arc::new(PgAlertRepo::new(inner_pool.clone())),
         monitoring_repo: Arc::new(PgMonitoringRepo::new(inner_pool.clone())),
         seed_repo,

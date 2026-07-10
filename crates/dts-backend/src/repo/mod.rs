@@ -4,6 +4,7 @@ pub mod monitoring;
 pub mod role;
 pub mod seed;
 pub mod task;
+pub mod task_run;
 pub mod tenant;
 pub mod user;
 
@@ -13,5 +14,6 @@ pub use monitoring::MonitoringRepo;
 pub use role::RoleRepo;
 pub use seed::SeedRepo;
 pub use task::TaskRepo;
+pub use task_run::{CreateTaskRunParams, TaskRunRepo, UpdateTaskRunParams};
 pub use tenant::TenantRepo;
 pub use user::UserRepo;

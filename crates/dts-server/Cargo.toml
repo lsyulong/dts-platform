@@ -11,6 +11,7 @@ workspace = true
 default = ["sqlite"]
 sqlite = ["dts-backend-sqlite"]
 postgres = ["dts-backend-postgres"]
+engine-ape = ["dts-engine-ape"]
 
 [dependencies]
 # 本地 crate
@@ -18,6 +19,8 @@ dts-backend = { path = "../dts-backend" }
 dts-backend-rdbms = { path = "../dts-backend-rdbms" }
 dts-backend-sqlite = { path = "../dts-backend-sqlite", optional = true }
 dts-backend-postgres = { path = "../dts-backend-postgres", optional = true }
+dts-engine = { path = "../dts-engine" }
+dts-engine-ape = { path = "../dts-engine-ape", optional = true }
 
 # Web 框架
 actix-web = "4"
