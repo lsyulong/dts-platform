@@ -90,7 +90,7 @@ pub struct DatasourceInfo {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatasourceDetail {
     pub id: String,
     pub name: String,
@@ -136,7 +136,7 @@ pub struct TaskInfo {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskDetail {
     pub id: String,
     pub name: String,
@@ -185,7 +185,7 @@ pub struct CreateAlertParams {
     pub notify_channels: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlertInfo {
     pub id: String,
     pub name: String,
@@ -203,7 +203,7 @@ pub struct AlertInfo {
 // 监控
 // ============================================================
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MonitoringOverview {
     pub total_tasks: i64,
     pub running_tasks: i64,

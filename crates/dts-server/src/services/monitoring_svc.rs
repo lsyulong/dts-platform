@@ -173,4 +173,115 @@ mod tests {
         assert_eq!(overview.today_synced_bytes, 5_000_000);
         assert!((overview.success_rate - 0.95).abs() < f64::EPSILON);
     }
+
+    /// 验证空状态概览（新租户无任务无数据源）
+    #[tokio::test]
+    async fn get_overview_returns_empty_state_for_new_tenant() {
+        let monitoring_repo = Arc::new(MockMonitoringRepo::new());
+        let task_repo = Arc::new(MockTaskRepo);
+
+        // MockMonitoringRepo 默认返回全零概览
+
+        let svc = MonitoringService::new(monitoring_repo.clone(), task_repo);
+        let result = svc.get_overview("new-tenant").await;
+
+        assert!(result.is_ok());
+        let overview = result.unwrap();
+        assert_eq!(overview.total_tasks, 0);
+        assert_eq!(overview.running_tasks, 0);
+        assert_eq!(overview.failed_tasks, 0);
+        assert_eq!(overview.total_datasources, 0);
+        assert_eq!(overview.healthy_datasources, 0);
+        assert_eq!(overview.today_synced_rows, 0);
+        assert_eq!(overview.today_synced_bytes, 0);
+        assert_eq!(overview.success_rate, 0.0);
+        assert!(overview.recent_runs.is_empty());
+    }
+
+    /// 验证 100% 成功率
+    #[tokio::test]
+    async fn get_overview_handles_perfect_success_rate() {
+        let monitoring_repo = Arc::new(MockMonitoringRepo::new());
+        let task_repo = Arc::new(MockTaskRepo);
+
+        let overview = MonitoringOverview {
+            total_tasks: 50,
+            running_tasks: 0,
+            failed_tasks: 0,
+            total_datasources: 10,
+            healthy_datasources: 10,
+            today_synced_rows: 5_000_000,
+            today_synced_bytes: 250_000_000,
+            success_rate: 100.0,
+            recent_runs: vec![],
+        };
+        monitoring_repo.set_overview(overview.clone());
+
+        let svc = MonitoringService::new(monitoring_repo.clone(), task_repo);
+        let result = svc.get_overview("tenant-perfect").await;
+
+        assert!(result.is_ok());
+        let overview = result.unwrap();
+        assert!((overview.success_rate - 100.0).abs() < f64::EPSILON);
+        assert_eq!(overview.failed_tasks, 0);
+        assert_eq!(overview.total_tasks, 50);
+    }
+
+    /// 验证全部失败场景
+    #[tokio::test]
+    async fn get_overview_handles_all_failed() {
+        let monitoring_repo = Arc::new(MockMonitoringRepo::new());
+        let task_repo = Arc::new(MockTaskRepo);
+
+        let overview = MonitoringOverview {
+            total_tasks: 10,
+            running_tasks: 0,
+            failed_tasks: 10,
+            total_datasources: 5,
+            healthy_datasources: 5,
+            today_synced_rows: 0,
+            today_synced_bytes: 0,
+            success_rate: 0.0,
+            recent_runs: vec![],
+        };
+        monitoring_repo.set_overview(overview.clone());
+
+        let svc = MonitoringService::new(monitoring_repo.clone(), task_repo);
+        let result = svc.get_overview("tenant-failing").await;
+
+        assert!(result.is_ok());
+        let overview = result.unwrap();
+        assert_eq!(overview.failed_tasks, 10);
+        assert!((overview.success_rate - 0.0).abs() < f64::EPSILON);
+        assert_eq!(overview.today_synced_rows, 0);
+    }
+
+    /// 验证大数据量场景
+    #[tokio::test]
+    async fn get_overview_handles_large_numbers() {
+        let monitoring_repo = Arc::new(MockMonitoringRepo::new());
+        let task_repo = Arc::new(MockTaskRepo);
+
+        let overview = MonitoringOverview {
+            total_tasks: i64::MAX,
+            running_tasks: 0,
+            failed_tasks: 0,
+            total_datasources: 1000,
+            healthy_datasources: 1000,
+            today_synced_rows: 9_999_999_999,
+            today_synced_bytes: 999_999_999_999,
+            success_rate: 100.0,
+            recent_runs: vec![],
+        };
+        monitoring_repo.set_overview(overview.clone());
+
+        let svc = MonitoringService::new(monitoring_repo.clone(), task_repo);
+        let result = svc.get_overview("tenant-large").await;
+
+        assert!(result.is_ok());
+        let overview = result.unwrap();
+        assert_eq!(overview.total_tasks, i64::MAX);
+        assert_eq!(overview.today_synced_rows, 9_999_999_999);
+        assert_eq!(overview.today_synced_bytes, 999_999_999_999);
+    }
 }

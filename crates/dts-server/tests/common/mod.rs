@@ -15,6 +15,7 @@ pub async fn setup_test_backend() -> anyhow::Result<BackendContext> {
 }
 
 /// Create a test AppConfig (SQLite memory).
+#[allow(dead_code)]
 pub fn test_config() -> AppConfig {
     AppConfig::for_test()
 }
@@ -23,7 +24,8 @@ pub fn test_config() -> AppConfig {
 /// that don't have access to AppConfig.
 pub const DEFAULT_JWT_SECRET: &str = "dev-secret-change-me";
 
-/// Generate a test JWT token.
+/// Generate a test JWT token (used by test files).
+#[allow(dead_code)]
 pub fn generate_test_token(
     secret: &str,
     user_id: &str,

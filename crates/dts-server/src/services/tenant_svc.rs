@@ -202,10 +202,12 @@ mod tests {
             self.created_roles_tenant_ids.lock().unwrap().clone()
         }
 
+        #[allow(dead_code)]
         fn set_role_names(&self, names: Vec<String>) {
             *self.role_names.lock().unwrap() = names;
         }
 
+        #[allow(dead_code)]
         fn set_permissions(&self, perms: Vec<String>) {
             *self.permissions.lock().unwrap() = perms;
         }
@@ -269,6 +271,7 @@ mod tests {
             }
         }
 
+        #[allow(dead_code)]
         fn set_find_result(&self, record: Option<dts_backend::types::UserRecord>) {
             *self.find_result.lock().unwrap() = record;
         }

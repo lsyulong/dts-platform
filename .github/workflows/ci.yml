@@ -98,6 +98,16 @@ jobs:
       - name: 编译检查 (cargo check)
         run: cargo check --all-targets --all-features
 
+      - name: 文件大小检查 (max 800 lines per .rs file)
+        run: |
+          LARGE_FILES=$(find crates -name '*.rs' -exec wc -l {} + | awk '$1 > 800 { print $2 ": " $1 " lines (max 800)"; }')
+          if [ -n "$LARGE_FILES" ]; then
+            echo "❌ Files exceeding 800 lines:"
+            echo "$LARGE_FILES"
+            exit 1
+          fi
+          echo "✅ All .rs files are within 800 lines"
+
       - name: 运行测试 (含集成测试)
         run: cargo test --all-features
         env:

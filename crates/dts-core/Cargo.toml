@@ -7,3 +7,7 @@ description = "DTS Platform 共享基础类型"
 [dependencies]
 serde = { workspace = true }
 chrono = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+pretty_assertions = "1"
