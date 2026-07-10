@@ -2,18 +2,20 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ListTodo, Database, Activity, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../stores/app';
 
-const navItems = [
-  { to: '/', icon: LayoutDashboard, label: '仪表盘' },
-  { to: '/tasks', icon: ListTodo, label: '任务管理' },
-  { to: '/datasources', icon: Database, label: '数据源' },
-  { to: '/monitoring', icon: Activity, label: '监控告警' },
-];
-
 export default function Sidebar() {
+  const { t } = useTranslation();
   const { sidebarCollapsed, toggleSidebar } = useAppStore();
   const location = useLocation();
+
+  const navItems = [
+    { to: '/', icon: LayoutDashboard, label: t('nav.dashboard') },
+    { to: '/tasks', icon: ListTodo, label: t('nav.tasks') },
+    { to: '/datasources', icon: Database, label: t('nav.datasources') },
+    { to: '/monitoring', icon: Activity, label: t('nav.monitoring') },
+  ];
 
   return (
     <aside
@@ -60,7 +62,7 @@ export default function Sidebar() {
       {/* Footer */}
       {!sidebarCollapsed && (
         <div className="border-t border-zinc-800/60 p-4">
-          <p className="text-xs text-zinc-600">DTS Platform v0.1.0</p>
+          <p className="text-xs text-zinc-600">{t('common.version')}</p>
         </div>
       )}
     </aside>

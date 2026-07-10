@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface LogEntry {
   timestamp: string;
@@ -21,7 +22,8 @@ const levelColors: Record<string, string> = {
   FATAL: 'text-red-600',
 };
 
-export default function LogConsole({ title = '实时日志', logs = [], maxHeight = '300px' }: LogConsoleProps) {
+export default function LogConsole({ title, logs = [], maxHeight = '300px' }: LogConsoleProps) {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState('ALL');
 
@@ -32,12 +34,13 @@ export default function LogConsole({ title = '实时日志', logs = [], maxHeigh
   }, [logs]);
 
   const filteredLogs = filter === 'ALL' ? logs : logs.filter((l) => l.level === filter);
+  const displayTitle = title || t('dashboard.realtimeLog');
 
   return (
     <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 backdrop-blur-sm">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-zinc-800/60 px-4 py-3">
-        <h3 className="text-sm font-medium text-zinc-300">{title}</h3>
+        <h3 className="text-sm font-medium text-zinc-300">{displayTitle}</h3>
         <div className="flex gap-2">
           {['ALL', 'INFO', 'WARN', 'ERROR'].map((level) => (
             <button
@@ -62,7 +65,7 @@ export default function LogConsole({ title = '实时日志', logs = [], maxHeigh
         style={{ maxHeight }}
       >
         {filteredLogs.length === 0 ? (
-          <p className="text-zinc-600">等待日志输出...</p>
+          <p className="text-zinc-600">{t('dashboard.waitingForLogs')}</p>
         ) : (
           filteredLogs.map((log, i) => (
             <div key={i} className="flex gap-3 py-0.5">

@@ -24,28 +24,28 @@ describe('TaskCreatePage', () => {
   describe('initial render', () => {
     it('displays all 6 step labels', () => {
       renderPage();
-      expect(screen.getByText('基本信息')).toBeInTheDocument();
-      expect(screen.getByText('源端配置')).toBeInTheDocument();
-      expect(screen.getByText('目标端配置')).toBeInTheDocument();
-      expect(screen.getByText('字段映射')).toBeInTheDocument();
-      expect(screen.getByText('调度配置')).toBeInTheDocument();
-      expect(screen.getByText('确认提交')).toBeInTheDocument();
+      expect(screen.getByText('tasks.steps.basic')).toBeInTheDocument();
+      expect(screen.getByText('tasks.steps.source')).toBeInTheDocument();
+      expect(screen.getByText('tasks.steps.target')).toBeInTheDocument();
+      expect(screen.getByText('tasks.steps.mapping')).toBeInTheDocument();
+      expect(screen.getByText('tasks.steps.schedule')).toBeInTheDocument();
+      expect(screen.getByText('tasks.steps.confirm')).toBeInTheDocument();
     });
 
     it('starts at step 0 with task name input visible', () => {
       renderPage();
-      expect(screen.getByPlaceholderText(/MySQL → PostgreSQL/)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/tasks.namePlaceholder/)).toBeInTheDocument();
     });
 
-    it('disables "上一步" button on the first step', () => {
+    it('disables "tasks.prevStep" button on the first step', () => {
       renderPage();
-      const prevButton = screen.getByText('上一步').closest('button');
+      const prevButton = screen.getByText('tasks.prevStep').closest('button');
       expect(prevButton).toBeDisabled();
     });
 
     it('disables next button when name is empty', () => {
       renderPage();
-      const nextButton = screen.getByText('下一步').closest('button');
+      const nextButton = screen.getByText('tasks.nextStep').closest('button');
       expect(nextButton).toBeDisabled();
     });
   });
@@ -55,9 +55,9 @@ describe('TaskCreatePage', () => {
       const user = userEvent.setup();
       renderPage();
 
-      await user.type(screen.getByPlaceholderText(/MySQL → PostgreSQL/), 'My Task');
+      await user.type(screen.getByPlaceholderText(/tasks.namePlaceholder/), 'My Task');
 
-      const nextButton = screen.getByText('下一步').closest('button');
+      const nextButton = screen.getByText('tasks.nextStep').closest('button');
       expect(nextButton).not.toBeDisabled();
     });
 
@@ -65,7 +65,7 @@ describe('TaskCreatePage', () => {
       const user = userEvent.setup();
       renderPage();
 
-      const descInput = screen.getByPlaceholderText(/简要描述/);
+      const descInput = screen.getByPlaceholderText(/tasks.descPlaceholder/);
       await user.type(descInput, 'This is a test task');
 
       expect(descInput).toHaveValue('This is a test task');
@@ -77,11 +77,11 @@ describe('TaskCreatePage', () => {
       const user = userEvent.setup();
       renderPage();
 
-      await user.type(screen.getByPlaceholderText(/MySQL → PostgreSQL/), 'Test Task');
-      await user.click(screen.getByText('下一步'));
+      await user.type(screen.getByPlaceholderText(/tasks.namePlaceholder/), 'Test Task');
+      await user.click(screen.getByText('tasks.nextStep'));
 
       await waitFor(() => {
-        expect(screen.getByText('选择数据源端连接')).toBeInTheDocument();
+        expect(screen.getByText('tasks.selectSource')).toBeInTheDocument();
       });
     });
 
@@ -89,17 +89,17 @@ describe('TaskCreatePage', () => {
       const user = userEvent.setup();
       renderPage();
 
-      await user.type(screen.getByPlaceholderText(/MySQL → PostgreSQL/), 'Test Task');
-      await user.click(screen.getByText('下一步'));
+      await user.type(screen.getByPlaceholderText(/tasks.namePlaceholder/), 'Test Task');
+      await user.click(screen.getByText('tasks.nextStep'));
 
       await waitFor(() => {
-        expect(screen.getByText('选择数据源端连接')).toBeInTheDocument();
+        expect(screen.getByText('tasks.selectSource')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText('上一步'));
+      await user.click(screen.getByText('tasks.prevStep'));
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText(/MySQL → PostgreSQL/)).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/tasks.namePlaceholder/)).toBeInTheDocument();
       });
     });
   });
@@ -109,8 +109,8 @@ describe('TaskCreatePage', () => {
       const user = userEvent.setup();
       renderPage();
 
-      await user.type(screen.getByPlaceholderText(/MySQL → PostgreSQL/), 'Test');
-      await user.click(screen.getByText('下一步'));
+      await user.type(screen.getByPlaceholderText(/tasks.namePlaceholder/), 'Test');
+      await user.click(screen.getByText('tasks.nextStep'));
 
       await waitFor(() => {
         expect(screen.getByText('prod-mysql')).toBeInTheDocument();
@@ -124,15 +124,15 @@ describe('TaskCreatePage', () => {
       const user = userEvent.setup();
       renderPage();
 
-      await user.type(screen.getByPlaceholderText(/MySQL → PostgreSQL/), 'Test');
-      await user.click(screen.getByText('下一步'));
+      await user.type(screen.getByPlaceholderText(/tasks.namePlaceholder/), 'Test');
+      await user.click(screen.getByText('tasks.nextStep'));
       await waitFor(() => screen.getByText('prod-mysql'));
 
       await user.click(screen.getByText('prod-mysql'));
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
 
       await waitFor(() => {
-        expect(screen.getByText('选择目标端连接')).toBeInTheDocument();
+        expect(screen.getByText('tasks.selectTarget')).toBeInTheDocument();
         expect(screen.queryByText('prod-mysql')).not.toBeInTheDocument();
         expect(screen.getByText('prod-pg')).toBeInTheDocument();
       });
@@ -145,21 +145,21 @@ describe('TaskCreatePage', () => {
       renderPage();
 
       // Fill name
-      await user.type(screen.getByPlaceholderText(/MySQL → PostgreSQL/), 'Test');
+      await user.type(screen.getByPlaceholderText(/tasks.namePlaceholder/), 'Test');
       // Step 1
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
       await waitFor(() => screen.getByText('prod-mysql'));
       await user.click(screen.getByText('prod-mysql'));
       // Step 2
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
       await waitFor(() => screen.getByText('prod-pg'));
       await user.click(screen.getByText('prod-pg'));
       // Step 3
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
 
       await waitFor(() => {
-        expect(screen.getByText('字段映射配置')).toBeInTheDocument();
-        expect(screen.getByText(/集成 ape-dts 引擎后支持/)).toBeInTheDocument();
+        expect(screen.getByText('tasks.mappingConfig')).toBeInTheDocument();
+        expect(screen.getByText(/tasks.mappingHint/)).toBeInTheDocument();
       });
     });
   });
@@ -170,23 +170,23 @@ describe('TaskCreatePage', () => {
       renderPage();
 
       // Step 0
-      await user.type(screen.getByPlaceholderText(/MySQL → PostgreSQL/), 'Test');
+      await user.type(screen.getByPlaceholderText(/tasks.namePlaceholder/), 'Test');
       // Step 1
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
       await waitFor(() => screen.getByText('prod-mysql'));
       await user.click(screen.getByText('prod-mysql'));
       // Step 2
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
       await waitFor(() => screen.getByText('prod-pg'));
       await user.click(screen.getByText('prod-pg'));
       // Step 3
-      await user.click(screen.getByText('下一步'));
-      await waitFor(() => screen.getByText('字段映射配置'));
+      await user.click(screen.getByText('tasks.nextStep'));
+      await waitFor(() => screen.getByText('tasks.mappingConfig'));
       // Step 4
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText(/0 \*\/6 \* \* \*/)).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/tasks.cronPlaceholder/)).toBeInTheDocument();
       });
     });
   });
@@ -197,27 +197,27 @@ describe('TaskCreatePage', () => {
       renderPage();
 
       // Step 0
-      await user.type(screen.getByPlaceholderText(/MySQL → PostgreSQL/), 'Test Task');
+      await user.type(screen.getByPlaceholderText(/tasks.namePlaceholder/), 'Test Task');
       // Step 1
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
       await waitFor(() => screen.getByText('prod-mysql'));
       await user.click(screen.getByText('prod-mysql'));
       // Step 2
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
       await waitFor(() => screen.getByText('prod-pg'));
       await user.click(screen.getByText('prod-pg'));
       // Step 3
-      await user.click(screen.getByText('下一步'));
-      await waitFor(() => screen.getByText('字段映射配置'));
+      await user.click(screen.getByText('tasks.nextStep'));
+      await waitFor(() => screen.getByText('tasks.mappingConfig'));
       // Step 4
-      await user.click(screen.getByText('下一步'));
-      await waitFor(() => screen.getByPlaceholderText(/0 \*\/6 \* \* \*/));
+      await user.click(screen.getByText('tasks.nextStep'));
+      await waitFor(() => screen.getByPlaceholderText(/tasks.cronPlaceholder/));
       // Step 5
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
 
       await waitFor(() => {
-        expect(screen.getByText('确认任务配置')).toBeInTheDocument();
-        expect(screen.getByText('确认创建')).toBeInTheDocument();
+        expect(screen.getByText('tasks.confirmTitle')).toBeInTheDocument();
+        expect(screen.getByText('tasks.confirmCreate')).toBeInTheDocument();
       });
     });
 
@@ -225,27 +225,27 @@ describe('TaskCreatePage', () => {
       const user = userEvent.setup();
       renderPage();
 
-      await user.type(screen.getByPlaceholderText(/MySQL → PostgreSQL/), 'Test Task');
+      await user.type(screen.getByPlaceholderText(/tasks.namePlaceholder/), 'Test Task');
       // Step 1
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
       await waitFor(() => screen.getByText('prod-mysql'));
       await user.click(screen.getByText('prod-mysql'));
       // Step 2
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
       await waitFor(() => screen.getByText('prod-pg'));
       await user.click(screen.getByText('prod-pg'));
       // Step 3
-      await user.click(screen.getByText('下一步'));
-      await waitFor(() => screen.getByText('字段映射配置'));
+      await user.click(screen.getByText('tasks.nextStep'));
+      await waitFor(() => screen.getByText('tasks.mappingConfig'));
       // Step 4
-      await user.click(screen.getByText('下一步'));
-      await waitFor(() => screen.getByPlaceholderText(/0 \*\/6 \* \* \*/));
+      await user.click(screen.getByText('tasks.nextStep'));
+      await waitFor(() => screen.getByPlaceholderText(/tasks.cronPlaceholder/));
       // Step 5
-      await user.click(screen.getByText('下一步'));
+      await user.click(screen.getByText('tasks.nextStep'));
 
       await waitFor(() => {
-        expect(screen.getByText('确认任务配置')).toBeInTheDocument();
-        expect(screen.getByText('确认创建')).toBeInTheDocument();
+        expect(screen.getByText('tasks.confirmTitle')).toBeInTheDocument();
+        expect(screen.getByText('tasks.confirmCreate')).toBeInTheDocument();
       });
     });
   });

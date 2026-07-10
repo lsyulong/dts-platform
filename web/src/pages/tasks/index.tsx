@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Plus, Search, Play, Pause } from 'lucide-react';
 import client from '../../api/client';
 
@@ -22,18 +23,20 @@ const statusBadge: Record<string, string> = {
   failed: 'bg-rose-500/10 text-rose-400',
 };
 
-const statusLabel: Record<string, string> = {
-  draft: '草稿',
-  running: '运行中',
-  paused: '已暂停',
-  completed: '已完成',
-  failed: '失败',
-};
-
 export default function TaskListPage() {
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const statusLabel: Record<string, string> = {
+    draft: t('tasks.status.draft'),
+    running: t('tasks.status.running'),
+    paused: t('tasks.status.paused'),
+    completed: t('tasks.status.completed'),
+    failed: t('tasks.status.failed'),
+  };
 
   useEffect(() => {
     loadTasks();
@@ -43,8 +46,9 @@ export default function TaskListPage() {
     try {
       const { data } = await client.get('/tasks');
       setTasks(data.data || []);
-    } catch (err) {
-      console.error('加载任务列表失败:', err);
+      setFetchError(null);
+    } catch {
+      setFetchError(t('tasks.loadError'));
     } finally {
       setLoading(false);
     }
@@ -54,8 +58,8 @@ export default function TaskListPage() {
     try {
       await client.patch(`/tasks/${id}/status`, { status });
       loadTasks();
-    } catch (err) {
-      console.error('更新任务状态失败:', err);
+    } catch {
+      setFetchError(t('tasks.updateStatusError'));
     }
   };
 
@@ -70,17 +74,24 @@ export default function TaskListPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-zinc-100">任务管理</h1>
-          <p className="mt-1 text-sm text-zinc-500">管理所有数据同步任务</p>
+          <h1 className="text-xl font-bold text-zinc-100">{t('tasks.title')}</h1>
+          <p className="mt-1 text-sm text-zinc-500">{t('tasks.subtitle')}</p>
         </div>
         <Link
           to="/tasks/create"
           className="flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all hover:bg-blue-600"
         >
           <Plus size={16} />
-          创建任务
+          {t('tasks.createTask')}
         </Link>
       </div>
+
+      {/* Error banner */}
+      {fetchError && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
+          {fetchError}
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative">
@@ -89,7 +100,7 @@ export default function TaskListPage() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="搜索任务名称或描述... (Ctrl+K)"
+          placeholder={t('tasks.searchPlaceholder')}
           className="w-full rounded-xl border border-zinc-700 bg-zinc-800/50 py-2.5 pl-10 pr-4 text-sm text-zinc-200 placeholder-zinc-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>
@@ -101,12 +112,12 @@ export default function TaskListPage() {
         </div>
       ) : filteredTasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/30 py-16">
-          <p className="text-sm text-zinc-500">暂无同步任务</p>
+          <p className="text-sm text-zinc-500">{t('tasks.noTasks')}</p>
           <Link
             to="/tasks/create"
             className="mt-3 text-sm text-blue-400 hover:text-blue-300"
           >
-            创建第一个任务 →
+            {t('tasks.createFirst')} →
           </Link>
         </div>
       ) : (
@@ -144,7 +155,7 @@ export default function TaskListPage() {
                   <button
                     onClick={() => updateStatus(task.id, 'running')}
                     className="rounded-lg p-2 text-emerald-400 hover:bg-emerald-500/10"
-                    title="启动"
+                    title={t('tasks.detail.start')}
                   >
                     <Play size={16} />
                   </button>
@@ -153,7 +164,7 @@ export default function TaskListPage() {
                   <button
                     onClick={() => updateStatus(task.id, 'paused')}
                     className="rounded-lg p-2 text-amber-400 hover:bg-amber-500/10"
-                    title="暂停"
+                    title={t('tasks.detail.pause')}
                   >
                     <Pause size={16} />
                   </button>
@@ -162,7 +173,7 @@ export default function TaskListPage() {
                   to={`/tasks/${task.id}`}
                   className="rounded-lg px-3 py-1.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
                 >
-                  查看
+                  {t('common.view')}
                 </Link>
               </div>
             </div>

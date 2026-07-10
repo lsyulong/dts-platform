@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Check, Database } from 'lucide-react';
 import client from '../../api/client';
 
@@ -11,9 +12,8 @@ interface Datasource {
   port: number;
 }
 
-const steps = ['基本信息', '源端配置', '目标端配置', '字段映射', '调度配置', '确认提交'];
-
 export default function TaskCreatePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [datasources, setDatasources] = useState<Datasource[]>([]);
@@ -24,6 +24,15 @@ export default function TaskCreatePage() {
   const [cronExpr, setCronExpr] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const steps = [
+    t('tasks.steps.basic'),
+    t('tasks.steps.source'),
+    t('tasks.steps.target'),
+    t('tasks.steps.mapping'),
+    t('tasks.steps.schedule'),
+    t('tasks.steps.confirm'),
+  ];
 
   useEffect(() => {
     client.get('/datasources').then((res) => setDatasources(res.data.data || []));
@@ -42,7 +51,7 @@ export default function TaskCreatePage() {
       });
       navigate('/tasks');
     } catch (err: unknown) {
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || '创建失败');
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || t('tasks.createFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -53,8 +62,8 @@ export default function TaskCreatePage() {
       case 0: return name.trim() !== '';
       case 1: return sourceId !== '';
       case 2: return targetId !== '';
-      case 3: return true; // Skip field mapping for now
-      case 4: return true; // cron is optional
+      case 3: return true;
+      case 4: return true;
       default: return true;
     }
   };
@@ -63,8 +72,8 @@ export default function TaskCreatePage() {
     <div className="mx-auto max-w-3xl space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-zinc-100">创建同步任务</h1>
-        <p className="mt-1 text-sm text-zinc-500">配置源端、目标端和同步规则</p>
+        <h1 className="text-xl font-bold text-zinc-100">{t('tasks.createTitle')}</h1>
+        <p className="mt-1 text-sm text-zinc-500">{t('tasks.createSubtitle')}</p>
       </div>
 
       {/* Step indicator */}
@@ -96,22 +105,22 @@ export default function TaskCreatePage() {
         {currentStep === 0 && (
           <div className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-400">任务名称</label>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-400">{t('tasks.taskName')}</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="例如: MySQL → PostgreSQL 生产数据同步"
+                placeholder={t('tasks.namePlaceholder')}
                 className="w-full rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-400">任务描述</label>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-400">{t('tasks.descPlaceholder')}</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                placeholder="简要描述此同步任务的用途..."
+                placeholder={t('tasks.descPlaceholder')}
                 className="w-full rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
@@ -121,7 +130,7 @@ export default function TaskCreatePage() {
         {/* Step 1: Source */}
         {currentStep === 1 && (
           <div className="space-y-3">
-            <p className="text-sm text-zinc-400">选择数据源端连接</p>
+            <p className="text-sm text-zinc-400">{t('tasks.selectSource')}</p>
             {datasources.map((ds) => (
               <button
                 key={ds.id}
@@ -147,7 +156,7 @@ export default function TaskCreatePage() {
         {/* Step 2: Target */}
         {currentStep === 2 && (
           <div className="space-y-3">
-            <p className="text-sm text-zinc-400">选择目标端连接</p>
+            <p className="text-sm text-zinc-400">{t('tasks.selectTarget')}</p>
             {datasources
               .filter((ds) => ds.id !== sourceId)
               .map((ds) => (
@@ -176,8 +185,8 @@ export default function TaskCreatePage() {
         {currentStep === 3 && (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <Database size={40} className="text-zinc-600" />
-            <p className="mt-4 text-sm text-zinc-400">字段映射配置</p>
-            <p className="mt-1 text-xs text-zinc-600">集成 ape-dts 引擎后支持自动映射和 Lua 转换</p>
+            <p className="mt-4 text-sm text-zinc-400">{t('tasks.mappingConfig')}</p>
+            <p className="mt-1 text-xs text-zinc-600">{t('tasks.mappingHint')}</p>
           </div>
         )}
 
@@ -186,16 +195,16 @@ export default function TaskCreatePage() {
           <div className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-zinc-400">
-                Cron 定时表达式 <span className="text-zinc-600">(可选)</span>
+                Cron <span className="text-zinc-600">({t('common.cancel')})</span>
               </label>
               <input
                 type="text"
                 value={cronExpr}
                 onChange={(e) => setCronExpr(e.target.value)}
-                placeholder="例如: 0 */6 * * * (每6小时执行)"
+                placeholder={t('tasks.cronPlaceholder')}
                 className="w-full rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
-              <p className="mt-1 text-xs text-zinc-600">留空则仅支持手动触发</p>
+              <p className="mt-1 text-xs text-zinc-600">{t('tasks.cronHint')}</p>
             </div>
           </div>
         )}
@@ -203,23 +212,23 @@ export default function TaskCreatePage() {
         {/* Step 5: Confirm */}
         {currentStep === 5 && (
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-zinc-300">确认任务配置</h3>
+            <h3 className="text-sm font-medium text-zinc-300">{t('tasks.confirmTitle')}</h3>
             <div className="space-y-3 rounded-xl border border-zinc-700 bg-zinc-800/30 p-4">
               <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">任务名称</span>
+                <span className="text-zinc-500">{t('tasks.taskName')}</span>
                 <span className="text-zinc-200">{name}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">源端</span>
+                <span className="text-zinc-500">{t('tasks.source')}</span>
                 <span className="text-zinc-200">{datasources.find((d) => d.id === sourceId)?.name || '-'}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">目标端</span>
+                <span className="text-zinc-500">{t('tasks.target')}</span>
                 <span className="text-zinc-200">{datasources.find((d) => d.id === targetId)?.name || '-'}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">调度</span>
-                <span className="text-zinc-200">{cronExpr || '手动触发'}</span>
+                <span className="text-zinc-500">{t('tasks.schedule')}</span>
+                <span className="text-zinc-200">{cronExpr || t('tasks.manualTrigger')}</span>
               </div>
             </div>
             {error && (
@@ -232,7 +241,7 @@ export default function TaskCreatePage() {
               disabled={submitting}
               className="w-full rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all hover:bg-blue-600 disabled:opacity-50"
             >
-              {submitting ? '创建中...' : '确认创建'}
+              {submitting ? t('tasks.creating') : t('tasks.confirmCreate')}
             </button>
           </div>
         )}
@@ -246,7 +255,7 @@ export default function TaskCreatePage() {
           className="flex items-center gap-1.5 rounded-xl border border-zinc-700 px-4 py-2.5 text-sm text-zinc-400 hover:bg-zinc-800 disabled:opacity-30"
         >
           <ChevronLeft size={16} />
-          上一步
+          {t('tasks.prevStep')}
         </button>
 
         {currentStep < 5 && (
@@ -255,7 +264,7 @@ export default function TaskCreatePage() {
             disabled={!canNext()}
             className="flex items-center gap-1.5 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all hover:bg-blue-600 disabled:opacity-30"
           >
-            下一步
+            {t('tasks.nextStep')}
             <ChevronRight size={16} />
           </button>
         )}

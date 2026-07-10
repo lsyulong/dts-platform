@@ -14,7 +14,7 @@ const sampleLogs = [
 describe('LogConsole', () => {
   it('renders the default title', () => {
     render(<LogConsole />);
-    expect(screen.getByText('实时日志')).toBeInTheDocument();
+    expect(screen.getByText('dashboard.realtimeLog')).toBeInTheDocument();
   });
 
   it('renders a custom title', () => {
@@ -24,7 +24,7 @@ describe('LogConsole', () => {
 
   it('renders empty state when no logs provided', () => {
     render(<LogConsole />);
-    expect(screen.getByText('等待日志输出...')).toBeInTheDocument();
+    expect(screen.getByText('dashboard.waitingForLogs')).toBeInTheDocument();
   });
 
   it('renders log entries', () => {
@@ -115,7 +115,7 @@ describe('LogConsole', () => {
 
       await user.click(screen.getByText('ERROR'));
 
-      expect(screen.getByText('等待日志输出...')).toBeInTheDocument();
+      expect(screen.getByText('dashboard.waitingForLogs')).toBeInTheDocument();
     });
 
     it('resets to ALL when clicking ALL button', async () => {

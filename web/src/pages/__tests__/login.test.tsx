@@ -21,10 +21,10 @@ describe('LoginPage', () => {
     );
   }
 
-  it('renders the login form with DTS Platform title', () => {
+  it('renders the login form with app title', () => {
     renderLogin();
-    expect(screen.getByText('DTS Platform')).toBeInTheDocument();
-    expect(screen.getByText('企业级数据同步管理平台')).toBeInTheDocument();
+    expect(screen.getByText('common.appName')).toBeInTheDocument();
+    expect(screen.getByText('common.appDesc')).toBeInTheDocument();
   });
 
   it('renders tenant identifier input with default value', () => {
@@ -44,14 +44,14 @@ describe('LoginPage', () => {
     expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
   });
 
-  it('renders submit button with "登录" text', () => {
+  it('renders submit button with "auth.login" text', () => {
     renderLogin();
-    expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'auth.login' })).toBeInTheDocument();
   });
 
   it('renders default credentials hint', () => {
     renderLogin();
-    expect(screen.getByText(/默认账户: admin \/ admin123/)).toBeInTheDocument();
+    expect(screen.getByText('auth.defaultCreds')).toBeInTheDocument();
   });
 
   it('allows user to fill in the form fields', async () => {
@@ -79,7 +79,7 @@ describe('LoginPage', () => {
     await user.type(screen.getByPlaceholderText('admin'), 'admin');
     await user.type(screen.getByPlaceholderText('••••••••'), 'admin123');
 
-    await user.click(screen.getByRole('button', { name: '登录' }));
+    await user.click(screen.getByRole('button', { name: 'auth.login' }));
 
     // After successful login, should not show error
     await waitFor(() => {
@@ -93,7 +93,7 @@ describe('LoginPage', () => {
 
     await user.type(screen.getByPlaceholderText('admin'), 'wrong');
     await user.type(screen.getByPlaceholderText('••••••••'), 'wrong');
-    await user.click(screen.getByRole('button', { name: '登录' }));
+    await user.click(screen.getByRole('button', { name: 'auth.login' }));
 
     await waitFor(() => {
       expect(screen.getByText('用户名或密码错误')).toBeInTheDocument();

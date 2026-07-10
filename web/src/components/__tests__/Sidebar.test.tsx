@@ -35,46 +35,46 @@ describe('Sidebar', () => {
   describe('navigation links', () => {
     it('renders all nav links when expanded', () => {
       renderWithRouter();
-      expect(screen.getByText('仪表盘')).toBeInTheDocument();
-      expect(screen.getByText('任务管理')).toBeInTheDocument();
-      expect(screen.getByText('数据源')).toBeInTheDocument();
-      expect(screen.getByText('监控告警')).toBeInTheDocument();
+      expect(screen.getByText('nav.dashboard')).toBeInTheDocument();
+      expect(screen.getByText('nav.tasks')).toBeInTheDocument();
+      expect(screen.getByText('nav.datasources')).toBeInTheDocument();
+      expect(screen.getByText('nav.monitoring')).toBeInTheDocument();
     });
 
     it('hides nav link labels when collapsed', () => {
       useAppStore.setState({ sidebarCollapsed: true });
       renderWithRouter();
-      expect(screen.queryByText('仪表盘')).not.toBeInTheDocument();
-      expect(screen.queryByText('任务管理')).not.toBeInTheDocument();
+      expect(screen.queryByText('nav.dashboard')).not.toBeInTheDocument();
+      expect(screen.queryByText('nav.tasks')).not.toBeInTheDocument();
     });
 
     it('highlights the active nav link based on current path', () => {
       renderWithRouter('/tasks');
-      const tasksLink = screen.getByText('任务管理').closest('a');
+      const tasksLink = screen.getByText('nav.tasks').closest('a');
       expect(tasksLink?.className).toContain('bg-blue-500/10');
     });
 
     it('highlights dashboard link only for exact "/" path', () => {
       renderWithRouter('/');
-      const dashboardLink = screen.getByText('仪表盘').closest('a');
+      const dashboardLink = screen.getByText('nav.dashboard').closest('a');
       expect(dashboardLink?.className).toContain('bg-blue-500/10');
     });
 
     it('does not highlight dashboard link for "/tasks" path', () => {
       renderWithRouter('/tasks');
-      const dashboardLink = screen.getByText('仪表盘').closest('a');
+      const dashboardLink = screen.getByText('nav.dashboard').closest('a');
       expect(dashboardLink?.className).not.toContain('bg-blue-500/10');
     });
 
     it('highlights datasources link for "/datasources" path', () => {
       renderWithRouter('/datasources');
-      const dsLink = screen.getByText('数据源').closest('a');
+      const dsLink = screen.getByText('nav.datasources').closest('a');
       expect(dsLink?.className).toContain('bg-blue-500/10');
     });
 
     it('highlights monitoring link for "/monitoring" path', () => {
       renderWithRouter('/monitoring');
-      const monLink = screen.getByText('监控告警').closest('a');
+      const monLink = screen.getByText('nav.monitoring').closest('a');
       expect(monLink?.className).toContain('bg-blue-500/10');
     });
   });
@@ -123,13 +123,13 @@ describe('Sidebar', () => {
   describe('footer', () => {
     it('shows version footer when expanded', () => {
       renderWithRouter();
-      expect(screen.getByText('DTS Platform v0.1.0')).toBeInTheDocument();
+      expect(screen.getByText('common.version')).toBeInTheDocument();
     });
 
     it('hides version footer when collapsed', () => {
       useAppStore.setState({ sidebarCollapsed: true });
       renderWithRouter();
-      expect(screen.queryByText('DTS Platform v0.1.0')).not.toBeInTheDocument();
+      expect(screen.queryByText('common.version')).not.toBeInTheDocument();
     });
   });
 });

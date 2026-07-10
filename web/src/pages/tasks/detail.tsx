@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Pause, Play } from 'lucide-react';
 import client from '../../api/client';
 import MetricCard from '../../components/MetricCard';
@@ -29,24 +30,36 @@ interface TaskDetail {
   }>;
 }
 
-const statusLabel: Record<string, string> = {
-  draft: '草稿', running: '运行中', paused: '已暂停',
-  completed: '已完成', failed: '失败', cancelled: '已取消',
-};
-
 export default function TaskDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [task, setTask] = useState<TaskDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const statusLabel: Record<string, string> = {
+    draft: t('tasks.status.draft'),
+    running: t('tasks.status.running'),
+    paused: t('tasks.status.paused'),
+    completed: t('tasks.status.completed'),
+    failed: t('tasks.status.failed'),
+    cancelled: t('tasks.status.cancelled'),
+  };
+
   useEffect(() => {
     if (!id) return;
+    const controller = new AbortController();
     client
-      .get(`/tasks/${id}`)
+      .get(`/tasks/${id}`, { signal: controller.signal })
       .then((res) => setTask(res.data))
-      .catch(() => navigate('/tasks'))
+      .catch((err) => {
+        if (err?.name !== 'CanceledError' && err?.code !== 'ERR_CANCELED') {
+          navigate('/tasks');
+        }
+      })
       .finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, [id, navigate]);
 
   const updateStatus = async (status: string) => {
@@ -99,14 +112,14 @@ export default function TaskDetailPage() {
               onClick={() => updateStatus('paused')}
               className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 px-3 py-2 text-sm text-amber-400 hover:bg-amber-500/10"
             >
-              <Pause size={16} /> 暂停
+              <Pause size={16} /> {t('tasks.detail.pause')}
             </button>
           ) : task.status === 'draft' || task.status === 'paused' ? (
             <button
               onClick={() => updateStatus('running')}
               className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-600"
             >
-              <Play size={16} /> 启动
+              <Play size={16} /> {t('tasks.detail.start')}
             </button>
           ) : null}
         </div>
@@ -116,7 +129,7 @@ export default function TaskDetailPage() {
       {task.recent_runs.length > 0 && task.recent_runs[0].status === 'running' && (
         <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-zinc-300">实时进度</h3>
+            <h3 className="text-sm font-medium text-zinc-300">{t('tasks.detail.realTimeProgress')}</h3>
             <span className="text-sm text-zinc-400">{progress}%</span>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-800">
@@ -131,27 +144,27 @@ export default function TaskDetailPage() {
       {/* Metrics */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <MetricCard
-          title="源端"
+          title={t('tasks.detail.source')}
           value={task.source_name}
           subtitle={task.source_type}
         />
         <MetricCard
-          title="目标端"
+          title={t('tasks.detail.target')}
           value={task.target_name}
           subtitle={task.target_type}
         />
         <MetricCard
-          title="状态"
+          title={t('tasks.detail.status')}
           value={statusLabel[task.status] || task.status}
-          subtitle={`创建于 ${task.created_at}`}
+          subtitle={`${t('tasks.detail.createdAt')} ${task.created_at}`}
         />
       </div>
 
       {/* Execution history */}
       <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-5 backdrop-blur-sm">
-        <h3 className="mb-4 text-sm font-medium text-zinc-300">执行历史</h3>
+        <h3 className="mb-4 text-sm font-medium text-zinc-300">{t('tasks.detail.executionHistory')}</h3>
         {task.recent_runs.length === 0 ? (
-          <p className="text-sm text-zinc-600">暂无执行记录</p>
+          <p className="text-sm text-zinc-600">{t('tasks.detail.noExecutionRecords')}</p>
         ) : (
           <div className="space-y-2">
             {task.recent_runs.map((run) => (
@@ -165,7 +178,7 @@ export default function TaskDetailPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-zinc-300">
-                    已同步 {(run.rows_synced ?? 0).toLocaleString()} 行
+                    {t('tasks.detail.rowsSynced', { count: (run.rows_synced ?? 0).toLocaleString() })}
                   </p>
                   {run.error_message && (
                     <p className="mt-0.5 text-xs text-rose-400">{run.error_message.slice(0, 80)}</p>

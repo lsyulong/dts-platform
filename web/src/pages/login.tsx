@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/auth';
 import { Database } from 'lucide-react';
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [tenantSlug, setTenantSlug] = useState('default');
@@ -18,8 +20,12 @@ export default function LoginPage() {
       await login(username, password, tenantSlug);
       navigate('/');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '登录失败';
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || msg);
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        setError(axiosErr.response?.data?.message || t('auth.loginFailed'));
+      } else {
+        setError(err instanceof Error ? err.message : t('auth.loginFailed'));
+      }
     }
   };
 
@@ -34,13 +40,15 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10">
             <Database className="text-blue-400" size={28} />
           </div>
-          <h1 className="text-2xl font-bold text-zinc-100">DTS Platform</h1>
-          <p className="mt-2 text-sm text-zinc-500">企业级数据同步管理平台</p>
+          <h1 className="text-2xl font-bold text-zinc-100">{t('common.appName')}</h1>
+          <p className="mt-2 text-sm text-zinc-500">{t('common.appDesc')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-400">租户标识</label>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-400">
+              {t('auth.tenantSlug')}
+            </label>
             <input
               type="text"
               value={tenantSlug}
@@ -50,7 +58,9 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-400">用户名</label>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-400">
+              {t('auth.username')}
+            </label>
             <input
               type="text"
               value={username}
@@ -60,7 +70,9 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-400">密码</label>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-400">
+              {t('auth.password')}
+            </label>
             <input
               type="password"
               value={password}
@@ -81,12 +93,12 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all hover:bg-blue-600 disabled:opacity-50"
           >
-            {loading ? '登录中...' : '登录'}
+            {loading ? t('auth.loggingIn') : t('auth.login')}
           </button>
         </form>
 
         <p className="mt-6 text-center text-xs text-zinc-600">
-          默认账户: admin / admin123 (租户: default)
+          {t('auth.defaultCreds')}
         </p>
       </div>
     </div>

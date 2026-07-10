@@ -43,7 +43,7 @@ describe('Header', () => {
 
   it('displays the welcome message with display name', () => {
     renderHeader();
-    expect(screen.getByText(/欢迎回来/)).toBeInTheDocument();
+    expect(screen.getByText(/auth.welcomeBack/)).toBeInTheDocument();
     expect(screen.getByText('管理员')).toBeInTheDocument();
   });
 
@@ -76,7 +76,7 @@ describe('Header', () => {
 
   it('renders logout button', () => {
     renderHeader();
-    expect(screen.getByText('退出')).toBeInTheDocument();
+    expect(screen.getByText('auth.logout')).toBeInTheDocument();
   });
 
   describe('logout behavior', () => {
@@ -84,7 +84,7 @@ describe('Header', () => {
       const user = userEvent.setup();
       renderHeader();
 
-      await user.click(screen.getByText('退出'));
+      await user.click(screen.getByText('auth.logout'));
 
       expect(useAuthStore.getState().token).toBeNull();
       expect(useAuthStore.getState().user).toBeNull();
@@ -96,7 +96,7 @@ describe('Header', () => {
     it('renders gracefully when user is null', () => {
       useAuthStore.setState({ user: null });
       renderHeader();
-      expect(screen.getByText('退出')).toBeInTheDocument();
+      expect(screen.getByText('auth.logout')).toBeInTheDocument();
     });
 
     it('renders no role badges when user has no roles', () => {
