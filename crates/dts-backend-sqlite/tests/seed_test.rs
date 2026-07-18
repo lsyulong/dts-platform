@@ -55,7 +55,7 @@ async fn seed_populates_default_data_and_has_data_returns_true() {
         sqlx::query_scalar("SELECT COUNT(*) FROM \"user\" WHERE username = 'admin'")
             .fetch_one(&pool)
             .await
-        .expect("count user failed");
+            .expect("count user failed");
     assert_eq!(user_count, 1);
 
     // Verify datasources exist
@@ -81,5 +81,8 @@ async fn seed_fails_on_second_call_due_to_unique_slug() {
     // Second seed should fail because tenant.slug='default' already exists.
     // The proper pattern is: call has_data() first, then seed() only if false.
     let result = repo.seed().await;
-    assert!(result.is_err(), "second seed should fail with UNIQUE constraint");
+    assert!(
+        result.is_err(),
+        "second seed should fail with UNIQUE constraint"
+    );
 }

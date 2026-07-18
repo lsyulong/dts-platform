@@ -2,7 +2,7 @@
 
 mod common;
 
-use actix_web::{test, web, App};
+use actix_web::{App, test, web};
 use dts_server::api::monitoring;
 use dts_server::services::monitoring_svc::MonitoringService;
 use pretty_assertions::assert_eq;
@@ -41,19 +41,13 @@ async fn overview_with_valid_token_returns_200() {
     let ctx = common::setup_test_backend().await.expect("backend init");
     let token = get_admin_token(&ctx).await;
 
-    let monitoring_svc =
-        MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
+    let monitoring_svc = MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(monitoring_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/monitoring")
-                        .route("/overview", web::get().to(monitoring::overview)),
-                ),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(monitoring_svc)).service(
+        web::scope("/api/v1").service(
+            web::scope("/monitoring").route("/overview", web::get().to(monitoring::overview)),
+        ),
+    ))
     .await;
 
     let req = test::TestRequest::get()
@@ -70,19 +64,13 @@ async fn overview_returns_correct_structure() {
     let ctx = common::setup_test_backend().await.expect("backend init");
     let token = get_admin_token(&ctx).await;
 
-    let monitoring_svc =
-        MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
+    let monitoring_svc = MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(monitoring_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/monitoring")
-                        .route("/overview", web::get().to(monitoring::overview)),
-                ),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(monitoring_svc)).service(
+        web::scope("/api/v1").service(
+            web::scope("/monitoring").route("/overview", web::get().to(monitoring::overview)),
+        ),
+    ))
     .await;
 
     let req = test::TestRequest::get()
@@ -93,9 +81,18 @@ async fn overview_returns_correct_structure() {
     let resp = test::call_service(&app, req).await;
     let body: serde_json::Value = test::read_body_json(resp).await;
 
-    assert!(body["total_tasks"].is_number(), "total_tasks should be a number");
-    assert!(body["running_tasks"].is_number(), "running_tasks should be a number");
-    assert!(body["failed_tasks"].is_number(), "failed_tasks should be a number");
+    assert!(
+        body["total_tasks"].is_number(),
+        "total_tasks should be a number"
+    );
+    assert!(
+        body["running_tasks"].is_number(),
+        "running_tasks should be a number"
+    );
+    assert!(
+        body["failed_tasks"].is_number(),
+        "failed_tasks should be a number"
+    );
     assert!(
         body["total_datasources"].is_number(),
         "total_datasources should be a number"
@@ -112,27 +109,27 @@ async fn overview_returns_correct_structure() {
         body["today_synced_bytes"].is_number(),
         "today_synced_bytes should be a number"
     );
-    assert!(body["success_rate"].is_number(), "success_rate should be a number");
-    assert!(body["recent_runs"].is_array(), "recent_runs should be an array");
+    assert!(
+        body["success_rate"].is_number(),
+        "success_rate should be a number"
+    );
+    assert!(
+        body["recent_runs"].is_array(),
+        "recent_runs should be an array"
+    );
 }
 
 #[actix_web::test]
 async fn overview_without_token_returns_401() {
     let ctx = common::setup_test_backend().await.expect("backend init");
 
-    let monitoring_svc =
-        MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
+    let monitoring_svc = MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(monitoring_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/monitoring")
-                        .route("/overview", web::get().to(monitoring::overview)),
-                ),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(monitoring_svc)).service(
+        web::scope("/api/v1").service(
+            web::scope("/monitoring").route("/overview", web::get().to(monitoring::overview)),
+        ),
+    ))
     .await;
 
     let req = test::TestRequest::get()
@@ -172,19 +169,13 @@ async fn overview_with_expired_token_returns_401() {
         dts_server::services::token::create_token(&expired_claims, common::DEFAULT_JWT_SECRET)
             .unwrap();
 
-    let monitoring_svc =
-        MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
+    let monitoring_svc = MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(monitoring_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/monitoring")
-                        .route("/overview", web::get().to(monitoring::overview)),
-                ),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(monitoring_svc)).service(
+        web::scope("/api/v1").service(
+            web::scope("/monitoring").route("/overview", web::get().to(monitoring::overview)),
+        ),
+    ))
     .await;
 
     let req = test::TestRequest::get()

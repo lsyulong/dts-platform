@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { renderWithProviders } from '../../test/test-utils';
 import { server } from '../../test/mocks/server';
 import DatasourcesPage from '../datasources';
 
@@ -11,18 +11,14 @@ describe('DatasourcesPage', () => {
   afterAll(() => server.close());
 
   function renderPage() {
-    return render(
-      <MemoryRouter>
-        <DatasourcesPage />
-      </MemoryRouter>
-    );
+    return renderWithProviders(<DatasourcesPage />, { route: '/datasources' });
   }
 
   describe('loading state', () => {
     it('shows a spinner while loading', () => {
       const { container } = renderPage();
-      const spinner = container.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
+      const skeleton = container.querySelector('.animate-pulse');
+      expect(skeleton).toBeInTheDocument();
     });
   });
 

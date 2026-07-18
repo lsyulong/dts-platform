@@ -1,4 +1,4 @@
--- DTS Platform - Initial Database Schema (PostgreSQL / Supabase)
+-- DTS Platform - Initial Database Schema (PostgreSQL)
 
 -- Table: tenant (租户)
 CREATE TABLE IF NOT EXISTS tenant (

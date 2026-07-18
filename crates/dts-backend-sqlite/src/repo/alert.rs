@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use dts_backend::{repo::AlertRepo, types::*, BackendError};
+use dts_backend::{BackendError, repo::AlertRepo, types::*};
 use dts_backend_rdbms::map_sqlx_error;
 use sqlx::Row;
 use sqlx::SqlitePool;

@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use dts_backend::{repo::DatasourceRepo, types::*, BackendError};
+use dts_backend::{BackendError, repo::DatasourceRepo, types::*};
 use dts_backend_rdbms::map_sqlx_error;
 use sqlx::Row;
 use sqlx::SqlitePool;
@@ -108,7 +108,7 @@ impl DatasourceRepo for SqliteDatasourceRepo {
                     created_at: parse_timestamp(&created_at_str).to_rfc3339(),
                     updated_at: parse_timestamp(&updated_at_str).to_rfc3339(),
                 }))
-            }
+            },
             None => Ok(None),
         }
     }
@@ -150,5 +150,33 @@ impl DatasourceRepo for SqliteDatasourceRepo {
                 .await
                 .map_err(map_sqlx_error)?;
         Ok(count > 0)
+    }
+
+    async fn get_connection_info(
+        &self,
+        id: &str,
+        tenant_id: &str,
+    ) -> Result<Option<dts_backend::repo::RawConnectionInfo>, BackendError> {
+        let row = sqlx::query(
+            "SELECT db_type, host, port, username, encrypted_password, database_name
+             FROM datasource WHERE id = ?1 AND tenant_id = ?2",
+        )
+        .bind(id)
+        .bind(tenant_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx_error)?;
+
+        match row {
+            Some(r) => Ok(Some(dts_backend::repo::RawConnectionInfo {
+                db_type: r.get(0),
+                host: r.get(1),
+                port: r.get(2),
+                username: r.get(3),
+                password: r.get(4),
+                database_name: r.get(5),
+            })),
+            None => Ok(None),
+        }
     }
 }

@@ -59,6 +59,53 @@ pub struct CreateRoleParams {
     pub permissions: Vec<String>,
 }
 
+/// 用户列表项（含租户名和角色名）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserListInfo {
+    pub id: String,
+    pub username: String,
+    pub email: String,
+    pub display_name: Option<String>,
+    pub tenant_id: String,
+    pub tenant_name: String,
+    pub roles: Vec<String>,
+    pub status: String,
+    pub created_at: String,
+}
+
+/// 角色列表项
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RoleListInfo {
+    pub id: String,
+    pub name: String,
+    pub tenant_id: String,
+    pub description: String,
+    pub is_system: bool,
+    pub permissions: Vec<String>,
+    pub created_at: String,
+}
+
+/// 更新用户参数
+#[derive(Debug, Clone)]
+pub struct UpdateUserParams {
+    pub display_name: Option<String>,
+    pub status: Option<String>,
+}
+
+/// 更新角色参数
+#[derive(Debug, Clone)]
+pub struct UpdateRoleParams {
+    pub name: Option<String>,
+    pub permissions: Option<Vec<String>>,
+}
+
+/// 更新租户参数
+#[derive(Debug, Clone)]
+pub struct UpdateTenantParams {
+    pub name: Option<String>,
+    pub status: Option<String>,
+}
+
 // ============================================================
 // 数据源
 // ============================================================

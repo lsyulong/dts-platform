@@ -8,7 +8,7 @@ description = "企业级数据同步管理平台 - Web 后端服务"
 workspace = true
 
 [features]
-default = ["sqlite"]
+default = ["sqlite", "engine-ape"]
 sqlite = ["dts-backend-sqlite"]
 postgres = ["dts-backend-postgres"]
 engine-ape = ["dts-engine-ape"]
@@ -21,6 +21,7 @@ dts-backend-sqlite = { path = "../dts-backend-sqlite", optional = true }
 dts-backend-postgres = { path = "../dts-backend-postgres", optional = true }
 dts-engine = { path = "../dts-engine" }
 dts-engine-ape = { path = "../dts-engine-ape", optional = true }
+dts-scheduler-client = { path = "../dts-scheduler-client" }
 
 # Web 框架
 actix-web = "4"
@@ -54,6 +55,8 @@ tracing-log = "0.2"
 jsonwebtoken = "9"
 argon2 = "0.5"
 futures = "0.3"
+reqwest = { version = "0.12", features = ["json"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "mysql", "postgres", "tls-rustls"] }
 
 [dev-dependencies]
 actix-rt = "2"

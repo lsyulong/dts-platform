@@ -296,10 +296,7 @@ fn task_run_info_with_error() {
     let output: TaskRunInfo = serde_json::from_str(&json).unwrap();
 
     assert_eq!(output.status, "failed");
-    assert_eq!(
-        output.error_message,
-        Some("Connection timeout".into())
-    );
+    assert_eq!(output.error_message, Some("Connection timeout".into()));
     assert_eq!(output.end_time, Some("2026-01-01T08:02:00Z".into()));
 }
 

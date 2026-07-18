@@ -16,29 +16,35 @@ function renderWithRouter(initialRoute = '/') {
 
 describe('Sidebar', () => {
   beforeEach(() => {
-    useAppStore.setState({ sidebarCollapsed: false, theme: 'dark' });
+    useAppStore.setState({
+      sidebarCollapsed: false,
+      mobileSidebarOpen: false,
+      theme: 'dark',
+    });
   });
 
-  it('renders the DTS Platform logo when expanded', () => {
+  it('renders the DTS logo when expanded', () => {
     renderWithRouter();
     expect(screen.getByText('DTS')).toBeInTheDocument();
-    expect(screen.getByText('Platform')).toBeInTheDocument();
+    expect(screen.getByText('common.appTagline')).toBeInTheDocument();
   });
 
   it('hides the logo text when collapsed', () => {
     useAppStore.setState({ sidebarCollapsed: true });
     renderWithRouter();
     expect(screen.queryByText('DTS')).not.toBeInTheDocument();
-    expect(screen.queryByText('Platform')).not.toBeInTheDocument();
+    expect(screen.queryByText('common.appTagline')).not.toBeInTheDocument();
   });
 
   describe('navigation links', () => {
-    it('renders all nav links when expanded', () => {
+    it('renders required nav links when expanded', () => {
       renderWithRouter();
       expect(screen.getByText('nav.dashboard')).toBeInTheDocument();
       expect(screen.getByText('nav.tasks')).toBeInTheDocument();
       expect(screen.getByText('nav.datasources')).toBeInTheDocument();
       expect(screen.getByText('nav.monitoring')).toBeInTheDocument();
+      expect(screen.getByText('nav.query')).toBeInTheDocument();
+      expect(screen.getByText('nav.analysis')).toBeInTheDocument();
     });
 
     it('hides nav link labels when collapsed', () => {
@@ -117,6 +123,37 @@ describe('Sidebar', () => {
       const { container } = renderWithRouter();
       const aside = container.querySelector('aside');
       expect(aside?.className).toContain('w-16');
+    });
+  });
+
+  describe('mobile behavior', () => {
+    it('shows overlay when mobile sidebar is open', () => {
+      // Mock mobile width
+      const original = Object.getOwnPropertyDescriptor(window, 'innerWidth');
+      Object.defineProperty(window, 'innerWidth', { value: 768, writable: true, configurable: true });
+
+      useAppStore.setState({ mobileSidebarOpen: true });
+      const { container } = renderWithRouter();
+      const overlay = container.querySelector('.bg-black\\/50');
+      expect(overlay).toBeInTheDocument();
+
+      // Restore
+      if (original) {
+        Object.defineProperty(window, 'innerWidth', original);
+      }
+    });
+
+    it('does not show overlay when mobile sidebar is closed', () => {
+      const original = Object.getOwnPropertyDescriptor(window, 'innerWidth');
+      Object.defineProperty(window, 'innerWidth', { value: 768, writable: true, configurable: true });
+
+      const { container } = renderWithRouter();
+      const overlay = container.querySelector('.bg-black\\/50');
+      expect(overlay).not.toBeInTheDocument();
+
+      if (original) {
+        Object.defineProperty(window, 'innerWidth', original);
+      }
     });
   });
 

@@ -1,30 +1,12 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Database, CheckCircle, Activity } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import LogConsole from '../components/LogConsole';
-import client from '../api/client';
-
-interface Overview {
-  total_tasks: number;
-  running_tasks: number;
-  failed_tasks: number;
-  total_datasources: number;
-  healthy_datasources: number;
-  today_synced_rows: number;
-  today_synced_bytes: number;
-  success_rate: number;
-  recent_runs: Array<{
-    id: string;
-    task_id: string;
-    task_name: string;
-    status: string;
-    start_time: string;
-    rows_synced: number;
-    bytes_synced: number;
-  }>;
-}
+import { ErrorBanner, StatusBadge } from '../components/ui';
+import { DashboardSkeleton } from '../components/skeletons';
+import { SyncVolumeChart, TaskStatusPie } from '../components/charts';
+import { useOverview, useTasks } from '../hooks/useApi';
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
@@ -42,46 +24,19 @@ function formatNumber(n: number): string {
 
 export default function DashboardPage() {
   const { t } = useTranslation();
-  const [overview, setOverview] = useState<Overview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const { data: overview, isLoading, error } = useOverview();
+  const { data: tasks = [] } = useTasks();
 
-  useEffect(() => {
-    const controller = new AbortController();
-    client
-      .get('/monitoring/overview', { signal: controller.signal })
-      .then((res) => {
-        setOverview(res.data);
-        setFetchError(null);
-      })
-      .catch((err) => {
-        if (err?.name !== 'CanceledError' && err?.code !== 'ERR_CANCELED') {
-          setFetchError(t('errors.somethingWentWrong'));
-        }
-      })
-      .finally(() => setLoading(false));
+  const fetchError = error ? t('errors.somethingWentWrong') : null;
 
-    return () => controller.abort();
-  }, [t]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-600 border-t-blue-400" />
-      </div>
-    );
+  if (isLoading) {
+    return <DashboardSkeleton />;
   }
 
   if (fetchError) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <p className="text-zinc-400">{fetchError}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="rounded-lg bg-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-700"
-        >
-          {t('common.retry')}
-        </button>
+      <div className="py-20">
+        <ErrorBanner message={fetchError} onRetry={() => window.location.reload()} />
       </div>
     );
   }
@@ -90,8 +45,8 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-xl font-bold text-zinc-100">{t('dashboard.title')}</h1>
-        <p className="mt-1 text-sm text-zinc-500">{t('dashboard.subtitle')}</p>
+        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">{t('dashboard.title')}</h1>
+        <p className="mt-1 text-sm text-[var(--color-text-tertiary)]">{t('dashboard.subtitle')}</p>
       </div>
 
       {/* KPI cards */}
@@ -123,49 +78,37 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Recent runs + Log */}
+      {/* Recent runs + Charts */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent task runs */}
-        <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-5 backdrop-blur-sm">
+        <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5 backdrop-blur-sm">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-zinc-300">{t('dashboard.recentRuns')}</h3>
+            <h3 className="text-sm font-medium text-[var(--color-text-secondary)]">{t('dashboard.recentRuns')}</h3>
             <Link to="/tasks" className="text-xs text-blue-400 hover:text-blue-300">
               {t('dashboard.viewAll')}
             </Link>
           </div>
           <div className="mt-4 space-y-3">
             {overview?.recent_runs?.length === 0 ? (
-              <p className="text-sm text-zinc-600">{t('dashboard.noRuns')}</p>
+              <p className="text-sm text-[var(--color-text-disabled)]">{t('dashboard.noRuns')}</p>
             ) : (
               overview?.recent_runs?.slice(0, 5).map((run) => (
                 <div
                   key={run.id}
-                  className="flex items-center justify-between rounded-xl border border-zinc-800/40 bg-zinc-900/20 p-3"
+                  className="flex items-center justify-between rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-3"
                 >
                   <div>
                     <Link
                       to={`/tasks/${run.task_id}`}
-                      className="text-sm font-medium text-zinc-200 hover:text-blue-400"
+                      className="text-sm font-medium text-[var(--color-text-primary)] hover:text-blue-400"
                     >
                       {run.task_name}
                     </Link>
-                    <p className="text-xs text-zinc-500">{run.start_time}</p>
+                    <p className="text-xs text-[var(--color-text-tertiary)]">{run.start_time}</p>
                   </div>
                   <div className="text-right">
-                    <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                        run.status === 'completed'
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : run.status === 'running'
-                            ? 'bg-blue-500/10 text-blue-400'
-                            : run.status === 'failed'
-                              ? 'bg-rose-500/10 text-rose-400'
-                              : 'bg-zinc-500/10 text-zinc-400'
-                      }`}
-                    >
-                      {run.status}
-                    </span>
-                    <p className="mt-1 text-xs text-zinc-500">
+                    <StatusBadge status={run.status} />
+                    <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
                       {t('dashboard.rowsCount', { count: formatNumber(run.rows_synced) })}
                     </p>
                   </div>
@@ -175,29 +118,25 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Data flow visualization placeholder */}
-        <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-5 backdrop-blur-sm">
-          <h3 className="text-sm font-medium text-zinc-300">{t('dashboard.dataFlowViz')}</h3>
-          <div className="mt-4 flex h-48 items-center justify-center rounded-xl border border-dashed border-zinc-700 bg-zinc-900/30">
-            <div className="text-center">
-              <Activity size={32} className="mx-auto text-zinc-600" />
-              <p className="mt-2 text-sm text-zinc-600">
-                {t('dashboard.dataFlowPlaceholder')}
-              </p>
-              <p className="text-xs text-zinc-700">{t('dashboard.dataFlowHint')}</p>
-            </div>
-          </div>
+        {/* Charts */}
+        <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5 backdrop-blur-sm">
+          <SyncVolumeChart runs={overview?.recent_runs?.map((r) => ({ task_name: r.task_name, rows_synced: r.rows_synced })) ?? []} />
         </div>
       </div>
 
-      {/* Log console */}
-      <LogConsole
-        title={t('dashboard.systemLog')}
-        logs={[
-          { timestamp: new Date().toISOString(), level: 'INFO', component: 'system', message: t('dashboard.logStarted') },
-          { timestamp: new Date().toISOString(), level: 'INFO', component: 'db', message: t('dashboard.logDbConnected') },
-        ]}
-      />
+      {/* Task distribution + Log */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5 backdrop-blur-sm">
+          <TaskStatusPie tasks={tasks} />
+        </div>
+        <LogConsole
+          title={t('dashboard.systemLog')}
+          logs={[
+            { timestamp: new Date().toISOString(), level: 'INFO', component: 'system', message: t('dashboard.logStarted') },
+            { timestamp: new Date().toISOString(), level: 'INFO', component: 'db', message: t('dashboard.logDbConnected') },
+          ]}
+        />
+      </div>
     </div>
   );
 }

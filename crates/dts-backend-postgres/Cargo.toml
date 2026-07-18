@@ -2,7 +2,7 @@
 name = "dts-backend-postgres"
 version = "0.1.0"
 edition = "2021"
-description = "DTS Platform — PostgreSQL 协议存储后端（支持 PostgreSQL / Supabase / GaussDB / Kingbase / openGauss 等）"
+description = "DTS Platform — PostgreSQL 协议存储后端（支持 PostgreSQL / GaussDB / Kingbase / openGauss 等）"
 
 [dependencies]
 dts-backend = { path = "../dts-backend" }

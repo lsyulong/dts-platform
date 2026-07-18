@@ -103,7 +103,7 @@ impl DatasourceRepo for PgDatasourceRepo {
                     created_at: created_at.to_rfc3339(),
                     updated_at: updated_at.to_rfc3339(),
                 }))
-            }
+            },
             None => Ok(None),
         }
     }
@@ -145,5 +145,33 @@ impl DatasourceRepo for PgDatasourceRepo {
                 .await
                 .map_err(map_sqlx_error)?;
         Ok(count > 0)
+    }
+
+    async fn get_connection_info(
+        &self,
+        id: &str,
+        tenant_id: &str,
+    ) -> Result<Option<dts_backend::repo::RawConnectionInfo>, BackendError> {
+        let row = sqlx::query(
+            "SELECT db_type, host, port, username, encrypted_password, database_name
+             FROM datasource WHERE id = $1 AND tenant_id = $2",
+        )
+        .bind(id)
+        .bind(tenant_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx_error)?;
+
+        match row {
+            Some(r) => Ok(Some(dts_backend::repo::RawConnectionInfo {
+                db_type: r.get(0),
+                host: r.get(1),
+                port: r.get(2),
+                username: r.get(3),
+                password: r.get(4),
+                database_name: r.get(5),
+            })),
+            None => Ok(None),
+        }
     }
 }

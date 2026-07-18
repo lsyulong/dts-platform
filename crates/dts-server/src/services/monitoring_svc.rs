@@ -34,8 +34,8 @@ mod tests {
     use std::sync::Mutex;
 
     use async_trait::async_trait;
-    use dts_backend::repo::TaskRepo;
     use dts_backend::BackendError;
+    use dts_backend::repo::TaskRepo;
 
     // ============================================================
     // Mock MonitoringRepo
@@ -69,10 +69,7 @@ mod tests {
 
     #[async_trait]
     impl MonitoringRepo for MockMonitoringRepo {
-        async fn get_overview(
-            &self,
-            _tenant_id: &str,
-        ) -> Result<MonitoringOverview, BackendError> {
+        async fn get_overview(&self, _tenant_id: &str) -> Result<MonitoringOverview, BackendError> {
             Ok(self.overview_result.lock().unwrap().clone())
         }
     }
@@ -85,17 +82,11 @@ mod tests {
 
     #[async_trait]
     impl TaskRepo for MockTaskRepo {
-        async fn create(
-            &self,
-            _params: &CreateTaskParams,
-        ) -> Result<String, BackendError> {
+        async fn create(&self, _params: &CreateTaskParams) -> Result<String, BackendError> {
             Ok("ignored".to_string())
         }
 
-        async fn list_by_tenant(
-            &self,
-            _tenant_id: &str,
-        ) -> Result<Vec<TaskInfo>, BackendError> {
+        async fn list_by_tenant(&self, _tenant_id: &str) -> Result<Vec<TaskInfo>, BackendError> {
             Ok(vec![])
         }
 

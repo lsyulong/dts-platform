@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { server } from '../../../test/mocks/server';
+import { renderWithProviders } from '../../../test/test-utils';
 import TaskListPage from '../index';
 
 describe('TaskListPage', () => {
@@ -11,18 +11,14 @@ describe('TaskListPage', () => {
   afterAll(() => server.close());
 
   function renderPage() {
-    return render(
-      <MemoryRouter initialEntries={['/tasks']}>
-        <TaskListPage />
-      </MemoryRouter>
-    );
+    return renderWithProviders(<TaskListPage />, { route: '/tasks' });
   }
 
   describe('loading state', () => {
     it('shows a spinner while loading', () => {
       const { container } = renderPage();
-      const spinner = container.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
+      const skeleton = container.querySelector('.animate-pulse');
+      expect(skeleton).toBeInTheDocument();
     });
   });
 

@@ -26,12 +26,7 @@ pub const DEFAULT_JWT_SECRET: &str = "dev-secret-change-me";
 
 /// Generate a test JWT token (used by test files).
 #[allow(dead_code)]
-pub fn generate_test_token(
-    secret: &str,
-    user_id: &str,
-    tenant_id: &str,
-    username: &str,
-) -> String {
+pub fn generate_test_token(secret: &str, user_id: &str, tenant_id: &str, username: &str) -> String {
     let now = chrono::Utc::now();
     let claims = Claims {
         sub: user_id.to_string(),

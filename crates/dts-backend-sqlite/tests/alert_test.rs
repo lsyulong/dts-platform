@@ -44,10 +44,7 @@ async fn create_and_list_alert() {
     let result = repo.create(&params).await.expect("create failed");
     assert_eq!(result, id);
 
-    let list = repo
-        .list_by_tenant(&tenant_id)
-        .await
-        .expect("list failed");
+    let list = repo.list_by_tenant(&tenant_id).await.expect("list failed");
     assert_eq!(list.len(), 1);
     assert_eq!(list[0].name, "High Latency Alert");
     assert_eq!(list[0].metric_type, "latency");
@@ -62,10 +59,7 @@ async fn create_and_list_alert() {
 #[tokio::test]
 async fn list_by_tenant_returns_empty_for_new_tenant() {
     let (_pool, repo, tenant_id) = setup().await;
-    let list = repo
-        .list_by_tenant(&tenant_id)
-        .await
-        .expect("list failed");
+    let list = repo.list_by_tenant(&tenant_id).await.expect("list failed");
     assert!(list.is_empty());
 }
 
@@ -88,10 +82,7 @@ async fn toggle_disables_and_enables_alert() {
     .expect("create failed");
 
     // Toggle off
-    let toggled = repo
-        .toggle(&id, &tenant_id)
-        .await
-        .expect("toggle failed");
+    let toggled = repo.toggle(&id, &tenant_id).await.expect("toggle failed");
     assert!(toggled);
 
     let list = repo
@@ -172,10 +163,7 @@ async fn list_alert_with_task_shows_task_name() {
     .await
     .expect("create alert failed");
 
-    let list = repo
-        .list_by_tenant(&tenant_id)
-        .await
-        .expect("list failed");
+    let list = repo.list_by_tenant(&tenant_id).await.expect("list failed");
     assert_eq!(list.len(), 1);
     assert_eq!(list[0].task_name.as_deref(), Some("My Sync Task"));
 }

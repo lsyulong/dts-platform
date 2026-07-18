@@ -1,14 +1,14 @@
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 
 /// JWT Claims
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,         // user_id
+    pub sub: String, // user_id
     pub tenant_id: String,
     pub username: String,
-    pub exp: usize,          // expiry timestamp
-    pub iat: usize,          // issued at timestamp
+    pub exp: usize, // expiry timestamp
+    pub iat: usize, // issued at timestamp
 }
 
 /// Create a JWT token

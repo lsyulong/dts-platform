@@ -1,7 +1,8 @@
 use async_trait::async_trait;
-use dts_backend::{BackendError, repo::role::DefaultRoles, repo::RoleRepo, types::CreateRoleParams};
+use dts_backend::{BackendError, repo::RoleRepo, repo::role::DefaultRoles, types::*};
 use dts_backend_rdbms::map_sqlx_error;
 use sqlx::PgPool;
+use sqlx::Row;
 use uuid::Uuid;
 
 pub struct PgRoleRepo {
@@ -68,10 +69,110 @@ impl RoleRepo for PgRoleRepo {
         .map_err(map_sqlx_error)
     }
 
-    async fn create_default_roles(
-        &self,
-        tenant_id: &str,
-    ) -> Result<DefaultRoles, BackendError> {
+    async fn list_all(&self, tenant_id: Option<&str>) -> Result<Vec<RoleListInfo>, BackendError> {
+        let mut sql = String::from(
+            "SELECT r.id, r.name, r.tenant_id, r.description, r.is_system, \
+             to_char(r.created_at, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') as created_at \
+             FROM role r WHERE 1=1",
+        );
+        if let Some(tid) = tenant_id {
+            sql.push_str(&format!(" AND r.tenant_id = '{}'", tid.replace('\'', "''")));
+        }
+        sql.push_str(" ORDER BY r.created_at DESC");
+
+        let rows = sqlx::query(&sql)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(map_sqlx_error)?;
+
+        let mut roles = Vec::new();
+        for r in &rows {
+            let rid: String = r.get(0);
+            let permissions: Vec<String> =
+                sqlx::query_scalar("SELECT permission FROM role_permission WHERE role_id = $1")
+                    .bind(&rid)
+                    .fetch_all(&self.pool)
+                    .await
+                    .map_err(map_sqlx_error)?;
+
+            roles.push(RoleListInfo {
+                id: rid,
+                name: r.get(1),
+                tenant_id: r.get(2),
+                description: r.get(3),
+                is_system: r.get::<bool, _>(4),
+                permissions,
+                created_at: r.get(5),
+            });
+        }
+        Ok(roles)
+    }
+
+    async fn update(&self, role_id: &str, params: &UpdateRoleParams) -> Result<(), BackendError> {
+        if let Some(ref name) = params.name {
+            sqlx::query("UPDATE role SET name = $1 WHERE id = $2")
+                .bind(name)
+                .bind(role_id)
+                .execute(&self.pool)
+                .await
+                .map_err(map_sqlx_error)?;
+        }
+        if let Some(ref permissions) = params.permissions {
+            sqlx::query("DELETE FROM role_permission WHERE role_id = $1")
+                .bind(role_id)
+                .execute(&self.pool)
+                .await
+                .map_err(map_sqlx_error)?;
+            for perm in permissions {
+                sqlx::query("INSERT INTO role_permission (role_id, permission) VALUES ($1, $2)")
+                    .bind(role_id)
+                    .bind(perm)
+                    .execute(&self.pool)
+                    .await
+                    .map_err(map_sqlx_error)?;
+            }
+        }
+        Ok(())
+    }
+
+    async fn delete(&self, role_id: &str) -> Result<(), BackendError> {
+        sqlx::query("DELETE FROM role_permission WHERE role_id = $1")
+            .bind(role_id)
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx_error)?;
+        sqlx::query("DELETE FROM user_role WHERE role_id = $1")
+            .bind(role_id)
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx_error)?;
+        sqlx::query("DELETE FROM role WHERE id = $1")
+            .bind(role_id)
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx_error)?;
+        Ok(())
+    }
+
+    async fn find_all_permissions(&self) -> Result<Vec<String>, BackendError> {
+        Ok(vec![
+            "task:read".into(),
+            "task:write".into(),
+            "task:delete".into(),
+            "ds:read".into(),
+            "ds:write".into(),
+            "ds:delete".into(),
+            "alert:read".into(),
+            "alert:write".into(),
+            "monitor:read".into(),
+            "ops:read".into(),
+            "admin:*".into(),
+            "system:read".into(),
+            "system:write".into(),
+        ])
+    }
+
+    async fn create_default_roles(&self, tenant_id: &str) -> Result<DefaultRoles, BackendError> {
         let admin_id = self
             .create_with_permissions(&CreateRoleParams {
                 id: Uuid::new_v4().to_string(),
@@ -80,10 +181,16 @@ impl RoleRepo for PgRoleRepo {
                 description: "租户管理员".into(),
                 is_system: true,
                 permissions: vec![
-                    "task:read".into(), "task:write".into(), "task:execute".into(),
-                    "datasource:read".into(), "datasource:write".into(),
-                    "monitor:read".into(), "alert:read".into(), "alert:write".into(),
-                    "user:manage".into(), "audit:read".into(),
+                    "task:read".into(),
+                    "task:write".into(),
+                    "task:execute".into(),
+                    "datasource:read".into(),
+                    "datasource:write".into(),
+                    "monitor:read".into(),
+                    "alert:read".into(),
+                    "alert:write".into(),
+                    "user:manage".into(),
+                    "audit:read".into(),
                 ],
             })
             .await?;
@@ -96,9 +203,13 @@ impl RoleRepo for PgRoleRepo {
                 description: "开发运维".into(),
                 is_system: true,
                 permissions: vec![
-                    "task:read".into(), "task:write".into(), "task:execute".into(),
-                    "datasource:read".into(), "datasource:write".into(),
-                    "monitor:read".into(), "alert:read".into(),
+                    "task:read".into(),
+                    "task:write".into(),
+                    "task:execute".into(),
+                    "datasource:read".into(),
+                    "datasource:write".into(),
+                    "monitor:read".into(),
+                    "alert:read".into(),
                 ],
             })
             .await?;
@@ -111,8 +222,10 @@ impl RoleRepo for PgRoleRepo {
                 description: "只读用户".into(),
                 is_system: true,
                 permissions: vec![
-                    "task:read".into(), "datasource:read".into(),
-                    "monitor:read".into(), "alert:read".into(),
+                    "task:read".into(),
+                    "datasource:read".into(),
+                    "monitor:read".into(),
+                    "alert:read".into(),
                 ],
             })
             .await?;

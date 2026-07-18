@@ -46,10 +46,7 @@ async fn create_and_list_datasource() {
     let result = repo.create(&params).await.expect("create failed");
     assert_eq!(result, id);
 
-    let list = repo
-        .list_by_tenant(&tenant_id)
-        .await
-        .expect("list failed");
+    let list = repo.list_by_tenant(&tenant_id).await.expect("list failed");
     assert_eq!(list.len(), 1);
     assert_eq!(list[0].name, "Test MySQL");
     assert_eq!(list[0].db_type, "MySQL");
@@ -120,10 +117,7 @@ async fn delete_removes_and_returns_true() {
     .await
     .expect("create failed");
 
-    let deleted = repo
-        .delete(&id, &tenant_id)
-        .await
-        .expect("delete failed");
+    let deleted = repo.delete(&id, &tenant_id).await.expect("delete failed");
     assert!(deleted);
 
     let after = repo
@@ -148,10 +142,7 @@ async fn exists_returns_true_only_for_existing() {
     let (_pool, repo, tenant_id) = setup().await;
     let id = uuid::Uuid::new_v4().to_string();
 
-    assert!(!repo
-        .exists(&id, &tenant_id)
-        .await
-        .expect("exists failed"));
+    assert!(!repo.exists(&id, &tenant_id).await.expect("exists failed"));
 
     repo.create(&CreateDatasourceParams {
         id: id.clone(),
@@ -168,10 +159,11 @@ async fn exists_returns_true_only_for_existing() {
     .await
     .expect("create failed");
 
-    assert!(repo
-        .exists(&id, &tenant_id)
-        .await
-        .expect("exists after create failed"));
+    assert!(
+        repo.exists(&id, &tenant_id)
+            .await
+            .expect("exists after create failed")
+    );
 }
 
 #[tokio::test]
@@ -261,10 +253,7 @@ async fn list_by_tenant_orders_by_created_at_desc() {
     .await
     .expect("create failed");
 
-    let list = repo
-        .list_by_tenant(&tenant_id)
-        .await
-        .expect("list failed");
+    let list = repo.list_by_tenant(&tenant_id).await.expect("list failed");
     assert_eq!(list.len(), 2);
     assert_eq!(list[0].name, "Second"); // Most recent first
     assert_eq!(list[1].name, "First");

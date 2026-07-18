@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { renderWithProviders } from '../../test/test-utils';
 import { server } from '../../test/mocks/server';
 import MonitoringPage from '../monitoring';
 
@@ -11,11 +11,7 @@ describe('MonitoringPage', () => {
   afterAll(() => server.close());
 
   function renderPage() {
-    return render(
-      <MemoryRouter>
-        <MonitoringPage />
-      </MemoryRouter>
-    );
+    return renderWithProviders(<MonitoringPage />, { route: '/monitoring' });
   }
 
   describe('loading state', () => {

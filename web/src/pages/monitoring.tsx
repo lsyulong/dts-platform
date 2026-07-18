@@ -1,55 +1,16 @@
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Activity, Zap, Globe, Server } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import LogConsole from '../components/LogConsole';
-import client from '../api/client';
-
-interface AlertRule {
-  id: string;
-  name: string;
-  metric_type: string;
-  operator: string;
-  threshold: number;
-  enabled: boolean;
-  task_name: string | null;
-  created_at: string;
-}
+import { LoadingSpinner, ErrorBanner } from '../components/ui';
+import { useAlerts, useToggleAlert } from '../hooks/useApi';
 
 export default function MonitoringPage() {
   const { t } = useTranslation();
-  const [alerts, setAlerts] = useState<AlertRule[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const { data: alerts = [], isLoading, error } = useAlerts();
+  const toggleAlert = useToggleAlert();
 
-  useEffect(() => {
-    const controller = new AbortController();
-    client
-      .get('/alerts', { signal: controller.signal })
-      .then((res) => {
-        setAlerts(res.data.data || []);
-        setFetchError(null);
-      })
-      .catch((err) => {
-        if (err?.name !== 'CanceledError' && err?.code !== 'ERR_CANCELED') {
-          setFetchError(t('errors.somethingWentWrong'));
-        }
-      })
-      .finally(() => setLoading(false));
-
-    return () => controller.abort();
-  }, [t]);
-
-  const toggleAlert = async (id: string) => {
-    try {
-      await client.patch(`/alerts/${id}/toggle`);
-      setAlerts((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a))
-      );
-    } catch {
-      setFetchError(t('errors.somethingWentWrong'));
-    }
-  };
+  const fetchError = error ? t('errors.somethingWentWrong') : null;
 
   const metricLabel: Record<string, string> = {
     latency: t('metrics.latency'),
@@ -61,16 +22,12 @@ export default function MonitoringPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-zinc-100">{t('monitoring.title')}</h1>
-        <p className="mt-1 text-sm text-zinc-500">{t('monitoring.subtitle')}</p>
+        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">{t('monitoring.title')}</h1>
+        <p className="mt-1 text-sm text-[var(--color-text-tertiary)]">{t('monitoring.subtitle')}</p>
       </div>
 
       {/* Error banner */}
-      {fetchError && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
-          {fetchError}
-        </div>
-      )}
+      {fetchError && <ErrorBanner message={fetchError} />}
 
       {/* System health (mock) */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -81,31 +38,29 @@ export default function MonitoringPage() {
       </div>
 
       {/* Alert rules */}
-      <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-5 backdrop-blur-sm">
-        <h3 className="mb-4 text-sm font-medium text-zinc-300">{t('monitoring.alertRules')}</h3>
-        {loading ? (
-          <div className="flex justify-center py-6">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-blue-400" />
-          </div>
+      <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5 backdrop-blur-sm">
+        <h3 className="mb-4 text-sm font-medium text-[var(--color-text-secondary)]">{t('monitoring.alertRules')}</h3>
+        {isLoading ? (
+          <LoadingSpinner size="sm" />
         ) : alerts.length === 0 ? (
-          <p className="text-sm text-zinc-600">{t('tasks.noTasks')}</p>
+          <p className="text-sm text-[var(--color-text-disabled)]">{t('tasks.noTasks')}</p>
         ) : (
           <div className="space-y-2">
             {alerts.map((alert) => (
               <div
                 key={alert.id}
-                className="flex items-center justify-between rounded-xl border border-zinc-800/40 bg-zinc-900/20 p-3"
+                className="flex items-center justify-between rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-3"
               >
                 <div>
-                  <p className="text-sm font-medium text-zinc-200">{alert.name}</p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-sm font-medium text-[var(--color-text-primary)]">{alert.name}</p>
+                  <p className="text-xs text-[var(--color-text-tertiary)]">
                     {metricLabel[alert.metric_type] || alert.metric_type} {alert.operator} {alert.threshold}
                   </p>
                 </div>
                 <button
-                  onClick={() => toggleAlert(alert.id)}
+                  onClick={() => toggleAlert.mutate(alert.id)}
                   className={`relative h-6 w-11 rounded-full transition-colors ${
-                    alert.enabled ? 'bg-blue-500' : 'bg-zinc-700'
+                    alert.enabled ? 'bg-blue-500' : 'bg-[var(--color-bg-tertiary)]'
                   }`}
                 >
                   <div

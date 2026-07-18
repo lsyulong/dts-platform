@@ -105,6 +105,32 @@ pub async fn get(
     Ok(HttpResponse::Ok().json(task))
 }
 
+/// POST /api/v1/tasks/{id}/start
+pub async fn start(
+    scheduler: web::Data<crate::services::scheduler::TaskScheduler>,
+    req: HttpRequest,
+    path: web::Path<String>,
+) -> Result<HttpResponse, AppError> {
+    let jwt_secret = get_jwt_secret(None);
+    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let task_id = path.into_inner();
+
+    let run_id = scheduler.start_task(&task_id, &claims.tenant_id).await?;
+
+    tracing::info!(
+        task_id = %task_id,
+        run_id = %run_id,
+        tenant_id = %claims.tenant_id,
+        "任务启动成功"
+    );
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "run_id": run_id,
+        "status": "running",
+        "message": "任务已提交到引擎",
+    })))
+}
+
 /// PATCH /api/v1/tasks/{id}/status
 #[derive(Deserialize)]
 pub struct UpdateStatusRequest {

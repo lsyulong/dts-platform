@@ -3,9 +3,7 @@ use dts_backend::{BackendError, repo::SeedRepo};
 use dts_backend_rdbms::map_sqlx_error;
 use sqlx::PgPool;
 
-use crate::repo::{
-    PgDatasourceRepo, PgRoleRepo, PgTenantRepo, PgUserRepo,
-};
+use crate::repo::{PgDatasourceRepo, PgRoleRepo, PgTenantRepo, PgUserRepo};
 use dts_backend::repo::{DatasourceRepo, RoleRepo, TenantRepo, UserRepo};
 use dts_backend::types::*;
 use uuid::Uuid;
@@ -69,7 +67,9 @@ impl SeedRepo for PgSeedRepo {
             })
             .await?;
 
-        user_repo.assign_role(&user_id, &roles.admin_role_id).await?;
+        user_repo
+            .assign_role(&user_id, &roles.admin_role_id)
+            .await?;
 
         // 4. 创建演示数据源
         let mysql_id = Uuid::new_v4().to_string();

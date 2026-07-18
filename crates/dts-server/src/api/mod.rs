@@ -2,5 +2,7 @@ pub mod alerts;
 pub mod auth;
 pub mod datasources;
 pub mod monitoring;
+pub mod scheduler;
+pub mod system;
 pub mod tasks;
 pub mod tenants;

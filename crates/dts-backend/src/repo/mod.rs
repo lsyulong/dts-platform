@@ -9,7 +9,7 @@ pub mod tenant;
 pub mod user;
 
 pub use alert::AlertRepo;
-pub use datasource::DatasourceRepo;
+pub use datasource::{DatasourceRepo, RawConnectionInfo};
 pub use monitoring::MonitoringRepo;
 pub use role::RoleRepo;
 pub use seed::SeedRepo;

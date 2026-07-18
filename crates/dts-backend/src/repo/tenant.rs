@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use crate::error::BackendError;
-use crate::types::{CreateTenantParams, TenantInfo};
+use crate::types::{CreateTenantParams, TenantInfo, UpdateTenantParams};
 
 /// 租户数据访问 trait
 ///
@@ -22,4 +22,11 @@ pub trait TenantRepo: Send + Sync {
 
     /// 租户总数
     async fn count(&self) -> Result<i64, BackendError>;
+
+    /// 更新租户信息
+    async fn update(
+        &self,
+        tenant_id: &str,
+        params: &UpdateTenantParams,
+    ) -> Result<(), BackendError>;
 }

@@ -1,7 +1,8 @@
 {
   "common": {
     "appName": "DTS Platform",
-    "appDesc": "企业级数据同步管理平台",
+    "appDesc": "轻量级数据中台",
+    "appTagline": "数据接入 · 任务调度 · 智能分析 · AI 驱动",
     "version": "DTS Platform v0.1.0",
     "loading": "加载中...",
     "save": "保存",
@@ -22,10 +23,21 @@
     "copied": "已复制"
   },
   "nav": {
+    "toggleMenu": "切换菜单",
     "dashboard": "仪表盘",
     "tasks": "任务管理",
     "datasources": "数据源",
-    "monitoring": "监控告警"
+    "monitoring": "监控告警",
+    "ops": "运维中心",
+    "system": "系统设置",
+    "query": "数据查询",
+    "analysis": "AI 分析",
+    "sections": {
+      "integration": "数据集成",
+      "development": "数据开发",
+      "consumption": "数据消费",
+      "governance": "数据治理"
+    }
   },
   "auth": {
     "login": "登录",
@@ -39,14 +51,20 @@
     "defaultCreds": "默认账户: admin / admin123 (租户: default)",
     "tenantNotFound": "租户不存在或已停用",
     "wrongPassword": "用户名或密码错误",
-    "accountDisabled": "账户已被禁用"
+    "accountDisabled": "账户已被禁用",
+    "loginFeatures": {
+      "integration": { "title": "多源接入", "desc": "支持 10+ 主流数据库与数据源" },
+      "analysis": { "title": "极速分析", "desc": "DuckDB 内核，单机处理 TB 级数据" },
+      "ai": { "title": "AI 驱动", "desc": "自然语言查数据，智能生成报告" },
+      "deploy": { "title": "轻量部署", "desc": "单台 4C8G 机器即可运行全部组件" }
+    }
   },
   "dashboard": {
-    "title": "仪表盘概览",
-    "subtitle": "系统运行状态与关键指标",
-    "totalTasks": "同步任务总数",
+    "title": "数据中台概览",
+    "subtitle": "数据集成、分析与治理全景",
+    "totalTasks": "集成管道总数",
     "runningCount": "{{count}} 个运行中",
-    "todaySyncData": "今日同步数据",
+    "todaySyncData": "今日处理数据",
     "rowsCount": "{{count}} 行",
     "successRate": "成功率",
     "failedCount": "{{count}} 个失败任务",
@@ -63,7 +81,9 @@
     "logDbConnected": "数据库连接成功: SQLite",
     "globalLog": "全局日志",
     "realtimeLog": "实时日志",
-    "waitingForLogs": "等待日志输出..."
+    "waitingForLogs": "等待日志输出...",
+    "syncVolumeChart": "📊 同步数据量",
+    "taskDistribution": "🍩 任务状态分布"
   },
   "datasources": {
     "title": "数据源管理",
@@ -193,5 +213,83 @@
   "theme": {
     "light": "浅色模式",
     "dark": "深色模式"
+  },
+  "ops": {
+    "subtitle": "调度管理、执行日志与 Agent 监控",
+    "instances": "周期实例",
+    "dispatch": "补数据",
+    "logs": "执行日志",
+    "agents": "Agent 管理",
+    "console": "控制台",
+    "totalTasks": "总任务数",
+    "runningTasks": "运行中",
+    "failedTasks": "失败",
+    "activeSchedules": "定时调度",
+    "instancesHint": "查看设置了定时调度的任务执行状态",
+    "noInstances": "暂无定时调度任务",
+    "scheduled": "已定时",
+    "notScheduled": "未设置",
+    "recentRuns": "{{count}} 次执行",
+    "dispatchHint": "手动补数据，选择任务重新执行",
+    "dispatchDesc": "补数据操作在 jiascheduler 控制台完成，可指定时间范围重新执行历史数据同步",
+    "quickDispatch": "手动补数据",
+    "logsHint": "查看调度触发的执行日志",
+    "execLogs": "执行日志查询",
+    "logsDesc": "完整的调度触发日志和作业执行输出在 jiascheduler 控制台中查看",
+    "agentsHint": "管理执行同步任务的 Agent 节点",
+    "agentManagement": "Agent 节点管理",
+    "agentsDesc": "Agent 在线状态、Web SSH 终端等功能在 jiascheduler 控制台中操作",
+    "gotoJiascheduler": "前往 jiascheduler"
+  },
+  "system": {
+    "title": "系统设置",
+    "subtitle": "用户管理、租户配置、角色与权限分配",
+    "users": "用户管理",
+    "tenants": "租户管理",
+    "roles": "角色管理",
+    "permissionMatrix": "权限矩阵",
+    "permissionMatrixHint": "角色与权限的映射关系（只读）",
+    "permissions": "权限",
+    "username": "用户名",
+    "email": "邮箱",
+    "displayName": "显示名称",
+    "tenant": "租户",
+    "status": "状态",
+    "createdAt": "创建时间",
+    "usersCount": "个用户",
+    "actions": "操作",
+    "createUser": "创建用户",
+    "createUserDesc": "填写用户信息并分配角色",
+    "editUser": "编辑用户",
+    "userCreated": "用户创建成功",
+    "userUpdated": "用户更新成功",
+    "userDeleted": "用户已删除",
+    "deleteConfirm": "确认删除此用户？",
+    "noUsers": "暂无用户",
+    "searchUsers": "搜索用户...",
+    "addUser": "添加用户",
+    "resetPassword": "重置密码",
+    "newPassword": "新密码",
+    "passwordReset": "密码重置成功",
+    "addTenant": "添加租户",
+    "tenantName": "租户名称",
+    "editTenant": "编辑租户",
+    "tenantUpdated": "租户更新成功",
+    "noTenants": "暂无租户",
+    "addRole": "添加角色",
+    "createRole": "创建角色",
+    "editRole": "编辑角色",
+    "roleName": "角色名称",
+    "roleDesc": "角色描述",
+    "roleCreated": "角色创建成功",
+    "roleUpdated": "角色更新成功",
+    "roleDeleted": "角色已删除",
+    "noRoles": "暂无角色",
+    "systemRole": "系统角色",
+    "permission": "权限",
+    "permissionHint": "列出系统中所有可用的权限代码及其说明",
+    "permissionCode": "权限代码",
+    "permissionGroup": "分组",
+    "permissionDesc": "说明"
   }
 }

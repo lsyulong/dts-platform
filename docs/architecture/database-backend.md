@@ -7,7 +7,7 @@ DTS Platform 采用**可插拔多后端存储架构**，通过 trait 抽象层�
 ### 设计目标
 
 - **开发/测试默认使用 SQLite**：零配置、文件存储、内存模式可测，开发者无需安装外部数据库
-- **生产环境推荐 PostgreSQL**：高性能、高并发、完整 ACID、Supabase 兼容
+- **生产环境推荐 PostgreSQL**：高性能、高并发、完整 ACID、PG 协议兼容
 - **易于扩展**：新增后端只需实现 8 个 Repository trait + BackendPool trait
 
 ## 分层架构

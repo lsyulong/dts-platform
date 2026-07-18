@@ -1,7 +1,8 @@
 {
   "common": {
     "appName": "DTS Platform",
-    "appDesc": "Enterprise Data Sync Management Platform",
+    "appDesc": "Lightweight Data Middle Platform",
+    "appTagline": "Integration · Scheduling · Analytics · AI",
     "version": "DTS Platform v0.1.0",
     "loading": "Loading...",
     "save": "Save",
@@ -22,10 +23,21 @@
     "copied": "Copied"
   },
   "nav": {
+    "toggleMenu": "Toggle Menu",
     "dashboard": "Dashboard",
     "tasks": "Tasks",
     "datasources": "Data Sources",
-    "monitoring": "Monitoring"
+    "monitoring": "Monitoring",
+    "ops": "Ops Center",
+    "system": "System Settings",
+    "query": "Data Query",
+    "analysis": "AI Analysis",
+    "sections": {
+      "integration": "Data Integration",
+      "development": "Data Development",
+      "consumption": "Data Consumption",
+      "governance": "Data Governance"
+    }
   },
   "auth": {
     "login": "Login",
@@ -39,12 +51,18 @@
     "defaultCreds": "Default account: admin / admin123 (tenant: default)",
     "tenantNotFound": "Tenant not found or disabled",
     "wrongPassword": "Invalid username or password",
-    "accountDisabled": "Account is disabled"
+    "accountDisabled": "Account is disabled",
+    "loginFeatures": {
+      "integration": { "title": "Multi-Source", "desc": "10+ databases and data sources" },
+      "analysis": { "title": "Fast Analytics", "desc": "DuckDB-powered, TB-scale on a single machine" },
+      "ai": { "title": "AI-Powered", "desc": "Natural language queries, auto-generated reports" },
+      "deploy": { "title": "Lightweight", "desc": "Single 4C8G box runs the entire stack" }
+    }
   },
   "dashboard": {
-    "title": "Dashboard Overview",
-    "subtitle": "System status and key metrics",
-    "totalTasks": "Total Sync Tasks",
+    "title": "Data Platform Overview",
+    "subtitle": "Integration, analytics & governance at a glance",
+    "totalTasks": "Integration Pipelines",
     "runningCount": "{{count}} running",
     "todaySyncData": "Today's Sync Data",
     "rowsCount": "{{count}} rows",
@@ -63,7 +81,9 @@
     "logDbConnected": "Database connected: SQLite",
     "globalLog": "Global Log",
     "realtimeLog": "Real-time Log",
-    "waitingForLogs": "Waiting for log output..."
+    "waitingForLogs": "Waiting for log output...",
+    "syncVolumeChart": "📊 Sync Volume",
+    "taskDistribution": "🍩 Task Distribution"
   },
   "datasources": {
     "title": "Data Source Management",
@@ -193,5 +213,83 @@
   "theme": {
     "light": "Light Mode",
     "dark": "Dark Mode"
+  },
+  "ops": {
+    "subtitle": "Schedule Management, Execution Logs & Agent Monitoring",
+    "instances": "Periodic Instances",
+    "dispatch": "Backfill",
+    "logs": "Execution Logs",
+    "agents": "Agent Management",
+    "console": "Console",
+    "totalTasks": "Total Tasks",
+    "runningTasks": "Running",
+    "failedTasks": "Failed",
+    "activeSchedules": "Schedules",
+    "instancesHint": "View task execution status for scheduled tasks",
+    "noInstances": "No scheduled tasks",
+    "scheduled": "Scheduled",
+    "notScheduled": "Not Scheduled",
+    "recentRuns": "{{count}} runs",
+    "dispatchHint": "Manually backfill, select and re-execute tasks",
+    "dispatchDesc": "Backfill operations are done in jiascheduler console, where you can re-execute data sync for specific time ranges",
+    "quickDispatch": "Quick Backfill",
+    "logsHint": "View scheduler-triggered execution logs",
+    "execLogs": "Execution Logs",
+    "logsDesc": "Full scheduler-triggered logs and job execution output are available in jiascheduler console",
+    "agentsHint": "Manage Agent nodes for executing sync tasks",
+    "agentManagement": "Agent Management",
+    "agentsDesc": "Agent online status, Web SSH terminal and more in jiascheduler console",
+    "gotoJiascheduler": "Go to jiascheduler"
+  },
+  "system": {
+    "title": "System Settings",
+    "subtitle": "User, tenant, role & permission management",
+    "users": "Users",
+    "tenants": "Tenants",
+    "roles": "Roles",
+    "permissionMatrix": "Permission Matrix",
+    "permissionMatrixHint": "Read-only view of role-to-permission mapping",
+    "permissions": "Permissions",
+    "username": "Username",
+    "email": "Email",
+    "displayName": "Display Name",
+    "tenant": "Tenant",
+    "status": "Status",
+    "createdAt": "Created",
+    "usersCount": "users",
+    "actions": "Actions",
+    "createUser": "Create User",
+    "createUserDesc": "Fill in user info and assign roles",
+    "editUser": "Edit User",
+    "userCreated": "User created",
+    "userUpdated": "User updated",
+    "userDeleted": "User deleted",
+    "deleteConfirm": "Confirm delete this user?",
+    "noUsers": "No users",
+    "searchUsers": "Search users...",
+    "addUser": "Add User",
+    "resetPassword": "Reset Password",
+    "newPassword": "New Password",
+    "passwordReset": "Password reset successful",
+    "addTenant": "Add Tenant",
+    "tenantName": "Name",
+    "editTenant": "Edit Tenant",
+    "tenantUpdated": "Tenant updated",
+    "noTenants": "No tenants",
+    "addRole": "Add Role",
+    "createRole": "Create Role",
+    "editRole": "Edit Role",
+    "roleName": "Name",
+    "roleDesc": "Description",
+    "roleCreated": "Role created",
+    "roleUpdated": "Role updated",
+    "roleDeleted": "Role deleted",
+    "noRoles": "No roles",
+    "systemRole": "System",
+    "permission": "Permission",
+    "permissionHint": "All available permission codes in the system",
+    "permissionCode": "Code",
+    "permissionGroup": "Group",
+    "permissionDesc": "Description"
   }
 }

@@ -277,55 +277,69 @@ export const getOverviewHandler = http.get(`${API_BASE}/monitoring/overview`, ()
   });
 });
 
+// ── Alerts (mutable state for toggle) ───────────────────────────────
+const alertsState = [
+  {
+    id: 'alert-1',
+    name: '高延迟告警',
+    metric_type: 'latency',
+    operator: '>',
+    threshold: 500,
+    enabled: true,
+    task_name: 'MySQL to PG Sync',
+    created_at: '2026-01-15T08:00:00Z',
+  },
+  {
+    id: 'alert-2',
+    name: '错误率过高',
+    metric_type: 'error_rate',
+    operator: '>',
+    threshold: 5,
+    enabled: true,
+    task_name: 'Mongo to CH',
+    created_at: '2026-02-01T10:00:00Z',
+  },
+  {
+    id: 'alert-3',
+    name: '吞吐量过低',
+    metric_type: 'throughput',
+    operator: '<',
+    threshold: 10,
+    enabled: false,
+    task_name: null,
+    created_at: '2026-03-20T14:00:00Z',
+  },
+];
+
 export const getAlertsHandler = http.get(`${API_BASE}/alerts`, () => {
   return HttpResponse.json({
-    data: [
-      {
-        id: 'alert-1',
-        name: '高延迟告警',
-        metric_type: 'latency',
-        operator: '>',
-        threshold: 500,
-        enabled: true,
-        task_name: 'MySQL to PG Sync',
-        created_at: '2026-01-15T08:00:00Z',
-      },
-      {
-        id: 'alert-2',
-        name: '错误率过高',
-        metric_type: 'error_rate',
-        operator: '>',
-        threshold: 5,
-        enabled: true,
-        task_name: 'Mongo to CH',
-        created_at: '2026-02-01T10:00:00Z',
-      },
-      {
-        id: 'alert-3',
-        name: '吞吐量过低',
-        metric_type: 'throughput',
-        operator: '<',
-        threshold: 10,
-        enabled: false,
-        task_name: null,
-        created_at: '2026-03-20T14:00:00Z',
-      },
-    ],
+    data: [...alertsState],
   });
 });
 
 export const createAlertHandler = http.post(`${API_BASE}/alerts`, async ({ request }) => {
-  const body = await request.json();
-  return HttpResponse.json({
+  const body = await request.json() as { name: string };
+  const newAlert = {
     id: 'alert-new',
-    name: (body as { name: string }).name || 'New Alert',
+    name: body.name || 'New Alert',
+    metric_type: 'latency',
+    operator: '>',
+    threshold: 100,
     enabled: true,
+    task_name: null,
     created_at: new Date().toISOString(),
-  }, { status: 201 });
+  };
+  alertsState.push(newAlert);
+  return HttpResponse.json(newAlert, { status: 201 });
 });
 
-export const toggleAlertHandler = http.patch(`${API_BASE}/alerts/:id/toggle`, () => {
-  return HttpResponse.json({ success: true, enabled: true });
+export const toggleAlertHandler = http.patch(`${API_BASE}/alerts/:id/toggle`, ({ params }) => {
+  const { id } = params;
+  const alert = alertsState.find((a) => a.id === id);
+  if (alert) {
+    alert.enabled = !alert.enabled;
+  }
+  return HttpResponse.json({ success: true, enabled: alert?.enabled ?? false });
 });
 
 // ── Aggregated export ─────────────────────────────────────────────

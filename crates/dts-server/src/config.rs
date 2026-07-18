@@ -20,6 +20,31 @@ pub const VALID_METRIC_TYPES: &[&str] = &["sync_delay", "error_count", "row_diff
 /// Valid alert comparison operators
 pub const VALID_ALERT_OPERATORS: &[&str] = &["gt", "gte", "lt", "lte", "eq"];
 
+/// jiascheduler 集成配置
+#[derive(Clone, Debug)]
+pub struct SchedulerConfig {
+    pub enabled: bool,
+    pub base_url: String,
+    pub username: String,
+    pub password: String,
+    pub callback_base_url: String,
+    /// 用于 jiascheduler callback 认证的服务 token（独立于 JWT secret）
+    pub service_token: String,
+}
+
+impl Default for SchedulerConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            base_url: "http://localhost:9090".to_string(),
+            username: "admin".to_string(),
+            password: "admin".to_string(),
+            callback_base_url: "http://localhost:8080".to_string(),
+            service_token: "dev-service-token-change-me".to_string(),
+        }
+    }
+}
+
 /// 应用配置，通过环境变量或手动构造加载
 #[derive(Clone, Debug)]
 pub struct AppConfig {
@@ -30,6 +55,7 @@ pub struct AppConfig {
     pub server_host: String,
     pub server_port: u16,
     pub data_dir: String,
+    pub scheduler: SchedulerConfig,
 }
 
 impl AppConfig {
@@ -51,6 +77,7 @@ impl AppConfig {
             server_host: server_host.into(),
             server_port,
             data_dir: data_dir.into(),
+            scheduler: SchedulerConfig::default(),
         }
     }
 
@@ -62,8 +89,9 @@ impl AppConfig {
             jwt_secret: "test-secret-key-for-unit-tests".to_string(),
             jwt_expiry_hours: defaults::JWT_EXPIRY_HOURS,
             server_host: "127.0.0.1".to_string(),
-            server_port: 0, // OS 自动分配端口
+            server_port: 0,
             data_dir: defaults::DATA_DIR.to_string(),
+            scheduler: SchedulerConfig::default(),
         }
     }
 
@@ -76,8 +104,7 @@ impl AppConfig {
                 .unwrap_or_else(|_| defaults::DATABASE_URL.to_string()),
             database_backend: env::var("DATABASE_BACKEND")
                 .unwrap_or_else(|_| defaults::DATABASE_BACKEND.to_string()),
-            jwt_secret: env::var("JWT_SECRET")
-                .unwrap_or_else(|_| defaults::JWT_SECRET.to_string()),
+            jwt_secret: env::var("JWT_SECRET").unwrap_or_else(|_| defaults::JWT_SECRET.to_string()),
             jwt_expiry_hours: env::var("JWT_EXPIRY_HOURS")
                 .unwrap_or_else(|_| defaults::JWT_EXPIRY_HOURS.to_string())
                 .parse()
@@ -89,6 +116,20 @@ impl AppConfig {
                 .parse()
                 .unwrap_or(defaults::SERVER_PORT),
             data_dir: env::var("DATA_DIR").unwrap_or_else(|_| defaults::DATA_DIR.to_string()),
+            scheduler: SchedulerConfig {
+                enabled: env::var("JIA_ENABLED")
+                    .map(|v| v == "true" || v == "1")
+                    .unwrap_or(false),
+                base_url: env::var("JIA_BASE_URL")
+                    .unwrap_or_else(|_| "http://localhost:9090".to_string()),
+                username: env::var("JIA_USERNAME").unwrap_or_else(|_| "admin".to_string()),
+                password: env::var("JIA_PASSWORD").unwrap_or_else(|_| "admin".to_string()),
+                callback_base_url: env::var("JIA_CALLBACK_URL").unwrap_or_else(|_| {
+                    format!("http://{}:{}", defaults::SERVER_HOST, defaults::SERVER_PORT)
+                }),
+                service_token: env::var("JIA_SERVICE_TOKEN")
+                    .unwrap_or_else(|_| "dev-service-token-change-me".to_string()),
+            },
         })
     }
 }

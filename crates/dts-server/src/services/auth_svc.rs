@@ -61,8 +61,8 @@ impl AuthService {
         }
 
         // 3. 验证密码
-        let parsed_hash =
-            PasswordHash::new(&user.password_hash).map_err(|_| anyhow!("内部错误: 密码哈希格式无效"))?;
+        let parsed_hash = PasswordHash::new(&user.password_hash)
+            .map_err(|_| anyhow!("内部错误: 密码哈希格式无效"))?;
         Argon2::default()
             .verify_password(req.password.as_bytes(), &parsed_hash)
             .map_err(|_| anyhow!("用户名或密码错误"))?;
@@ -81,8 +81,7 @@ impl AuthService {
             iat: now.timestamp() as usize,
         };
 
-        let token = token::create_token(&claims, &self.jwt_secret)
-            .context("JWT 签发失败")?;
+        let token = token::create_token(&claims, &self.jwt_secret).context("JWT 签发失败")?;
 
         Ok(LoginResponse {
             token,
@@ -101,8 +100,7 @@ impl AuthService {
 
     /// 验签 JWT，返回 Claims
     pub fn verify_token(&self, token: &str) -> anyhow::Result<Claims> {
-        token::validate_token(token, &self.jwt_secret)
-            .context("Token 验证失败")
+        token::validate_token(token, &self.jwt_secret).context("Token 验证失败")
     }
 
     /// 哈希密码 (同步方法，用于初始化种子数据)

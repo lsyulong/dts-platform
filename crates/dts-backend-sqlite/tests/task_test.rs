@@ -85,10 +85,7 @@ async fn create_and_list_task() {
     let result = repo.create(&params).await.expect("create failed");
     assert_eq!(result, task_id);
 
-    let list = repo
-        .list_by_tenant(&tenant_id)
-        .await
-        .expect("list failed");
+    let list = repo.list_by_tenant(&tenant_id).await.expect("list failed");
     assert_eq!(list.len(), 1);
     assert_eq!(list[0].name, "Sync Task 1");
     assert_eq!(list[0].status, "draft");

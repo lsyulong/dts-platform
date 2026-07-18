@@ -7,7 +7,7 @@
 
 mod common;
 
-use actix_web::{test, web, App};
+use actix_web::{App, test, web};
 use dts_server::api::{datasources, tasks};
 use dts_server::services::datasource_svc::DatasourceService;
 use dts_server::services::task_svc::TaskService;
@@ -50,12 +50,10 @@ async fn list_datasources_with_valid_token_returns_data() {
     let datasource_svc = DatasourceService::new(ctx.datasource_repo.clone());
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(datasource_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(web::scope("/datasources").route("", web::get().to(datasources::list))),
-            ),
+        App::new().app_data(web::Data::new(datasource_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/datasources").route("", web::get().to(datasources::list))),
+        ),
     )
     .await;
 
@@ -80,12 +78,10 @@ async fn list_datasources_without_token_returns_401() {
     let datasource_svc = DatasourceService::new(ctx.datasource_repo.clone());
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(datasource_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(web::scope("/datasources").route("", web::get().to(datasources::list))),
-            ),
+        App::new().app_data(web::Data::new(datasource_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/datasources").route("", web::get().to(datasources::list))),
+        ),
     )
     .await;
 
@@ -94,7 +90,11 @@ async fn list_datasources_without_token_returns_401() {
         .to_request();
 
     let resp = test::call_service(&app, req).await;
-    assert_eq!(resp.status(), 401, "Unauthenticated request should return 401");
+    assert_eq!(
+        resp.status(),
+        401,
+        "Unauthenticated request should return 401"
+    );
 }
 
 #[actix_web::test]
@@ -104,12 +104,10 @@ async fn list_datasources_with_invalid_token_returns_401() {
     let datasource_svc = DatasourceService::new(ctx.datasource_repo.clone());
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(datasource_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(web::scope("/datasources").route("", web::get().to(datasources::list))),
-            ),
+        App::new().app_data(web::Data::new(datasource_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/datasources").route("", web::get().to(datasources::list))),
+        ),
     )
     .await;
 
@@ -148,12 +146,10 @@ async fn list_datasources_with_expired_token_returns_401() {
     let datasource_svc = DatasourceService::new(ctx.datasource_repo.clone());
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(datasource_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(web::scope("/datasources").route("", web::get().to(datasources::list))),
-            ),
+        App::new().app_data(web::Data::new(datasource_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/datasources").route("", web::get().to(datasources::list))),
+        ),
     )
     .await;
 
@@ -175,14 +171,9 @@ async fn list_tasks_with_valid_token_returns_data() {
 
     let task_svc = TaskService::new(ctx.task_repo.clone(), ctx.datasource_repo.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(task_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(web::scope("/tasks").route("", web::get().to(tasks::list))),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(task_svc)).service(
+        web::scope("/api/v1").service(web::scope("/tasks").route("", web::get().to(tasks::list))),
+    ))
     .await;
 
     let req = test::TestRequest::get()
@@ -206,20 +197,19 @@ async fn list_tasks_without_token_returns_401() {
 
     let task_svc = TaskService::new(ctx.task_repo.clone(), ctx.datasource_repo.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(task_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(web::scope("/tasks").route("", web::get().to(tasks::list))),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(task_svc)).service(
+        web::scope("/api/v1").service(web::scope("/tasks").route("", web::get().to(tasks::list))),
+    ))
     .await;
 
     let req = test::TestRequest::get().uri("/api/v1/tasks").to_request();
     let resp = test::call_service(&app, req).await;
 
-    assert_eq!(resp.status(), 401, "Unauthenticated request should return 401");
+    assert_eq!(
+        resp.status(),
+        401,
+        "Unauthenticated request should return 401"
+    );
 }
 
 // ========== Auth Data Test (verify seed data is usable) ==========
@@ -236,15 +226,11 @@ async fn login_response_contains_all_user_fields() {
         24,
     );
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(auth_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/auth").route("/login", web::post().to(dts_server::api::auth::login)),
-                ),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(auth_svc)).service(
+        web::scope("/api/v1").service(
+            web::scope("/auth").route("/login", web::post().to(dts_server::api::auth::login)),
+        ),
+    ))
     .await;
 
     let req = test::TestRequest::post()

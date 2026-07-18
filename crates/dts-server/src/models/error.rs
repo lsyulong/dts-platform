@@ -64,7 +64,7 @@ impl From<BackendError> for AppError {
             BackendError::NotFound(msg) => AppError::NotFound(msg),
             BackendError::AlreadyExists(msg) | BackendError::ConstraintViolation(msg) => {
                 AppError::BadRequest(msg)
-            }
+            },
             _ => AppError::Internal(err.to_string()),
         }
     }

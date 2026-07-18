@@ -142,7 +142,10 @@ async fn second_backend_init_is_independent() {
         .expect("find_by_slug")
         .expect("tenant2");
 
-    assert_ne!(tenant1.id, tenant2.id, "Different backends should have different tenant IDs");
+    assert_ne!(
+        tenant1.id, tenant2.id,
+        "Different backends should have different tenant IDs"
+    );
 }
 
 /// Verify that admin user has roles assigned after seed.
@@ -169,7 +172,10 @@ async fn seed_admin_user_has_roles() {
         .find_user_role_names(&user.id)
         .await
         .expect("find_user_role_names");
-    assert!(!roles.is_empty(), "Admin user should have at least one role");
+    assert!(
+        !roles.is_empty(),
+        "Admin user should have at least one role"
+    );
 }
 
 /// Verify that admin user has permissions after seed.
@@ -196,7 +202,10 @@ async fn seed_admin_user_has_permissions() {
         .find_user_permissions(&user.id)
         .await
         .expect("find_user_permissions");
-    assert!(!permissions.is_empty(), "Admin user should have permissions");
+    assert!(
+        !permissions.is_empty(),
+        "Admin user should have permissions"
+    );
 }
 
 /// Verify that datasources count is correct.

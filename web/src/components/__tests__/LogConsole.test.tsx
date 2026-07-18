@@ -62,7 +62,7 @@ describe('LogConsole', () => {
     it('renders ALL filter button as active by default', () => {
       render(<LogConsole logs={sampleLogs} />);
       const allButton = screen.getByText('ALL');
-      expect(allButton.className).toContain('bg-zinc-700');
+      expect(allButton.className).toContain('bg-[var(--color-bg-tertiary)]');
     });
 
     it('renders INFO, WARN, ERROR filter buttons', () => {

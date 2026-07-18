@@ -69,7 +69,9 @@ impl TenantService {
             .await?;
 
         // 分配 admin 角色
-        self.user_repo.assign_role(&user_id, &roles.admin_role_id).await?;
+        self.user_repo
+            .assign_role(&user_id, &roles.admin_role_id)
+            .await?;
 
         tracing::info!("租户 '{name}' 创建成功, 管理员: {admin_username}");
 
@@ -96,8 +98,8 @@ mod tests {
     use std::sync::Mutex;
 
     use async_trait::async_trait;
-    use dts_backend::repo::role::DefaultRoles;
     use dts_backend::BackendError;
+    use dts_backend::repo::role::DefaultRoles;
 
     // ============================================================
     // Mock TenantRepo
@@ -144,10 +146,7 @@ mod tests {
             Ok(params.id.clone())
         }
 
-        async fn find_by_slug(
-            &self,
-            slug: &str,
-        ) -> Result<Option<TenantInfo>, BackendError> {
+        async fn find_by_slug(&self, slug: &str) -> Result<Option<TenantInfo>, BackendError> {
             let existing = self.existing_slug.lock().unwrap();
             if let Some(ref s) = *existing {
                 if s == slug {
@@ -163,10 +162,7 @@ mod tests {
             Ok(None)
         }
 
-        async fn find_by_id(
-            &self,
-            _id: &str,
-        ) -> Result<Option<TenantInfo>, BackendError> {
+        async fn find_by_id(&self, _id: &str) -> Result<Option<TenantInfo>, BackendError> {
             Ok(self.find_by_id_result.lock().unwrap().clone())
         }
 
@@ -176,6 +172,14 @@ mod tests {
 
         async fn count(&self) -> Result<i64, BackendError> {
             Ok(self.list_result.lock().unwrap().len() as i64)
+        }
+
+        async fn update(
+            &self,
+            _tenant_id: &str,
+            _params: &UpdateTenantParams,
+        ) -> Result<(), BackendError> {
+            Ok(())
         }
     }
 
@@ -222,17 +226,11 @@ mod tests {
             Ok("role-id".into())
         }
 
-        async fn find_user_role_names(
-            &self,
-            _user_id: &str,
-        ) -> Result<Vec<String>, BackendError> {
+        async fn find_user_role_names(&self, _user_id: &str) -> Result<Vec<String>, BackendError> {
             Ok(self.role_names.lock().unwrap().clone())
         }
 
-        async fn find_user_permissions(
-            &self,
-            _user_id: &str,
-        ) -> Result<Vec<String>, BackendError> {
+        async fn find_user_permissions(&self, _user_id: &str) -> Result<Vec<String>, BackendError> {
             Ok(self.permissions.lock().unwrap().clone())
         }
 
@@ -249,6 +247,29 @@ mod tests {
                 developer_role_id: "developer-role-id".into(),
                 viewer_role_id: "viewer-role-id".into(),
             })
+        }
+
+        async fn list_all(
+            &self,
+            _tenant_id: Option<&str>,
+        ) -> Result<Vec<RoleListInfo>, BackendError> {
+            Ok(vec![])
+        }
+
+        async fn update(
+            &self,
+            _role_id: &str,
+            _params: &UpdateRoleParams,
+        ) -> Result<(), BackendError> {
+            Ok(())
+        }
+
+        async fn delete(&self, _role_id: &str) -> Result<(), BackendError> {
+            Ok(())
+        }
+
+        async fn find_all_permissions(&self) -> Result<Vec<String>, BackendError> {
+            Ok(vec!["task:read".into()])
         }
     }
 
@@ -314,6 +335,39 @@ mod tests {
                 .push((user_id.to_string(), role_id.to_string()));
             Ok(())
         }
+
+        async fn list_all(
+            &self,
+            _tenant_id: Option<&str>,
+            _search: Option<&str>,
+            _status: Option<&str>,
+        ) -> Result<Vec<UserListInfo>, BackendError> {
+            Ok(vec![])
+        }
+
+        async fn update(
+            &self,
+            _user_id: &str,
+            _params: &UpdateUserParams,
+        ) -> Result<(), BackendError> {
+            Ok(())
+        }
+
+        async fn soft_delete(&self, _user_id: &str) -> Result<(), BackendError> {
+            Ok(())
+        }
+
+        async fn reset_password(
+            &self,
+            _user_id: &str,
+            _password_hash: &str,
+        ) -> Result<(), BackendError> {
+            Ok(())
+        }
+
+        async fn remove_roles(&self, _user_id: &str) -> Result<(), BackendError> {
+            Ok(())
+        }
     }
 
     // ============================================================
@@ -328,7 +382,13 @@ mod tests {
 
         let svc = TenantService::new(tenant_repo.clone(), role_repo.clone(), user_repo.clone());
         let result = svc
-            .create_tenant("TestCo", "testco", "admin_testco", "admin@testco.com", "hashed_pw")
+            .create_tenant(
+                "TestCo",
+                "testco",
+                "admin_testco",
+                "admin@testco.com",
+                "hashed_pw",
+            )
             .await;
 
         assert!(result.is_ok());
@@ -371,7 +431,10 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
-        assert!(err.contains("已存在"), "Expected 'already exists' error, got: {err}");
+        assert!(
+            err.contains("已存在"),
+            "Expected 'already exists' error, got: {err}"
+        );
     }
 
     #[tokio::test]
@@ -490,6 +553,9 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
-        assert!(err.contains("不存在"), "Expected 'not found' error, got: {err}");
+        assert!(
+            err.contains("不存在"),
+            "Expected 'not found' error, got: {err}"
+        );
     }
 }

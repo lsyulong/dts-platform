@@ -1,0 +1,44 @@
+import { useTranslation } from 'react-i18next';
+import { Database } from 'lucide-react';
+
+interface Datasource {
+  id: string;
+  name: string;
+  db_type: string;
+  host: string;
+  port: number;
+}
+
+type Props = {
+  datasources: Datasource[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+};
+
+export function SourceStep({ datasources, selectedId, onSelect }: Props) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-[var(--color-text-secondary)]">{t('tasks.selectSource')}</p>
+      {datasources.map((ds) => (
+        <button
+          key={ds.id}
+          onClick={() => onSelect(ds.id)}
+          className={`w-full rounded-xl border p-4 text-left transition-all ${
+            selectedId === ds.id
+              ? 'border-blue-500 bg-blue-500/10'
+              : 'border-[var(--color-border-hover)] bg-[var(--color-bg-tertiary)]/30 hover:border-[var(--color-border-hover)]'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <Database size={20} className="text-[var(--color-text-secondary)]" />
+            <div>
+              <p className="text-sm font-medium text-[var(--color-text-primary)]">{ds.name}</p>
+              <p className="text-xs text-[var(--color-text-tertiary)]">{ds.db_type} @ {ds.host}:{ds.port}</p>
+            </div>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}

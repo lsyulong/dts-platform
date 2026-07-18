@@ -3,8 +3,8 @@ use dts_backend::BackendError;
 use dts_backend::repo::task_run::{CreateTaskRunParams, TaskRunRepo, UpdateTaskRunParams};
 use dts_backend::types::TaskRunInfo;
 use dts_backend_rdbms::map_sqlx_error;
-use sqlx::SqlitePool;
 use sqlx::Row;
+use sqlx::SqlitePool;
 
 pub struct SqliteTaskRunRepo {
     pool: SqlitePool,

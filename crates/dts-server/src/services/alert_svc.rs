@@ -123,26 +123,16 @@ mod tests {
 
     #[async_trait]
     impl AlertRepo for MockAlertRepo {
-        async fn create(
-            &self,
-            params: &CreateAlertParams,
-        ) -> Result<String, BackendError> {
+        async fn create(&self, params: &CreateAlertParams) -> Result<String, BackendError> {
             *self.last_create_params.lock().unwrap() = Some(params.clone());
             Ok(params.id.clone())
         }
 
-        async fn list_by_tenant(
-            &self,
-            _tenant_id: &str,
-        ) -> Result<Vec<AlertInfo>, BackendError> {
+        async fn list_by_tenant(&self, _tenant_id: &str) -> Result<Vec<AlertInfo>, BackendError> {
             Ok(self.list_result.lock().unwrap().clone())
         }
 
-        async fn toggle(
-            &self,
-            id: &str,
-            tenant_id: &str,
-        ) -> Result<bool, BackendError> {
+        async fn toggle(&self, id: &str, tenant_id: &str) -> Result<bool, BackendError> {
             self.toggle_calls
                 .lock()
                 .unwrap()

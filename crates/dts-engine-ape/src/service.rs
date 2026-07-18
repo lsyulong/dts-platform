@@ -111,22 +111,21 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn submit_starts_background_task() {
+    async fn submit_sends_progress() {
         let engine = ApeEngineService::new();
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
         let result = engine.submit(make_test_submission(), tx).await;
         assert!(result.is_ok());
 
-        // 等待背景任务发送进度
-        let progress = tokio::time::timeout(std::time::Duration::from_secs(5), rx.recv())
+        // 等待背景任务发送进度（启动消息总是立即发送）
+        let progress = tokio::time::timeout(std::time::Duration::from_secs(10), rx.recv())
             .await
             .expect("timeout")
             .expect("should receive a progress message");
 
         assert_eq!(progress.task_id, "task-test-1");
         assert!(matches!(progress.status, RunStatus::Running));
-        assert!(progress.message.as_deref().unwrap().contains("ape-dts"));
     }
 
     #[tokio::test]

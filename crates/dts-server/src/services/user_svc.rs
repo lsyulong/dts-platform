@@ -12,7 +12,7 @@ use uuid::Uuid;
 /// 用户管理服务
 #[derive(Clone)]
 pub struct UserService {
-    user_repo: Arc<dyn UserRepo>,
+    pub user_repo: Arc<dyn UserRepo>,
 }
 
 impl UserService {
@@ -69,6 +69,81 @@ impl UserService {
             .user_repo
             .find_by_tenant_and_username(tenant_id, username)
             .await?)
+    }
+
+    /// 列出用户（支持筛选）
+    pub async fn list_users(
+        &self,
+        tenant_id: Option<&str>,
+        search: Option<&str>,
+        status: Option<&str>,
+    ) -> anyhow::Result<Vec<UserListInfo>> {
+        Ok(self.user_repo.list_all(tenant_id, search, status).await?)
+    }
+
+    /// 更新用户基本信息（不含角色）
+    pub async fn update_user(
+        &self,
+        user_id: &str,
+        display_name: Option<String>,
+        status: Option<String>,
+    ) -> anyhow::Result<()> {
+        self.user_repo
+            .update(
+                user_id,
+                &UpdateUserParams {
+                    display_name,
+                    status,
+                },
+            )
+            .await?;
+        Ok(())
+    }
+
+    /// 更新用户角色
+    pub async fn update_user_roles(
+        &self,
+        user_id: &str,
+        role_ids: &[String],
+    ) -> anyhow::Result<()> {
+        self.user_repo.remove_roles(user_id).await?;
+        for role_id in role_ids {
+            self.user_repo.assign_role(user_id, role_id).await?;
+        }
+        Ok(())
+    }
+
+    /// 软删除用户
+    pub async fn soft_delete_user(&self, user_id: &str) -> anyhow::Result<()> {
+        Ok(self.user_repo.soft_delete(user_id).await?)
+    }
+
+    /// 重置用户密码
+    pub async fn reset_user_password(
+        &self,
+        user_id: &str,
+        new_password: &str,
+    ) -> anyhow::Result<()> {
+        let salt = SaltString::generate(&mut OsRng);
+        let password_hash = Argon2::default()
+            .hash_password(new_password.as_bytes(), &salt)
+            .map_err(|e| anyhow!("密码哈希失败: {e}"))?
+            .to_string();
+        Ok(self
+            .user_repo
+            .reset_password(user_id, &password_hash)
+            .await?)
+    }
+
+    /// 哈希密码（同步，用于外部调用）
+    pub fn hash_password_sync(password: &str) -> anyhow::Result<String> {
+        use argon2::password_hash::PasswordHasher;
+        let salt = SaltString::generate(&mut OsRng);
+        let hash = Argon2::default()
+            .hash_password(password.as_bytes(), &salt)
+            .map_err(|e| anyhow!("密码哈希失败: {e}"))?
+            .to_string();
+        Ok(hash)
     }
 }
 
@@ -129,6 +204,39 @@ mod tests {
         async fn assign_role(&self, _user_id: &str, _role_id: &str) -> Result<(), BackendError> {
             Ok(())
         }
+
+        async fn list_all(
+            &self,
+            _tenant_id: Option<&str>,
+            _search: Option<&str>,
+            _status: Option<&str>,
+        ) -> Result<Vec<UserListInfo>, BackendError> {
+            Ok(vec![])
+        }
+
+        async fn update(
+            &self,
+            _user_id: &str,
+            _params: &UpdateUserParams,
+        ) -> Result<(), BackendError> {
+            Ok(())
+        }
+
+        async fn soft_delete(&self, _user_id: &str) -> Result<(), BackendError> {
+            Ok(())
+        }
+
+        async fn reset_password(
+            &self,
+            _user_id: &str,
+            _password_hash: &str,
+        ) -> Result<(), BackendError> {
+            Ok(())
+        }
+
+        async fn remove_roles(&self, _user_id: &str) -> Result<(), BackendError> {
+            Ok(())
+        }
     }
 
     fn make_user_record(id: &str, tenant_id: &str, username: &str) -> UserRecord {
@@ -165,7 +273,9 @@ mod tests {
         assert!(result.is_ok());
 
         // 关键断言：存储的 password_hash 不是明文，且以 argon2 前缀开头
-        let params = repo.last_create_params().expect("create should have been called");
+        let params = repo
+            .last_create_params()
+            .expect("create should have been called");
         assert_ne!(
             params.password_hash, plain_password,
             "password_hash should NOT be the plain text password"
@@ -239,7 +349,9 @@ mod tests {
             .create_user("tenant-1", "testuser", "e@e.com", "pw", None)
             .await;
 
-        let params = repo.last_create_params().expect("create should have been called");
+        let params = repo
+            .last_create_params()
+            .expect("create should have been called");
         assert_eq!(params.id.len(), 36, "UUID v4 must be 36 characters");
         assert_eq!(
             params.id.chars().filter(|c| *c == '-').count(),

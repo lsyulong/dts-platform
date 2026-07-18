@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use dts_backend::{repo::MonitoringRepo, types::*, BackendError};
+use dts_backend::{BackendError, repo::MonitoringRepo, types::*};
 use dts_backend_rdbms::map_sqlx_error;
 use sqlx::Row;
 use sqlx::SqlitePool;
@@ -26,23 +26,21 @@ impl MonitoringRepo for SqliteMonitoringRepo {
                 .await
                 .map_err(map_sqlx_error)?;
 
-        let running_tasks: i64 =
-            sqlx::query_scalar(
-                "SELECT COUNT(*) FROM sync_task WHERE tenant_id = ?1 AND status = 'running'",
-            )
-            .bind(tenant_id)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(map_sqlx_error)?;
+        let running_tasks: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sync_task WHERE tenant_id = ?1 AND status = 'running'",
+        )
+        .bind(tenant_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_sqlx_error)?;
 
-        let failed_tasks: i64 =
-            sqlx::query_scalar(
-                "SELECT COUNT(*) FROM sync_task WHERE tenant_id = ?1 AND status = 'failed'",
-            )
-            .bind(tenant_id)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(map_sqlx_error)?;
+        let failed_tasks: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sync_task WHERE tenant_id = ?1 AND status = 'failed'",
+        )
+        .bind(tenant_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_sqlx_error)?;
 
         let total_datasources: i64 =
             sqlx::query_scalar("SELECT COUNT(*) FROM datasource WHERE tenant_id = ?1")
@@ -51,14 +49,13 @@ impl MonitoringRepo for SqliteMonitoringRepo {
                 .await
                 .map_err(map_sqlx_error)?;
 
-        let healthy_datasources: i64 =
-            sqlx::query_scalar(
-                "SELECT COUNT(*) FROM datasource WHERE tenant_id = ?1 AND health_status = 'healthy'",
-            )
-            .bind(tenant_id)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(map_sqlx_error)?;
+        let healthy_datasources: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM datasource WHERE tenant_id = ?1 AND health_status = 'healthy'",
+        )
+        .bind(tenant_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_sqlx_error)?;
 
         let today_synced_rows: Option<i64> = sqlx::query_scalar(
             "SELECT SUM(rows_synced) FROM task_run tr

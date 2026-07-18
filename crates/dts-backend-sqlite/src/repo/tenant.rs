@@ -88,4 +88,28 @@ impl TenantRepo for SqliteTenantRepo {
             .await
             .map_err(map_sqlx_error)
     }
+
+    async fn update(
+        &self,
+        tenant_id: &str,
+        params: &UpdateTenantParams,
+    ) -> Result<(), BackendError> {
+        if let Some(ref name) = params.name {
+            sqlx::query("UPDATE tenant SET name = ?1 WHERE id = ?2")
+                .bind(name)
+                .bind(tenant_id)
+                .execute(&self.pool)
+                .await
+                .map_err(map_sqlx_error)?;
+        }
+        if let Some(ref status) = params.status {
+            sqlx::query("UPDATE tenant SET status = ?1 WHERE id = ?2")
+                .bind(status)
+                .bind(tenant_id)
+                .execute(&self.pool)
+                .await
+                .map_err(map_sqlx_error)?;
+        }
+        Ok(())
+    }
 }

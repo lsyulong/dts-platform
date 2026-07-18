@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Header from '../Header';
 import { useAuthStore } from '../../stores/auth';
+import { useAppStore } from '../../stores/app';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -29,6 +30,11 @@ describe('Header', () => {
         permissions: ['task:read', 'task:write'],
       },
       loading: false,
+    });
+    useAppStore.setState({
+      mobileSidebarOpen: false,
+      sidebarCollapsed: false,
+      theme: 'dark',
     });
     mockNavigate.mockClear();
   });
@@ -79,6 +85,21 @@ describe('Header', () => {
     expect(screen.getByText('auth.logout')).toBeInTheDocument();
   });
 
+  it('renders hamburger menu button with correct aria-label', () => {
+    renderHeader();
+    const menuButton = screen.getByLabelText('nav.toggleMenu');
+    expect(menuButton).toBeInTheDocument();
+    expect(menuButton.className).toContain('lg:hidden');
+  });
+
+  it('toggles mobile sidebar on hamburger click', async () => {
+    const user = userEvent.setup();
+    renderHeader();
+    const menuButton = screen.getByLabelText('nav.toggleMenu');
+    await user.click(menuButton);
+    expect(useAppStore.getState().mobileSidebarOpen).toBe(true);
+  });
+
   describe('logout behavior', () => {
     it('calls logout and navigates to /login on logout click', async () => {
       const user = userEvent.setup();
@@ -112,7 +133,8 @@ describe('Header', () => {
         },
       });
       const { container } = renderHeader();
-      const roleBadges = container.querySelectorAll('.rounded-full.bg-zinc-800');
+      // No role spans should be rendered when roles array is empty
+      const roleBadges = container.querySelectorAll('[class*="rounded-full"]');
       expect(roleBadges.length).toBe(0);
     });
   });

@@ -1,19 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Plus, Trash2, Wifi, WifiOff } from 'lucide-react';
-import client from '../api/client';
-
-interface Datasource {
-  id: string;
-  name: string;
-  db_type: string;
-  host: string;
-  port: number;
-  username: string | null;
-  database_name: string | null;
-  health_status: string;
-  created_at: string;
-}
+import {
+  ErrorBanner,
+  FormInput,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui';
+import { DatasourceSkeleton } from '../components/skeletons';
+import {
+  useDatasources,
+  useCreateDatasource,
+  useDeleteDatasource,
+} from '../hooks/useApi';
+import { datasourceSchema, getFirstError } from '../lib/validations';
 
 const DB_TYPES = ['MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Kafka', 'ClickHouse', 'Oracle', 'SQLServer'];
 
@@ -24,49 +32,43 @@ const dbIcons: Record<string, string> = {
 
 export default function DatasourcesPage() {
   const { t } = useTranslation();
-  const [datasources, setDatasources] = useState<Datasource[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const { data: datasources = [], isLoading, error } = useDatasources();
+  const createDatasource = useCreateDatasource();
+  const deleteDatasource = useDeleteDatasource();
+
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     name: '', db_type: 'MySQL', host: '', port: 3306,
     username: '', password: '', database_name: '',
   });
 
-  const loadData = async () => {
-    try {
-      const { data } = await client.get('/datasources');
-      setDatasources(data.data || []);
-      setFetchError(null);
-    } catch {
-      setFetchError(t('errors.somethingWentWrong'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { loadData(); }, []);
+  const fetchError = error ? t('errors.somethingWentWrong') : null;
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await client.post('/datasources', form);
-      setShowCreate(false);
-      setForm({ name: '', db_type: 'MySQL', host: '', port: 3306, username: '', password: '', database_name: '' });
-      loadData();
-    } catch {
-      setFetchError(t('errors.somethingWentWrong'));
+    const validation = datasourceSchema.safeParse(form);
+    if (!validation.success) {
+      toast.error(getFirstError(validation) || t('errors.somethingWentWrong'));
+      return;
     }
+    createDatasource.mutate(validation.data, {
+      onSuccess: () => {
+        setShowCreate(false);
+        setForm({ name: '', db_type: 'MySQL', host: '', port: 3306, username: '', password: '', database_name: '' });
+        toast.success(t('datasources.createSuccess'));
+      },
+      onError: () => {
+        toast.error(t('errors.somethingWentWrong'));
+      },
+    });
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (!confirm(t('datasources.deleteConfirm'))) return;
-    try {
-      await client.delete(`/datasources/${id}`);
-      loadData();
-    } catch {
-      setFetchError(t('errors.somethingWentWrong'));
-    }
+    deleteDatasource.mutate(id, {
+      onSuccess: () => toast.success(t('datasources.deleteSuccess')),
+      onError: () => toast.error(t('errors.somethingWentWrong')),
+    });
   };
 
   return (
@@ -74,8 +76,8 @@ export default function DatasourcesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-zinc-100">{t('datasources.title')}</h1>
-          <p className="mt-1 text-sm text-zinc-500">{t('datasources.subtitle')}</p>
+          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">{t('datasources.title')}</h1>
+          <p className="mt-1 text-sm text-[var(--color-text-tertiary)]">{t('datasources.subtitle')}</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
@@ -86,26 +88,22 @@ export default function DatasourcesPage() {
       </div>
 
       {/* Error banner */}
-      {fetchError && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
-          {fetchError}
-        </div>
-      )}
+      {fetchError && <ErrorBanner message={fetchError} />}
 
       {/* Health summary */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
-          <p className="text-xs text-zinc-500">{t('datasources.totalConnections')}</p>
-          <p className="mt-1 text-lg font-bold text-zinc-100">{datasources.length}</p>
+        <div className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-4">
+          <p className="text-xs text-[var(--color-text-tertiary)]">{t('datasources.totalConnections')}</p>
+          <p className="mt-1 text-lg font-bold text-[var(--color-text-primary)]">{datasources.length}</p>
         </div>
-        <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
-          <p className="text-xs text-zinc-500">{t('datasources.healthyConnections')}</p>
+        <div className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-4">
+          <p className="text-xs text-[var(--color-text-tertiary)]">{t('datasources.healthyConnections')}</p>
           <p className="mt-1 text-lg font-bold text-emerald-400">
             {datasources.filter((d) => d.health_status === 'healthy').length}
           </p>
         </div>
-        <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
-          <p className="text-xs text-zinc-500">{t('datasources.unhealthyConnections')}</p>
+        <div className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-4">
+          <p className="text-xs text-[var(--color-text-tertiary)]">{t('datasources.unhealthyConnections')}</p>
           <p className="mt-1 text-lg font-bold text-rose-400">
             {datasources.filter((d) => d.health_status === 'unhealthy').length}
           </p>
@@ -113,29 +111,27 @@ export default function DatasourcesPage() {
       </div>
 
       {/* Datasource list */}
-      {loading ? (
-        <div className="flex justify-center py-10">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-600 border-t-blue-400" />
-        </div>
+      {isLoading ? (
+        <DatasourceSkeleton />
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {datasources.map((ds) => (
             <div
               key={ds.id}
-              className="group rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-4 transition-all hover:border-zinc-700/60"
+              className="group rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-4 transition-all hover:border-[var(--color-border-hover)]"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-800 text-lg">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-bg-tertiary)] text-lg">
                     {dbIcons[ds.db_type] || '🗄️'}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-zinc-200">{ds.name}</p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-sm font-medium text-[var(--color-text-primary)]">{ds.name}</p>
+                    <p className="text-xs text-[var(--color-text-tertiary)]">
                       {ds.db_type} @ {ds.host}:{ds.port}
                     </p>
                     {ds.database_name && (
-                      <p className="text-xs text-zinc-600">DB: {ds.database_name}</p>
+                      <p className="text-xs text-[var(--color-text-disabled)]">DB: {ds.database_name}</p>
                     )}
                   </div>
                 </div>
@@ -143,11 +139,11 @@ export default function DatasourcesPage() {
                   {ds.health_status === 'healthy' ? (
                     <Wifi size={14} className="text-emerald-400" />
                   ) : (
-                    <WifiOff size={14} className="text-zinc-600" />
+                    <WifiOff size={14} className="text-[var(--color-text-disabled)]" />
                   )}
                   <button
                     onClick={() => handleDelete(ds.id)}
-                    className="rounded-lg p-1.5 text-zinc-600 opacity-0 transition-opacity hover:bg-rose-500/10 hover:text-rose-400 group-hover:opacity-100"
+                    className="rounded-lg p-1.5 text-[var(--color-text-disabled)] opacity-0 transition-opacity hover:bg-rose-500/10 hover:text-rose-400 group-hover:opacity-100"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -158,70 +154,80 @@ export default function DatasourcesPage() {
         </div>
       )}
 
-      {/* Create modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-            <h2 className="text-lg font-bold text-zinc-100">{t('datasources.addDatasource')}</h2>
-            <form onSubmit={handleCreate} className="mt-4 space-y-3">
-              <input
-                type="text" placeholder={t('datasources.connectionName')} required
-                value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-blue-500 focus:outline-none"
-              />
-              <select
-                value={form.db_type} onChange={(e) => setForm({ ...form, db_type: e.target.value })}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-200"
-              >
+      {/* Create dialog */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('datasources.addDatasource')}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-3">
+            <FormInput
+              placeholder={t('datasources.connectionName')}
+              value={form.name}
+              onChange={(v) => setForm({ ...form, name: v })}
+              required
+            />
+            <Select value={form.db_type} onValueChange={(v) => setForm({ ...form, db_type: v })}>
+              <SelectTrigger>
+                <SelectValue placeholder={t('datasources.dbType')} />
+              </SelectTrigger>
+              <SelectContent>
                 {DB_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
                 ))}
-              </select>
-              <div className="flex gap-2">
-                <input
-                  type="text" placeholder={t('datasources.host')} required
-                  value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })}
-                  className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-blue-500 focus:outline-none"
-                />
-                <input
-                  type="number" placeholder={t('datasources.port')} required
-                  value={form.port} onChange={(e) => setForm({ ...form, port: Number(e.target.value) })}
-                  className="w-24 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-200"
-                />
-              </div>
-              <input
-                type="text" placeholder={t('datasources.username')}
-                value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-blue-500 focus:outline-none"
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <FormInput
+                placeholder={t('datasources.host')}
+                value={form.host}
+                onChange={(v) => setForm({ ...form, host: v })}
+                required
+                className="flex-1"
               />
-              <input
-                type="password" placeholder={t('datasources.password')}
-                value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-blue-500 focus:outline-none"
+              <FormInput
+                type="number"
+                placeholder={t('datasources.port')}
+                value={form.port}
+                onChange={(v) => setForm({ ...form, port: Number(v) })}
+                required
+                className="w-24"
               />
-              <input
-                type="text" placeholder={t('datasources.databaseName')}
-                value={form.database_name} onChange={(e) => setForm({ ...form, database_name: e.target.value })}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-blue-500 focus:outline-none"
-              />
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button" onClick={() => setShowCreate(false)}
-                  className="flex-1 rounded-xl border border-zinc-700 px-4 py-2.5 text-sm text-zinc-400 hover:bg-zinc-800"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-600"
-                >
-                  {t('datasources.add')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </div>
+            <FormInput
+              placeholder={t('datasources.username')}
+              value={form.username}
+              onChange={(v) => setForm({ ...form, username: v })}
+            />
+            <FormInput
+              type="password"
+              placeholder={t('datasources.password')}
+              value={form.password}
+              onChange={(v) => setForm({ ...form, password: v })}
+            />
+            <FormInput
+              placeholder={t('datasources.databaseName')}
+              value={form.database_name}
+              onChange={(v) => setForm({ ...form, database_name: v })}
+            />
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button" onClick={() => setShowCreate(false)}
+                className="flex-1 rounded-xl border border-[var(--color-border-hover)] px-4 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)]"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                disabled={createDatasource.isPending}
+                className="flex-1 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50"
+              >
+                {createDatasource.isPending ? t('common.loading') : t('datasources.add')}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

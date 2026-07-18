@@ -1,15 +1,13 @@
 //! Health check API integration tests
 
-use actix_web::{test, web, App};
+use actix_web::{App, test, web};
 use dts_server::app;
 use pretty_assertions::assert_eq;
 
 #[actix_web::test]
 async fn health_check_returns_200_with_healthy_status() {
-    let app = test::init_service(
-        App::new().route("/health", web::get().to(app::health_check)),
-    )
-    .await;
+    let app =
+        test::init_service(App::new().route("/health", web::get().to(app::health_check))).await;
 
     let req = test::TestRequest::get().uri("/health").to_request();
     let resp = test::call_service(&app, req).await;
@@ -20,10 +18,8 @@ async fn health_check_returns_200_with_healthy_status() {
 
 #[actix_web::test]
 async fn health_check_returns_correct_json_structure() {
-    let app = test::init_service(
-        App::new().route("/health", web::get().to(app::health_check)),
-    )
-    .await;
+    let app =
+        test::init_service(App::new().route("/health", web::get().to(app::health_check))).await;
 
     let req = test::TestRequest::get().uri("/health").to_request();
     let resp = test::call_service(&app, req).await;
@@ -37,10 +33,8 @@ async fn health_check_returns_correct_json_structure() {
 
 #[actix_web::test]
 async fn health_check_content_type_is_json() {
-    let app = test::init_service(
-        App::new().route("/health", web::get().to(app::health_check)),
-    )
-    .await;
+    let app =
+        test::init_service(App::new().route("/health", web::get().to(app::health_check))).await;
 
     let req = test::TestRequest::get().uri("/health").to_request();
     let resp = test::call_service(&app, req).await;
@@ -56,10 +50,8 @@ async fn health_check_content_type_is_json() {
 
 #[actix_web::test]
 async fn health_check_post_method_returns_405() {
-    let app = test::init_service(
-        App::new().route("/health", web::get().to(app::health_check)),
-    )
-    .await;
+    let app =
+        test::init_service(App::new().route("/health", web::get().to(app::health_check))).await;
 
     let req = test::TestRequest::post().uri("/health").to_request();
     let resp = test::call_service(&app, req).await;

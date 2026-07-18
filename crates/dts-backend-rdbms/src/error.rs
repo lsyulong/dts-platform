@@ -19,10 +19,10 @@ pub fn map_sqlx_error(err: sqlx::Error) -> BackendError {
             } else {
                 BackendError::Query(msg)
             }
-        }
+        },
         sqlx::Error::PoolClosed | sqlx::Error::PoolTimedOut => {
             BackendError::Connection(err.to_string())
-        }
+        },
         sqlx::Error::Configuration(_) => BackendError::Configuration(err.to_string()),
         sqlx::Error::Migrate(_) => BackendError::Migration(err.to_string()),
         _ => BackendError::Internal(format!("数据库错误: {err}")),

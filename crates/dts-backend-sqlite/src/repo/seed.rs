@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use dts_backend::{repo::SeedRepo, BackendError};
+use dts_backend::{BackendError, repo::SeedRepo};
 use dts_backend_rdbms::map_sqlx_error;
 use sqlx::SqlitePool;
 use uuid::Uuid;
@@ -111,7 +111,7 @@ impl SeedRepo for SqliteSeedRepo {
 
 /// 使用 Argon2 哈希密码（同步方法，用于种子数据初始化）
 fn hash_password_sync(password: &str) -> Result<String, BackendError> {
-    use argon2::{password_hash::SaltString, PasswordHasher};
+    use argon2::{PasswordHasher, password_hash::SaltString};
     use rand_core::OsRng;
     let salt = SaltString::generate(&mut OsRng);
     let hash = argon2::Argon2::default()

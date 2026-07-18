@@ -2,7 +2,7 @@
 
 mod common;
 
-use actix_web::{test, web, App};
+use actix_web::{App, test, web};
 use dts_server::api::alerts;
 use dts_server::services::alert_svc::AlertService;
 use pretty_assertions::assert_eq;
@@ -45,16 +45,14 @@ async fn create_alert_with_valid_data_returns_201() {
     let alert_svc = AlertService::new(ctx.alert_repo.clone());
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(alert_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/alerts")
-                        .route("", web::post().to(alerts::create))
-                        .route("", web::get().to(alerts::list))
-                        .route("/{id}/toggle", web::patch().to(alerts::toggle)),
-                ),
+        App::new().app_data(web::Data::new(alert_svc)).service(
+            web::scope("/api/v1").service(
+                web::scope("/alerts")
+                    .route("", web::post().to(alerts::create))
+                    .route("", web::get().to(alerts::list))
+                    .route("/{id}/toggle", web::patch().to(alerts::toggle)),
             ),
+        ),
     )
     .await;
 
@@ -85,12 +83,10 @@ async fn create_alert_without_token_returns_401() {
     let alert_svc = AlertService::new(ctx.alert_repo.clone());
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(alert_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(web::scope("/alerts").route("", web::post().to(alerts::create))),
-            ),
+        App::new().app_data(web::Data::new(alert_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/alerts").route("", web::post().to(alerts::create))),
+        ),
     )
     .await;
 
@@ -116,12 +112,10 @@ async fn create_alert_with_invalid_metric_type_returns_error() {
     let alert_svc = AlertService::new(ctx.alert_repo.clone());
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(alert_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(web::scope("/alerts").route("", web::post().to(alerts::create))),
-            ),
+        App::new().app_data(web::Data::new(alert_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/alerts").route("", web::post().to(alerts::create))),
+        ),
     )
     .await;
 
@@ -152,14 +146,9 @@ async fn list_alerts_with_valid_token_returns_data() {
 
     let alert_svc = AlertService::new(ctx.alert_repo.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(alert_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(web::scope("/alerts").route("", web::get().to(alerts::list))),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(alert_svc)).service(
+        web::scope("/api/v1").service(web::scope("/alerts").route("", web::get().to(alerts::list))),
+    ))
     .await;
 
     let req = test::TestRequest::get()
@@ -180,14 +169,9 @@ async fn list_alerts_without_token_returns_401() {
 
     let alert_svc = AlertService::new(ctx.alert_repo.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(alert_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(web::scope("/alerts").route("", web::get().to(alerts::list))),
-            ),
-    )
+    let app = test::init_service(App::new().app_data(web::Data::new(alert_svc)).service(
+        web::scope("/api/v1").service(web::scope("/alerts").route("", web::get().to(alerts::list))),
+    ))
     .await;
 
     let req = test::TestRequest::get().uri("/api/v1/alerts").to_request();
@@ -224,17 +208,13 @@ async fn toggle_alert_toggles_state() {
         .await
         .expect("create alert");
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(alert_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/alerts")
-                        .route("/{id}/toggle", web::patch().to(alerts::toggle)),
-                ),
+    let app =
+        test::init_service(App::new().app_data(web::Data::new(alert_svc)).service(
+            web::scope("/api/v1").service(
+                web::scope("/alerts").route("/{id}/toggle", web::patch().to(alerts::toggle)),
             ),
-    )
-    .await;
+        ))
+        .await;
 
     let req = test::TestRequest::patch()
         .uri(&format!("/api/v1/alerts/{}/toggle", alert_id))
@@ -255,17 +235,13 @@ async fn toggle_alert_without_token_returns_401() {
 
     let alert_svc = AlertService::new(ctx.alert_repo.clone());
 
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(alert_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/alerts")
-                        .route("/{id}/toggle", web::patch().to(alerts::toggle)),
-                ),
+    let app =
+        test::init_service(App::new().app_data(web::Data::new(alert_svc)).service(
+            web::scope("/api/v1").service(
+                web::scope("/alerts").route("/{id}/toggle", web::patch().to(alerts::toggle)),
             ),
-    )
-    .await;
+        ))
+        .await;
 
     let req = test::TestRequest::patch()
         .uri("/api/v1/alerts/some-id/toggle")
@@ -285,15 +261,13 @@ async fn create_alert_then_it_appears_in_list() {
     let alert_svc = AlertService::new(ctx.alert_repo.clone());
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(alert_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/alerts")
-                        .route("", web::post().to(alerts::create))
-                        .route("", web::get().to(alerts::list)),
-                ),
+        App::new().app_data(web::Data::new(alert_svc)).service(
+            web::scope("/api/v1").service(
+                web::scope("/alerts")
+                    .route("", web::post().to(alerts::create))
+                    .route("", web::get().to(alerts::list)),
             ),
+        ),
     )
     .await;
 
@@ -322,5 +296,8 @@ async fn create_alert_then_it_appears_in_list() {
 
     let body: serde_json::Value = test::read_body_json(list_resp).await;
     let data = body["data"].as_array().unwrap();
-    assert!(!data.is_empty(), "Should have at least the newly created alert");
+    assert!(
+        !data.is_empty(),
+        "Should have at least the newly created alert"
+    );
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { Routes, Route, MemoryRouter } from 'react-router-dom';
+import { screen, waitFor } from '@testing-library/react';
+import { Routes, Route } from 'react-router-dom';
+import { renderWithProviders } from '../../../test/test-utils';
 import TaskDetailPage from '../detail';
 
 // Mock the API client to avoid axios/MSW issues in jsdom
@@ -67,12 +68,11 @@ describe('TaskDetailPage', () => {
   };
 
   function renderPage(id = 'task-1') {
-    return render(
-      <MemoryRouter initialEntries={[`/tasks/${id}`]}>
-        <Routes>
-          <Route path="/tasks/:id" element={<TaskDetailPage />} />
-        </Routes>
-      </MemoryRouter>
+    return renderWithProviders(
+      <Routes>
+        <Route path="/tasks/:id" element={<TaskDetailPage />} />
+      </Routes>,
+      { route: `/tasks/${id}` },
     );
   }
 
@@ -80,8 +80,8 @@ describe('TaskDetailPage', () => {
     it('shows a spinner while loading', () => {
       mockGet.mockReturnValueOnce(new Promise(() => {})); // never resolves
       const { container } = renderPage();
-      const spinner = container.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
+      const skeleton = container.querySelector('.animate-pulse');
+      expect(skeleton).toBeInTheDocument();
     });
   });
 
@@ -188,7 +188,7 @@ describe('TaskDetailPage', () => {
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('tasks.detail.realTimeProgress')).toBeInTheDocument();
-        expect(screen.getByText('25%')).toBeInTheDocument();
+        expect(screen.getByText('25.0%')).toBeInTheDocument();
       });
     });
   });

@@ -2,7 +2,7 @@
 
 mod common;
 
-use actix_web::{test, web, App};
+use actix_web::{App, test, web};
 use dts_server::api::tenants;
 use dts_server::services::tenant_svc::TenantService;
 use pretty_assertions::assert_eq;
@@ -19,15 +19,13 @@ async fn create_tenant_successfully() {
     );
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(tenant_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/tenants")
-                        .route("", web::post().to(tenants::create))
-                        .route("", web::get().to(tenants::list)),
-                ),
+        App::new().app_data(web::Data::new(tenant_svc)).service(
+            web::scope("/api/v1").service(
+                web::scope("/tenants")
+                    .route("", web::post().to(tenants::create))
+                    .route("", web::get().to(tenants::list)),
             ),
+        ),
     )
     .await;
 
@@ -61,15 +59,13 @@ async fn create_tenant_duplicate_slug_fails() {
     );
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(tenant_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/tenants")
-                        .route("", web::post().to(tenants::create))
-                        .route("", web::get().to(tenants::list)),
-                ),
+        App::new().app_data(web::Data::new(tenant_svc)).service(
+            web::scope("/api/v1").service(
+                web::scope("/tenants")
+                    .route("", web::post().to(tenants::create))
+                    .route("", web::get().to(tenants::list)),
             ),
+        ),
     )
     .await;
 
@@ -93,7 +89,10 @@ async fn create_tenant_duplicate_slug_fails() {
         }))
         .to_request();
     let resp2 = test::call_service(&app, req2).await;
-    assert!(resp2.status().is_client_error(), "Expected client error for duplicate slug");
+    assert!(
+        resp2.status().is_client_error(),
+        "Expected client error for duplicate slug"
+    );
 }
 
 #[actix_web::test]
@@ -107,12 +106,10 @@ async fn list_tenants_returns_all_tenants() {
     );
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(tenant_svc))
-            .service(
-                web::scope("/api/v1")
-                    .service(web::scope("/tenants").route("", web::get().to(tenants::list))),
-            ),
+        App::new().app_data(web::Data::new(tenant_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/tenants").route("", web::get().to(tenants::list))),
+        ),
     )
     .await;
 
@@ -141,13 +138,10 @@ async fn create_tenant_missing_name_fails() {
     );
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(tenant_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/tenants").route("", web::post().to(tenants::create)),
-                ),
-            ),
+        App::new().app_data(web::Data::new(tenant_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/tenants").route("", web::post().to(tenants::create))),
+        ),
     )
     .await;
 
@@ -173,13 +167,10 @@ async fn create_tenant_missing_slug_fails() {
     );
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(tenant_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/tenants").route("", web::post().to(tenants::create)),
-                ),
-            ),
+        App::new().app_data(web::Data::new(tenant_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/tenants").route("", web::post().to(tenants::create))),
+        ),
     )
     .await;
 
@@ -205,13 +196,10 @@ async fn create_tenant_empty_body_fails() {
     );
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(tenant_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/tenants").route("", web::post().to(tenants::create)),
-                ),
-            ),
+        App::new().app_data(web::Data::new(tenant_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/tenants").route("", web::post().to(tenants::create))),
+        ),
     )
     .await;
 

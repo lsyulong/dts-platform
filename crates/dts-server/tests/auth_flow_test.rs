@@ -2,7 +2,7 @@
 
 mod common;
 
-use actix_web::{test, web, App};
+use actix_web::{App, test, web};
 use dts_server::api::auth;
 use dts_server::services::auth_svc::AuthService;
 use dts_server::services::token::Claims;
@@ -54,10 +54,8 @@ async fn login_with_valid_credentials_returns_token_and_user() {
             .app_data(web::Data::new(ctx.user_repo.clone()))
             .app_data(web::Data::new(ctx.role_repo.clone()))
             .service(
-                web::scope("/api/v1").service(
-                    web::scope("/auth")
-                        .route("/login", web::post().to(auth::login)),
-                ),
+                web::scope("/api/v1")
+                    .service(web::scope("/auth").route("/login", web::post().to(auth::login))),
             ),
     )
     .await;
@@ -96,14 +94,10 @@ async fn login_with_wrong_password_returns_401() {
     );
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(auth_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/auth")
-                        .route("/login", web::post().to(auth::login)),
-                ),
-            ),
+        App::new().app_data(web::Data::new(auth_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/auth").route("/login", web::post().to(auth::login))),
+        ),
     )
     .await;
 
@@ -133,14 +127,10 @@ async fn login_with_nonexistent_tenant_returns_401() {
     );
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(auth_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/auth")
-                        .route("/login", web::post().to(auth::login)),
-                ),
-            ),
+        App::new().app_data(web::Data::new(auth_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/auth").route("/login", web::post().to(auth::login))),
+        ),
     )
     .await;
 
@@ -170,14 +160,10 @@ async fn login_with_nonexistent_user_returns_401() {
     );
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(auth_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/auth")
-                        .route("/login", web::post().to(auth::login)),
-                ),
-            ),
+        App::new().app_data(web::Data::new(auth_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/auth").route("/login", web::post().to(auth::login))),
+        ),
     )
     .await;
 
@@ -207,14 +193,10 @@ async fn login_with_missing_field_returns_400() {
     );
 
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(auth_svc))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/auth")
-                        .route("/login", web::post().to(auth::login)),
-                ),
-            ),
+        App::new().app_data(web::Data::new(auth_svc)).service(
+            web::scope("/api/v1")
+                .service(web::scope("/auth").route("/login", web::post().to(auth::login))),
+        ),
     )
     .await;
 
@@ -356,12 +338,9 @@ async fn permissions_endpoint_returns_permission_list() {
             .app_data(web::Data::new(auth_svc))
             .app_data(web::Data::new(ctx.user_repo.clone()))
             .app_data(web::Data::new(ctx.role_repo.clone()))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/auth")
-                        .route("/permissions", web::get().to(auth::my_permissions)),
-                ),
-            ),
+            .service(web::scope("/api/v1").service(
+                web::scope("/auth").route("/permissions", web::get().to(auth::my_permissions)),
+            )),
     )
     .await;
 
@@ -394,12 +373,9 @@ async fn permissions_endpoint_without_token_returns_401() {
             .app_data(web::Data::new(auth_svc))
             .app_data(web::Data::new(ctx.user_repo.clone()))
             .app_data(web::Data::new(ctx.role_repo.clone()))
-            .service(
-                web::scope("/api/v1").service(
-                    web::scope("/auth")
-                        .route("/permissions", web::get().to(auth::my_permissions)),
-                ),
-            ),
+            .service(web::scope("/api/v1").service(
+                web::scope("/auth").route("/permissions", web::get().to(auth::my_permissions)),
+            )),
     )
     .await;
 

@@ -33,15 +33,13 @@ impl PgTaskRunRepo {
 #[async_trait]
 impl TaskRunRepo for PgTaskRunRepo {
     async fn create(&self, params: &CreateTaskRunParams) -> Result<String, BackendError> {
-        sqlx::query(
-            "INSERT INTO task_run (id, task_id, status) VALUES ($1, $2, $3)",
-        )
-        .bind(&params.id)
-        .bind(&params.task_id)
-        .bind(&params.status)
-        .execute(&self.pool)
-        .await
-        .map_err(map_sqlx_error)?;
+        sqlx::query("INSERT INTO task_run (id, task_id, status) VALUES ($1, $2, $3)")
+            .bind(&params.id)
+            .bind(&params.task_id)
+            .bind(&params.status)
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx_error)?;
         Ok(params.id.clone())
     }
 

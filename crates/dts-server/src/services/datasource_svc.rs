@@ -96,10 +96,7 @@ mod tests {
 
     #[async_trait]
     impl DatasourceRepo for MockDatasourceRepo {
-        async fn create(
-            &self,
-            params: &CreateDatasourceParams,
-        ) -> Result<String, BackendError> {
+        async fn create(&self, params: &CreateDatasourceParams) -> Result<String, BackendError> {
             *self.last_create_params.lock().unwrap() = Some(params.clone());
             Ok(params.id.clone())
         }
@@ -119,12 +116,16 @@ mod tests {
             Ok(None)
         }
 
-        async fn delete(
+        async fn delete(&self, _id: &str, _tenant_id: &str) -> Result<bool, BackendError> {
+            Ok(true)
+        }
+
+        async fn get_connection_info(
             &self,
             _id: &str,
             _tenant_id: &str,
-        ) -> Result<bool, BackendError> {
-            Ok(true)
+        ) -> Result<Option<dts_backend::repo::RawConnectionInfo>, BackendError> {
+            Ok(None)
         }
 
         async fn count_by_tenant(&self, _tenant_id: &str) -> Result<i64, BackendError> {
@@ -135,11 +136,7 @@ mod tests {
             Ok(0)
         }
 
-        async fn exists(
-            &self,
-            _id: &str,
-            _tenant_id: &str,
-        ) -> Result<bool, BackendError> {
+        async fn exists(&self, _id: &str, _tenant_id: &str) -> Result<bool, BackendError> {
             Ok(*self.exists_result.lock().unwrap())
         }
     }
@@ -166,7 +163,9 @@ mod tests {
 
         assert!(result.is_ok());
 
-        let params = repo.last_create_params().expect("create should have been called");
+        let params = repo
+            .last_create_params()
+            .expect("create should have been called");
         assert_eq!(
             params.encrypted_password.as_deref(),
             Some("enc:secret123"),
@@ -196,7 +195,9 @@ mod tests {
 
         assert!(result.is_ok());
 
-        let params = repo.last_create_params().expect("create should have been called");
+        let params = repo
+            .last_create_params()
+            .expect("create should have been called");
         assert!(
             params.encrypted_password.is_none(),
             "encrypted_password should be None when no password provided"

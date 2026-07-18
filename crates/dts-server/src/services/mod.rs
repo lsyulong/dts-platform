@@ -2,6 +2,8 @@ pub mod alert_svc;
 pub mod auth_svc;
 pub mod datasource_svc;
 pub mod monitoring_svc;
+pub mod notify;
+pub mod precheck;
 pub mod scheduler;
 pub mod task_svc;
 pub mod tenant_svc;

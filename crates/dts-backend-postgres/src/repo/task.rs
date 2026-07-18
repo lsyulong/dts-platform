@@ -108,7 +108,7 @@ impl TaskRepo for PgTaskRepo {
                     updated_at: updated_at.to_rfc3339(),
                     recent_runs: runs,
                 }))
-            }
+            },
             None => Ok(None),
         }
     }
@@ -140,14 +140,12 @@ impl TaskRepo for PgTaskRepo {
     }
 
     async fn count_by_status(&self, tenant_id: &str, status: &str) -> Result<i64, BackendError> {
-        sqlx::query_scalar(
-            "SELECT COUNT(*) FROM sync_task WHERE tenant_id = $1 AND status = $2",
-        )
-        .bind(tenant_id)
-        .bind(status)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(map_sqlx_error)
+        sqlx::query_scalar("SELECT COUNT(*) FROM sync_task WHERE tenant_id = $1 AND status = $2")
+            .bind(tenant_id)
+            .bind(status)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(map_sqlx_error)
     }
 
     async fn find_recent_runs(

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen, waitFor } from '@testing-library/react';
+import { renderWithProviders } from '../../test/test-utils';
 import { server } from '../../test/mocks/server';
 import DashboardPage from '../dashboard';
 
@@ -10,18 +10,14 @@ describe('DashboardPage', () => {
   afterAll(() => server.close());
 
   function renderDashboard() {
-    return render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>
-    );
+    return renderWithProviders(<DashboardPage />, { route: '/' });
   }
 
   describe('loading state', () => {
     it('shows a spinner while loading', () => {
       const { container } = renderDashboard();
-      const spinner = container.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
+      const skeleton = container.querySelector('.animate-pulse');
+      expect(skeleton).toBeInTheDocument();
     });
   });
 
@@ -99,18 +95,17 @@ describe('DashboardPage', () => {
     it('renders status badges for recent runs', async () => {
       renderDashboard();
       await waitFor(() => {
-        expect(screen.getByText('running')).toBeInTheDocument();
-        expect(screen.getByText('completed')).toBeInTheDocument();
-        expect(screen.getByText('failed')).toBeInTheDocument();
+        expect(screen.getByText('tasks.status.running')).toBeInTheDocument();
+        expect(screen.getByText('tasks.status.completed')).toBeInTheDocument();
+        expect(screen.getByText('tasks.status.failed')).toBeInTheDocument();
       });
     });
 
-    it('renders data flow visualization placeholder', async () => {
+    it('renders chart sections', async () => {
       renderDashboard();
       await waitFor(() => {
-        expect(screen.getByText('dashboard.dataFlowViz')).toBeInTheDocument();
-        expect(screen.getByText('dashboard.dataFlowPlaceholder')).toBeInTheDocument();
-        expect(screen.getByText('dashboard.dataFlowHint')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.syncVolumeChart')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.taskDistribution')).toBeInTheDocument();
       });
     });
 

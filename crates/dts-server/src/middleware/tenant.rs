@@ -1,5 +1,5 @@
-use crate::services::token::Claims;
 use crate::models::error::AppError;
+use crate::services::token::Claims;
 
 /// 验证请求者是否属于目标租户
 /// super_admin 暂时不做跨租户特殊处理，后续 Phase 2 实现

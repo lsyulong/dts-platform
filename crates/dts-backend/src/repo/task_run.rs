@@ -34,5 +34,9 @@ pub trait TaskRunRepo: Send + Sync {
     async fn update(&self, params: &UpdateTaskRunParams) -> Result<bool, BackendError>;
 
     /// 获取任务的最近执行记录
-    async fn find_recent(&self, task_id: &str, limit: i64) -> Result<Vec<TaskRunInfo>, BackendError>;
+    async fn find_recent(
+        &self,
+        task_id: &str,
+        limit: i64,
+    ) -> Result<Vec<TaskRunInfo>, BackendError>;
 }

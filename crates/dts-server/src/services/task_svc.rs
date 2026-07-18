@@ -101,9 +101,7 @@ impl TaskService {
         );
 
         if !valid {
-            return Err(anyhow!(
-                "无效的状态转换: {current} → {new_status}"
-            ));
+            return Err(anyhow!("无效的状态转换: {current} → {new_status}"));
         }
 
         Ok(self
@@ -163,18 +161,12 @@ mod tests {
 
     #[async_trait]
     impl TaskRepo for MockTaskRepo {
-        async fn create(
-            &self,
-            params: &CreateTaskParams,
-        ) -> Result<String, BackendError> {
+        async fn create(&self, params: &CreateTaskParams) -> Result<String, BackendError> {
             *self.last_create_params.lock().unwrap() = Some(params.clone());
             Ok(params.id.clone())
         }
 
-        async fn list_by_tenant(
-            &self,
-            _tenant_id: &str,
-        ) -> Result<Vec<TaskInfo>, BackendError> {
+        async fn list_by_tenant(&self, _tenant_id: &str) -> Result<Vec<TaskInfo>, BackendError> {
             Ok(self.list_result.lock().unwrap().clone())
         }
 
@@ -243,10 +235,7 @@ mod tests {
 
     #[async_trait]
     impl DatasourceRepo for MockDatasourceRepo {
-        async fn create(
-            &self,
-            _params: &CreateDatasourceParams,
-        ) -> Result<String, BackendError> {
+        async fn create(&self, _params: &CreateDatasourceParams) -> Result<String, BackendError> {
             Ok("ignored".to_string())
         }
 
@@ -265,11 +254,7 @@ mod tests {
             Ok(None)
         }
 
-        async fn delete(
-            &self,
-            _id: &str,
-            _tenant_id: &str,
-        ) -> Result<bool, BackendError> {
+        async fn delete(&self, _id: &str, _tenant_id: &str) -> Result<bool, BackendError> {
             Ok(true)
         }
 
@@ -277,18 +262,19 @@ mod tests {
             Ok(0)
         }
 
-        async fn count_healthy_by_tenant(
-            &self,
-            _tenant_id: &str,
-        ) -> Result<i64, BackendError> {
+        async fn count_healthy_by_tenant(&self, _tenant_id: &str) -> Result<i64, BackendError> {
             Ok(0)
         }
 
-        async fn exists(
+        async fn get_connection_info(
             &self,
-            id: &str,
+            _id: &str,
             _tenant_id: &str,
-        ) -> Result<bool, BackendError> {
+        ) -> Result<Option<dts_backend::repo::RawConnectionInfo>, BackendError> {
+            Ok(None)
+        }
+
+        async fn exists(&self, id: &str, _tenant_id: &str) -> Result<bool, BackendError> {
             Ok(self.existing_ids.lock().unwrap().contains(&id.to_string()))
         }
     }
@@ -456,7 +442,14 @@ mod tests {
         assert!(result.is_ok());
         let calls = task_repo.update_status_calls();
         assert_eq!(calls.len(), 1);
-        assert_eq!(calls[0], ("task-1".to_string(), "tenant-1".to_string(), "running".to_string()));
+        assert_eq!(
+            calls[0],
+            (
+                "task-1".to_string(),
+                "tenant-1".to_string(),
+                "running".to_string()
+            )
+        );
     }
 
     #[tokio::test]
@@ -480,9 +473,7 @@ mod tests {
         task_repo.set_find_detail_result(Some(make_task_detail("task-1", "running")));
 
         let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc
-            .update_status("task-1", "tenant-1", "completed")
-            .await;
+        let result = svc.update_status("task-1", "tenant-1", "completed").await;
 
         assert!(result.is_ok());
     }

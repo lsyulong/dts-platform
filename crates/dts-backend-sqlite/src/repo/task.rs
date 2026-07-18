@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use dts_backend::{repo::TaskRepo, types::*, BackendError};
+use dts_backend::{BackendError, repo::TaskRepo, types::*};
 use dts_backend_rdbms::map_sqlx_error;
 use sqlx::Row;
 use sqlx::SqlitePool;
@@ -111,7 +111,7 @@ impl TaskRepo for SqliteTaskRepo {
                     updated_at: parse_timestamp(&updated_at_str).to_rfc3339(),
                     recent_runs: runs,
                 }))
-            }
+            },
             None => Ok(None),
         }
     }
@@ -143,14 +143,12 @@ impl TaskRepo for SqliteTaskRepo {
     }
 
     async fn count_by_status(&self, tenant_id: &str, status: &str) -> Result<i64, BackendError> {
-        sqlx::query_scalar(
-            "SELECT COUNT(*) FROM sync_task WHERE tenant_id = ?1 AND status = ?2",
-        )
-        .bind(tenant_id)
-        .bind(status)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(map_sqlx_error)
+        sqlx::query_scalar("SELECT COUNT(*) FROM sync_task WHERE tenant_id = ?1 AND status = ?2")
+            .bind(tenant_id)
+            .bind(status)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(map_sqlx_error)
     }
 
     async fn find_recent_runs(
