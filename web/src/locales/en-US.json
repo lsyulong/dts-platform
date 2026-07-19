@@ -214,6 +214,15 @@
     "light": "Light Mode",
     "dark": "Dark Mode"
   },
+  "ai": {
+    "openPanel": "Open AI Assistant",
+    "closePanel": "Close AI Assistant",
+    "send": "Send",
+    "inputPlaceholder": "What would you like to know?",
+    "subtitle": "AI Data Assistant",
+    "welcome": "Hi! I'm DeerFlow AI Assistant",
+    "welcomeSub": "I can help you analyze data, write SQL, and check task status"
+  },
   "ops": {
     "subtitle": "Schedule Management, Execution Logs & Agent Monitoring",
     "instances": "Periodic Instances",

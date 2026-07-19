@@ -214,6 +214,15 @@
     "light": "浅色模式",
     "dark": "深色模式"
   },
+  "ai": {
+    "openPanel": "打开 AI 助手",
+    "closePanel": "关闭 AI 助手",
+    "send": "发送",
+    "inputPlaceholder": "输入你的问题...",
+    "subtitle": "AI 数据分析助手",
+    "welcome": "你好！我是 DeerFlow AI 助手",
+    "welcomeSub": "我可以帮你分析数据、编写 SQL、查看任务状态"
+  },
   "ops": {
     "subtitle": "调度管理、执行日志与 Agent 监控",
     "instances": "周期实例",
