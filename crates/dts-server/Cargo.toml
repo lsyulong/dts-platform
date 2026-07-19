@@ -22,6 +22,8 @@ dts-backend-postgres = { path = "../dts-backend-postgres", optional = true }
 dts-engine = { path = "../dts-engine" }
 dts-engine-ape = { path = "../dts-engine-ape", optional = true }
 dts-scheduler-client = { path = "../dts-scheduler-client" }
+dts-deerflow-client = { path = "../dts-deerflow-client" }
+tokio-stream = "0.1"
 
 # Web 框架
 actix-web = "4"

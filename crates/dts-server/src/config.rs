@@ -45,6 +45,24 @@ impl Default for SchedulerConfig {
     }
 }
 
+/// DeerFlow AI 集成配置
+#[derive(Clone, Debug)]
+pub struct DeerFlowConfig {
+    pub enabled: bool,
+    pub base_url: String,
+    pub api_key: String,
+}
+
+impl Default for DeerFlowConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            base_url: "http://localhost:11434".to_string(),
+            api_key: String::new(),
+        }
+    }
+}
+
 /// 应用配置，通过环境变量或手动构造加载
 #[derive(Clone, Debug)]
 pub struct AppConfig {
@@ -56,6 +74,7 @@ pub struct AppConfig {
     pub server_port: u16,
     pub data_dir: String,
     pub scheduler: SchedulerConfig,
+    pub deerflow: DeerFlowConfig,
 }
 
 impl AppConfig {
@@ -78,6 +97,7 @@ impl AppConfig {
             server_port,
             data_dir: data_dir.into(),
             scheduler: SchedulerConfig::default(),
+            deerflow: DeerFlowConfig::default(),
         }
     }
 
@@ -92,6 +112,7 @@ impl AppConfig {
             server_port: 0,
             data_dir: defaults::DATA_DIR.to_string(),
             scheduler: SchedulerConfig::default(),
+            deerflow: DeerFlowConfig::default(),
         }
     }
 
@@ -129,6 +150,14 @@ impl AppConfig {
                 }),
                 service_token: env::var("JIA_SERVICE_TOKEN")
                     .unwrap_or_else(|_| "dev-service-token-change-me".to_string()),
+            },
+            deerflow: DeerFlowConfig {
+                enabled: env::var("DEERFLOW_ENABLED")
+                    .map(|v| v == "true" || v == "1")
+                    .unwrap_or(false),
+                base_url: env::var("DEERFLOW_BASE_URL")
+                    .unwrap_or_else(|_| "http://localhost:11434".to_string()),
+                api_key: env::var("DEERFLOW_API_KEY").unwrap_or_default(),
             },
         })
     }

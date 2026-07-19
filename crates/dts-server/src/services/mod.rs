@@ -1,3 +1,4 @@
+pub mod ai_svc;
 pub mod alert_svc;
 pub mod auth_svc;
 pub mod datasource_svc;

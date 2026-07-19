@@ -5,6 +5,7 @@ use actix_web::{App, HttpResponse, HttpServer, middleware as actix_middleware, w
 
 use crate::config::AppConfig;
 use crate::db::BackendContext;
+use crate::services::ai_svc::AiService;
 use crate::services::alert_svc::AlertService;
 use crate::services::auth_svc::AuthService;
 use crate::services::datasource_svc::DatasourceService;
@@ -43,6 +44,9 @@ pub async fn create_app(
     let user_svc = UserService::new(ctx.user_repo.clone());
 
     let ws_hub = WsHub::new();
+
+    // AI 服务
+    let ai_svc = AiService::new(&config.deerflow);
 
     // 创建引擎实例（ape-dts）
     let engine: Arc<dyn dts_engine::EngineService> =
@@ -89,6 +93,8 @@ pub async fn create_app(
             .app_data(web::Data::new(ctx.task_repo.clone()))
             // WebSocket Hub
             .app_data(web::Data::new(ws_hub.clone()))
+            // AI 服务
+            .app_data(web::Data::new(ai_svc.clone()))
             // 任务调度器
             .app_data(web::Data::new(scheduler.clone()))
             // jiascheduler 配置
@@ -140,6 +146,11 @@ pub async fn create_app(
                             .route("", web::get().to(crate::api::alerts::list))
                             .route("", web::post().to(crate::api::alerts::create))
                             .route("/{id}/toggle", web::patch().to(crate::api::alerts::toggle)),
+                    )
+                    // AI 助手
+                    .service(
+                        web::scope("/ai")
+                            .route("/chat", web::post().to(crate::api::ai::chat)),
                     )
                     // 系统设置
                     .service(
