@@ -872,7 +872,9 @@ dependencies = [
  "chrono",
  "dts-backend",
  "dts-backend-rdbms",
+ "dts-core",
  "sqlx",
+ "tokio",
  "tracing",
  "uuid",
 ]

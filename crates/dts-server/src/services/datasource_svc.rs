@@ -1,3 +1,18 @@
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 use std::sync::Arc;
 
 use dts_backend::repo::DatasourceRepo;
@@ -86,18 +101,18 @@ mod tests {
         }
 
         fn set_exists_result(&self, value: bool) {
-            *self.exists_result.lock().unwrap() = value;
+            *self.exists_result.lock().expect("Mutex poisoned") = value;
         }
 
         fn last_create_params(&self) -> Option<CreateDatasourceParams> {
-            self.last_create_params.lock().unwrap().clone()
+            self.last_create_params.lock().expect("Mutex poisoned").clone()
         }
     }
 
     #[async_trait]
     impl DatasourceRepo for MockDatasourceRepo {
         async fn create(&self, params: &CreateDatasourceParams) -> Result<String, BackendError> {
-            *self.last_create_params.lock().unwrap() = Some(params.clone());
+            *self.last_create_params.lock().expect("Mutex poisoned") = Some(params.clone());
             Ok(params.id.clone())
         }
 
@@ -137,7 +152,7 @@ mod tests {
         }
 
         async fn exists(&self, _id: &str, _tenant_id: &str) -> Result<bool, BackendError> {
-            Ok(*self.exists_result.lock().unwrap())
+            Ok(*self.exists_result.lock().expect("Mutex poisoned"))
         }
     }
 

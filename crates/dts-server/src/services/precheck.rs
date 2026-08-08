@@ -1,3 +1,18 @@
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 //! 任务预检查服务 — 创建同步任务前验证源端/目标端连通性
 
 use std::time::Duration;
@@ -32,74 +47,40 @@ pub struct TableCheckResult {
     pub message: String,
 }
 
+/// 连接信息，用于预检查的源端/目标端配置
+pub struct ConnectionInfo {
+    pub db_type: String,
+    pub host: String,
+    pub port: u16,
+    pub user: String,
+    pub password: String,
+    pub database: String,
+}
+
+/// 预检查请求参数
+pub struct PrecheckParams {
+    pub source: ConnectionInfo,
+    pub target: ConnectionInfo,
+    pub tables: Vec<(String, String)>, // (source_table, target_table)
+}
+
 /// 执行预检查：测试源端/目标端连接 + 验证表是否存在
-pub async fn run_precheck(
-    source_type: &str,
-    source_host: &str,
-    source_port: u16,
-    source_user: &str,
-    source_password: &str,
-    source_database: &str,
-    target_type: &str,
-    target_host: &str,
-    target_port: u16,
-    target_user: &str,
-    target_password: &str,
-    target_database: &str,
-    tables: &[(&str, &str)], // (source_table, target_table)
-) -> PrecheckResult {
+pub async fn run_precheck(params: &PrecheckParams) -> PrecheckResult {
     let source_start = std::time::Instant::now();
-    let source = check_connection(
-        source_type,
-        source_host,
-        source_port,
-        source_user,
-        source_password,
-        source_database,
-        "源端",
-    )
-    .await;
+    let source = check_connection(&params.source, "源端").await;
     let source_latency = source_start.elapsed().as_millis() as u64;
 
     let target_start = std::time::Instant::now();
-    let target = check_connection(
-        target_type,
-        target_host,
-        target_port,
-        target_user,
-        target_password,
-        target_database,
-        "目标端",
-    )
-    .await;
+    let target = check_connection(&params.target, "目标端").await;
     let target_latency = target_start.elapsed().as_millis() as u64;
 
     let mut table_results = Vec::new();
 
     // 检查表是否存在（仅当两端都可达时）
     if source.reachable && target.reachable {
-        for &(src_table, tgt_table) in tables {
-            let src_exists = check_table_exists(
-                source_type,
-                source_host,
-                source_port,
-                source_user,
-                source_password,
-                source_database,
-                src_table,
-            )
-            .await;
-
-            let tgt_exists = check_table_exists(
-                target_type,
-                target_host,
-                target_port,
-                target_user,
-                target_password,
-                target_database,
-                tgt_table,
-            )
-            .await;
+        for (src_table, tgt_table) in &params.tables {
+            let src_exists = check_table_exists(&params.source, src_table).await;
+            let tgt_exists = check_table_exists(&params.target, tgt_table).await;
 
             table_results.push(TableCheckResult {
                 source_table: src_table.to_string(),
@@ -123,15 +104,15 @@ pub async fn run_precheck(
 
     PrecheckResult {
         source: PrecheckItem {
-            name: source_type.to_string(),
-            db_type: source_type.to_string(),
+            name: params.source.db_type.clone(),
+            db_type: params.source.db_type.clone(),
             reachable: source.reachable,
             message: source.message,
             latency_ms: source_latency,
         },
         target: PrecheckItem {
-            name: target_type.to_string(),
-            db_type: target_type.to_string(),
+            name: params.target.db_type.clone(),
+            db_type: params.target.db_type.clone(),
             reachable: target.reachable,
             message: target.message,
             latency_ms: target_latency,
@@ -146,20 +127,8 @@ struct ConnCheck {
     message: String,
 }
 
-async fn check_connection(
-    db_type: &str,
-    host: &str,
-    port: u16,
-    user: &str,
-    password: &str,
-    database: &str,
-    label: &str,
-) -> ConnCheck {
-    let result = tokio::time::timeout(
-        Duration::from_secs(10),
-        try_connect(db_type, host, port, user, password, database),
-    )
-    .await;
+async fn check_connection(conn: &ConnectionInfo, label: &str) -> ConnCheck {
+    let result = tokio::time::timeout(Duration::from_secs(10), try_connect(conn)).await;
 
     match result {
         Ok(Ok(())) => ConnCheck {
@@ -177,50 +146,42 @@ async fn check_connection(
     }
 }
 
-async fn try_connect(
-    db_type: &str,
-    host: &str,
-    port: u16,
-    user: &str,
-    password: &str,
-    database: &str,
-) -> anyhow::Result<()> {
-    match db_type.to_lowercase().as_str() {
+async fn try_connect(conn: &ConnectionInfo) -> anyhow::Result<()> {
+    match conn.db_type.to_lowercase().as_str() {
         "mysql" => {
             let opts = MySqlConnectOptions::from_str(&format!(
-                "mysql://{user}:{password}@{host}:{port}/{database}"
+                "mysql://{user}:{password}@{host}:{port}/{database}",
+                user = conn.user,
+                password = conn.password,
+                host = conn.host,
+                port = conn.port,
+                database = conn.database,
             ))?;
             let pool = sqlx::MySqlPool::connect_with(opts).await?;
             pool.close().await;
         },
         "postgresql" | "pg" | "postgres" => {
             let opts = PgConnectOptions::from_str(&format!(
-                "postgresql://{user}:{password}@{host}:{port}/{database}"
+                "postgresql://{user}:{password}@{host}:{port}/{database}",
+                user = conn.user,
+                password = conn.password,
+                host = conn.host,
+                port = conn.port,
+                database = conn.database,
             ))?;
             let pool = sqlx::PgPool::connect_with(opts).await?;
             pool.close().await;
         },
         _ => {
-            anyhow::bail!("不支持的数据库类型: {db_type}")
+            anyhow::bail!("不支持的数据库类型: {}", conn.db_type)
         },
     }
     Ok(())
 }
 
-async fn check_table_exists(
-    db_type: &str,
-    host: &str,
-    port: u16,
-    user: &str,
-    password: &str,
-    database: &str,
-    table_name: &str,
-) -> bool {
-    let result = tokio::time::timeout(
-        Duration::from_secs(5),
-        try_check_table(db_type, host, port, user, password, database, table_name),
-    )
-    .await;
+async fn check_table_exists(conn: &ConnectionInfo, table_name: &str) -> bool {
+    let result =
+        tokio::time::timeout(Duration::from_secs(5), try_check_table(conn, table_name)).await;
 
     match result {
         Ok(Ok(exists)) => exists,
@@ -228,25 +189,22 @@ async fn check_table_exists(
     }
 }
 
-async fn try_check_table(
-    db_type: &str,
-    host: &str,
-    port: u16,
-    user: &str,
-    password: &str,
-    database: &str,
-    table_name: &str,
-) -> anyhow::Result<bool> {
-    match db_type.to_lowercase().as_str() {
+async fn try_check_table(conn: &ConnectionInfo, table_name: &str) -> anyhow::Result<bool> {
+    match conn.db_type.to_lowercase().as_str() {
         "mysql" => {
             let opts = MySqlConnectOptions::from_str(&format!(
-                "mysql://{user}:{password}@{host}:{port}/{database}"
+                "mysql://{user}:{password}@{host}:{port}/{database}",
+                user = conn.user,
+                password = conn.password,
+                host = conn.host,
+                port = conn.port,
+                database = conn.database,
             ))?;
             let pool = sqlx::MySqlPool::connect_with(opts).await?;
             let row: (i64,) = sqlx::query_as(
                 "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ?"
             )
-            .bind(database)
+            .bind(&conn.database)
             .bind(table_name)
             .fetch_one(&pool)
             .await?;
@@ -255,7 +213,12 @@ async fn try_check_table(
         },
         "postgresql" | "pg" | "postgres" => {
             let opts = PgConnectOptions::from_str(&format!(
-                "postgresql://{user}:{password}@{host}:{port}/{database}"
+                "postgresql://{user}:{password}@{host}:{port}/{database}",
+                user = conn.user,
+                password = conn.password,
+                host = conn.host,
+                port = conn.port,
+                database = conn.database,
             ))?;
             let pool = sqlx::PgPool::connect_with(opts).await?;
             let row: (i64,) = sqlx::query_as(

@@ -2,6 +2,7 @@
 name = "dts-backend-sqlite"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
 description = "DTS Platform SQLite 存储后端"
 
 [lints]

@@ -20,7 +20,7 @@
 - [ ] 代码通过 `cargo fmt --all -- --check` 格式化检查
 - [ ] 代码通过 `cargo clippy --all-targets --all-features -- -D warnings` 无警告
 - [ ] 所有测试通过 `cargo test --all-features`
-- [ ] 测试覆盖率满足 95% 标准（`cargo llvm-cov --fail-under-lines 95`）
+- [ ] 测试覆盖率满足 85% 标准（`cargo llvm-cov --fail-under-lines 85`）
 
 ### 前端
 

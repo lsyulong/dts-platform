@@ -2,6 +2,7 @@
 name = "dts-backend"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
 description = "DTS Platform — 存储后端核心抽象层（trait + 公共类型）"
 
 [dependencies]

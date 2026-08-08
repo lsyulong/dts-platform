@@ -2,6 +2,7 @@
 name = "dts-backend-postgres"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
 description = "DTS Platform — PostgreSQL 协议存储后端（支持 PostgreSQL / GaussDB / Kingbase / openGauss 等）"
 
 [dependencies]
@@ -14,3 +15,11 @@ uuid = { version = "1", features = ["v4"] }
 anyhow = "1"
 tracing = "0.1"
 argon2 = "0.5"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros"] }
+uuid = { workspace = true, features = ["v4"] }
+dts-backend = { path = "../dts-backend" }
+dts-core = { path = "../dts-core" }
+dts-backend-rdbms = { path = "../dts-backend-rdbms" }
+chrono = { workspace = true }

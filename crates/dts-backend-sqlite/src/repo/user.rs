@@ -1,3 +1,18 @@
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use dts_backend::{BackendError, repo::UserRepo, repo::user::UserDetail, types::*};
@@ -181,9 +196,7 @@ impl UserRepo for SqliteUserRepo {
             sql.push_str(" AND u.tenant_id = ?1");
         }
         if search.is_some() {
-            sql.push_str(
-                " AND (u.username LIKE ?2 OR u.email LIKE ?2 OR u.display_name LIKE ?2)",
-            );
+            sql.push_str(" AND (u.username LIKE ?2 OR u.email LIKE ?2 OR u.display_name LIKE ?2)");
         }
         if status.is_some() {
             sql.push_str(" AND u.status = ?3");
@@ -206,7 +219,10 @@ impl UserRepo for SqliteUserRepo {
         let rows = query.fetch_all(&self.pool).await.map_err(map_sqlx_error)?;
 
         // 批量查询角色（避免 N+1）
-        let user_ids: Vec<String> = rows.iter().map(|r: &sqlx::sqlite::SqliteRow| r.get(0)).collect();
+        let user_ids: Vec<String> = rows
+            .iter()
+            .map(|r: &sqlx::sqlite::SqliteRow| r.get(0))
+            .collect();
         let roles_map = self.batch_get_roles(&user_ids).await?;
 
         let mut users = Vec::new();

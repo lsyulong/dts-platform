@@ -1,3 +1,18 @@
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 use std::sync::Arc;
 
 use anyhow::anyhow;
@@ -109,27 +124,27 @@ mod tests {
         }
 
         fn set_list_result(&self, alerts: Vec<AlertInfo>) {
-            *self.list_result.lock().unwrap() = alerts;
+            *self.list_result.lock().expect("Mutex poisoned") = alerts;
         }
 
         fn last_create_params(&self) -> Option<CreateAlertParams> {
-            self.last_create_params.lock().unwrap().clone()
+            self.last_create_params.lock().expect("Mutex poisoned").clone()
         }
 
         fn toggle_calls(&self) -> Vec<(String, String)> {
-            self.toggle_calls.lock().unwrap().clone()
+            self.toggle_calls.lock().expect("Mutex poisoned").clone()
         }
     }
 
     #[async_trait]
     impl AlertRepo for MockAlertRepo {
         async fn create(&self, params: &CreateAlertParams) -> Result<String, BackendError> {
-            *self.last_create_params.lock().unwrap() = Some(params.clone());
+            *self.last_create_params.lock().expect("Mutex poisoned") = Some(params.clone());
             Ok(params.id.clone())
         }
 
         async fn list_by_tenant(&self, _tenant_id: &str) -> Result<Vec<AlertInfo>, BackendError> {
-            Ok(self.list_result.lock().unwrap().clone())
+            Ok(self.list_result.lock().expect("Mutex poisoned").clone())
         }
 
         async fn toggle(&self, id: &str, tenant_id: &str) -> Result<bool, BackendError> {
@@ -137,7 +152,7 @@ mod tests {
                 .lock()
                 .unwrap()
                 .push((id.to_string(), tenant_id.to_string()));
-            Ok(*self.toggle_result.lock().unwrap())
+            Ok(*self.toggle_result.lock().expect("Mutex poisoned"))
         }
     }
 

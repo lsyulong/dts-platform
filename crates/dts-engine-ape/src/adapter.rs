@@ -1,3 +1,18 @@
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 use std::process::Stdio;
 use std::time::Duration;
 
@@ -6,7 +21,7 @@ use dts_engine::{EngineError, RunStatus, SyncProgress, TaskSubmission};
 use serde::Serialize;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 /// ape-dts 二进制文件路径（可通过环境变量覆盖）
 const DEFAULT_APE_DTS_BIN: &str = "../ape-dts/target/release/dt-main";
@@ -34,7 +49,7 @@ pub(crate) async fn run_sync(
         .unwrap_or_default();
 
     // 1. 发送启动进度
-    let _ = progress_tx.send(SyncProgress {
+    if let Err(_e) = progress_tx.send(SyncProgress {
         run_id: run_id.into(),
         task_id: task_id.clone(),
         status: RunStatus::Running,
@@ -47,7 +62,10 @@ pub(crate) async fn run_sync(
             "Starting ape-dts: {} -> {}, {} table(s)",
             task.source.db_type, task.target.db_type, total_tables,
         )),
-    });
+    }) {
+        warn!(run_id = %run_id, "progress receiver disconnected at startup");
+        return Err(EngineError::Internal("progress receiver disconnected".into()));
+    }
 
     // 2. 构建并写入配置文件
     let config = ApeDtsTomlConfig::from_submission(&task, run_id);
@@ -140,13 +158,15 @@ pub(crate) async fn run_sync(
         Err(e) => {
             error!(run_id = %run_id, error = %e, "stdout reader panicked");
             (0, None)
-        }
+        },
     };
     // 等待 stderr 排空后再清理（最多等待 2 秒）
     let _ = tokio::time::timeout(Duration::from_secs(2), stderr_handle).await;
 
     // 清理临时文件
-    let _ = std::fs::remove_file(&config_path);
+    if let Err(e) = std::fs::remove_file(&config_path) {
+        warn!(run_id = %run_id, path = %config_path, error = %e, "Failed to clean up temp config file");
+    }
 
     match exit_status {
         Ok(Ok(status)) if status.success() => {

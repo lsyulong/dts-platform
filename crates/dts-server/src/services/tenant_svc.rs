@@ -1,3 +1,18 @@
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 use std::sync::Arc;
 
 use anyhow::anyhow;
@@ -123,31 +138,31 @@ mod tests {
         }
 
         fn set_existing_slug(&self, slug: Option<&str>) {
-            *self.existing_slug.lock().unwrap() = slug.map(|s| s.to_string());
+            *self.existing_slug.lock().expect("Mutex poisoned") = slug.map(|s| s.to_string());
         }
 
         fn set_list_result(&self, tenants: Vec<TenantInfo>) {
-            *self.list_result.lock().unwrap() = tenants;
+            *self.list_result.lock().expect("Mutex poisoned") = tenants;
         }
 
         fn set_find_by_id_result(&self, tenant: Option<TenantInfo>) {
-            *self.find_by_id_result.lock().unwrap() = tenant;
+            *self.find_by_id_result.lock().expect("Mutex poisoned") = tenant;
         }
 
         fn created_tenants(&self) -> Vec<CreateTenantParams> {
-            self.created_tenants.lock().unwrap().clone()
+            self.created_tenants.lock().expect("Mutex poisoned").clone()
         }
     }
 
     #[async_trait]
     impl TenantRepo for MockTenantRepo {
         async fn create(&self, params: &CreateTenantParams) -> Result<String, BackendError> {
-            self.created_tenants.lock().unwrap().push(params.clone());
+            self.created_tenants.lock().expect("Mutex poisoned").push(params.clone());
             Ok(params.id.clone())
         }
 
         async fn find_by_slug(&self, slug: &str) -> Result<Option<TenantInfo>, BackendError> {
-            let existing = self.existing_slug.lock().unwrap();
+            let existing = self.existing_slug.lock().expect("Mutex poisoned");
             if let Some(ref s) = *existing {
                 if s == slug {
                     return Ok(Some(TenantInfo {
@@ -163,15 +178,15 @@ mod tests {
         }
 
         async fn find_by_id(&self, _id: &str) -> Result<Option<TenantInfo>, BackendError> {
-            Ok(self.find_by_id_result.lock().unwrap().clone())
+            Ok(self.find_by_id_result.lock().expect("Mutex poisoned").clone())
         }
 
         async fn list_all(&self) -> Result<Vec<TenantInfo>, BackendError> {
-            Ok(self.list_result.lock().unwrap().clone())
+            Ok(self.list_result.lock().expect("Mutex poisoned").clone())
         }
 
         async fn count(&self) -> Result<i64, BackendError> {
-            Ok(self.list_result.lock().unwrap().len() as i64)
+            Ok(self.list_result.lock().expect("Mutex poisoned").len() as i64)
         }
 
         async fn update(
@@ -203,17 +218,17 @@ mod tests {
         }
 
         fn created_roles_tenant_ids(&self) -> Vec<String> {
-            self.created_roles_tenant_ids.lock().unwrap().clone()
+            self.created_roles_tenant_ids.lock().expect("Mutex poisoned").clone()
         }
 
         #[allow(dead_code)]
         fn set_role_names(&self, names: Vec<String>) {
-            *self.role_names.lock().unwrap() = names;
+            *self.role_names.lock().expect("Mutex poisoned") = names;
         }
 
         #[allow(dead_code)]
         fn set_permissions(&self, perms: Vec<String>) {
-            *self.permissions.lock().unwrap() = perms;
+            *self.permissions.lock().expect("Mutex poisoned") = perms;
         }
     }
 
@@ -227,11 +242,11 @@ mod tests {
         }
 
         async fn find_user_role_names(&self, _user_id: &str) -> Result<Vec<String>, BackendError> {
-            Ok(self.role_names.lock().unwrap().clone())
+            Ok(self.role_names.lock().expect("Mutex poisoned").clone())
         }
 
         async fn find_user_permissions(&self, _user_id: &str) -> Result<Vec<String>, BackendError> {
-            Ok(self.permissions.lock().unwrap().clone())
+            Ok(self.permissions.lock().expect("Mutex poisoned").clone())
         }
 
         async fn create_default_roles(
@@ -294,22 +309,22 @@ mod tests {
 
         #[allow(dead_code)]
         fn set_find_result(&self, record: Option<dts_backend::types::UserRecord>) {
-            *self.find_result.lock().unwrap() = record;
+            *self.find_result.lock().expect("Mutex poisoned") = record;
         }
 
         fn created_users(&self) -> Vec<CreateUserParams> {
-            self.created_users.lock().unwrap().clone()
+            self.created_users.lock().expect("Mutex poisoned").clone()
         }
 
         fn role_assignments(&self) -> Vec<(String, String)> {
-            self.role_assignments.lock().unwrap().clone()
+            self.role_assignments.lock().expect("Mutex poisoned").clone()
         }
     }
 
     #[async_trait]
     impl UserRepo for MockUserRepo {
         async fn create(&self, params: &CreateUserParams) -> Result<String, BackendError> {
-            self.created_users.lock().unwrap().push(params.clone());
+            self.created_users.lock().expect("Mutex poisoned").push(params.clone());
             Ok(params.id.clone())
         }
 
@@ -318,7 +333,7 @@ mod tests {
             _tenant_id: &str,
             _username: &str,
         ) -> Result<Option<dts_backend::types::UserRecord>, BackendError> {
-            Ok(self.find_result.lock().unwrap().clone())
+            Ok(self.find_result.lock().expect("Mutex poisoned").clone())
         }
 
         async fn find_detail_by_id(

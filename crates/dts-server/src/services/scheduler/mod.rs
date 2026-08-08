@@ -1,3 +1,18 @@
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 use std::sync::Arc;
 
 use dashmap::DashMap;
@@ -147,17 +162,23 @@ impl TaskScheduler {
                 // 任务结束时更新 task 状态
                 match progress.status {
                     dts_engine::RunStatus::Completed => {
-                        let _ = task_repo.update_status(&tid, &tid2, "completed").await;
+                        if let Err(e) = task_repo.update_status(&tid, &tid2, "completed").await {
+                            error!(task_id = %tid, error = %e, "Failed to update task status to completed");
+                        }
                         info!(task_id = %tid, run_id = %rid, "同步任务完成");
                         active.remove(&rid);
                     },
                     dts_engine::RunStatus::Failed => {
-                        let _ = task_repo.update_status(&tid, &tid2, "failed").await;
+                        if let Err(e) = task_repo.update_status(&tid, &tid2, "failed").await {
+                            error!(task_id = %tid, error = %e, "Failed to update task status to failed");
+                        }
                         error!(task_id = %tid, run_id = %rid, "同步任务失败");
                         active.remove(&rid);
                     },
                     dts_engine::RunStatus::Cancelled => {
-                        let _ = task_repo.update_status(&tid, &tid2, "failed").await;
+                        if let Err(e) = task_repo.update_status(&tid, &tid2, "failed").await {
+                            error!(task_id = %tid, error = %e, "Failed to update task status to cancelled");
+                        }
                         info!(task_id = %tid, run_id = %rid, "同步任务已取消");
                         active.remove(&rid);
                     },
