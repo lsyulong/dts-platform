@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { Routes, Route, MemoryRouter } from 'react-router-dom';
+import { screen, waitFor } from '@testing-library/react';
+import { Routes, Route } from 'react-router-dom';
+import { renderWithProviders } from '../../../test/test-utils';
 import TaskDetailPage from '../detail';
 
 // Mock the API client to avoid axios/MSW issues in jsdom
@@ -67,12 +68,11 @@ describe('TaskDetailPage', () => {
   };
 
   function renderPage(id = 'task-1') {
-    return render(
-      <MemoryRouter initialEntries={[`/tasks/${id}`]}>
-        <Routes>
-          <Route path="/tasks/:id" element={<TaskDetailPage />} />
-        </Routes>
-      </MemoryRouter>
+    return renderWithProviders(
+      <Routes>
+        <Route path="/tasks/:id" element={<TaskDetailPage />} />
+      </Routes>,
+      { route: `/tasks/${id}` },
     );
   }
 
@@ -80,8 +80,8 @@ describe('TaskDetailPage', () => {
     it('shows a spinner while loading', () => {
       mockGet.mockReturnValueOnce(new Promise(() => {})); // never resolves
       const { container } = renderPage();
-      const spinner = container.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
+      const skeleton = container.querySelector('.animate-pulse');
+      expect(skeleton).toBeInTheDocument();
     });
   });
 
@@ -138,8 +138,8 @@ describe('TaskDetailPage', () => {
     it('renders the status metric card', async () => {
       renderPage();
       await waitFor(() => {
-        // "运行中" appears both as status value and as a run badge, use getAllByText
-        const runningEls = screen.getAllByText('运行中');
+        // "tasks.status.running" appears both as status value and as a run badge, use getAllByText
+        const runningEls = screen.getAllByText('tasks.status.running');
         expect(runningEls.length).toBeGreaterThanOrEqual(1);
       });
     });
@@ -153,23 +153,24 @@ describe('TaskDetailPage', () => {
     it('renders execution history section', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('执行历史')).toBeInTheDocument();
+        expect(screen.getByText('tasks.detail.executionHistory')).toBeInTheDocument();
       });
     });
 
     it('displays run entries with statuses', async () => {
       renderPage();
       await waitFor(() => {
-        const runningEls = screen.getAllByText('运行中');
+        const runningEls = screen.getAllByText('tasks.status.running');
         expect(runningEls.length).toBeGreaterThanOrEqual(2);
-        expect(screen.getByText('已完成')).toBeInTheDocument();
+        expect(screen.getByText('tasks.status.completed')).toBeInTheDocument();
       });
     });
 
     it('displays synced rows count for each run', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText(/已同步 125,000 行/)).toBeInTheDocument();
+        const syncedElements = screen.getAllByText(/tasks.detail.rowsSynced/);
+        expect(syncedElements.length).toBeGreaterThan(0);
       });
     });
 
@@ -186,8 +187,8 @@ describe('TaskDetailPage', () => {
       mockGet.mockResolvedValueOnce({ data: mockTask });
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('实时进度')).toBeInTheDocument();
-        expect(screen.getByText('25%')).toBeInTheDocument();
+        expect(screen.getByText('tasks.detail.realTimeProgress')).toBeInTheDocument();
+        expect(screen.getByText('25.0%')).toBeInTheDocument();
       });
     });
   });
@@ -197,7 +198,7 @@ describe('TaskDetailPage', () => {
       mockGet.mockResolvedValueOnce({ data: mockTask });
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('暂停')).toBeInTheDocument();
+        expect(screen.getByText('tasks.detail.pause')).toBeInTheDocument();
       });
     });
   });

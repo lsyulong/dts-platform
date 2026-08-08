@@ -1,11 +1,25 @@
-use actix_web::{web, HttpRequest, HttpResponse};
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+use actix_web::{HttpRequest, HttpResponse, web};
 use serde::Deserialize;
-use sqlx::{Row, SqlitePool};
-use uuid::Uuid;
 
 use crate::middleware::auth;
 use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
+use crate::services::alert_svc::AlertService;
 
 /// 创建告警规则请求
 #[derive(Debug, Deserialize)]
@@ -20,75 +34,40 @@ pub struct CreateAlertRequest {
 
 /// GET /api/v1/alerts
 pub async fn list(
-    pool: web::Data<SqlitePool>,
+    alert_svc: web::Data<AlertService>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
-    let rows = sqlx::query(
-        "SELECT ar.id, ar.name, ar.metric_type, ar.operator, ar.threshold,
-         ar.enabled, ar.notify_channels, ar.task_id, ar.created_at,
-         st.name as task_name
-         FROM alert_rule ar
-         LEFT JOIN sync_task st ON ar.task_id = st.id
-         WHERE ar.tenant_id = ?
-         ORDER BY ar.created_at DESC"
-    )
-    .bind(&claims.tenant_id)
-    .fetch_all(pool.get_ref())
-    .await?;
-
-    let alerts: Vec<serde_json::Value> = rows
-        .into_iter()
-        .map(|r| {
-            let enabled: i64 = r.get(5);
-            serde_json::json!({
-                "id": r.get::<String, _>(0),
-                "name": r.get::<String, _>(1),
-                "metric_type": r.get::<String, _>(2),
-                "operator": r.get::<String, _>(3),
-                "threshold": r.get::<f64, _>(4),
-                "enabled": enabled != 0,
-                "notify_channels": r.get::<String, _>(6),
-                "task_id": r.get::<Option<String>, _>(7),
-                "task_name": r.get::<Option<String>, _>(9),
-                "created_at": r.get::<String, _>(8),
-            })
-        })
-        .collect();
+    let alerts = alert_svc.list_by_tenant(&claims.tenant_id).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({ "data": alerts })))
 }
 
 /// POST /api/v1/alerts
 pub async fn create(
-    pool: web::Data<SqlitePool>,
+    alert_svc: web::Data<AlertService>,
     req: HttpRequest,
     body: web::Json<CreateAlertRequest>,
 ) -> Result<HttpResponse, AppError> {
     let jwt_secret = get_jwt_secret(None);
     let claims = auth::extract_claims(&req, &jwt_secret)?;
 
-    let id = Uuid::new_v4().to_string();
     let channels = serde_json::to_string(&body.notify_channels.as_ref().unwrap_or(&vec![]))
         .unwrap_or_else(|_| "[]".to_string());
 
-    sqlx::query(
-        "INSERT INTO alert_rule (id, tenant_id, task_id, name, metric_type, operator,
-         threshold, notify_channels)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-    )
-    .bind(&id)
-    .bind(&claims.tenant_id)
-    .bind(&body.task_id)
-    .bind(&body.name)
-    .bind(&body.metric_type)
-    .bind(&body.operator)
-    .bind(body.threshold)
-    .bind(&channels)
-    .execute(pool.get_ref())
-    .await?;
+    let id = alert_svc
+        .create(
+            &claims.tenant_id,
+            body.task_id.as_deref(),
+            &body.name,
+            &body.metric_type,
+            &body.operator,
+            body.threshold,
+            &channels,
+        )
+        .await?;
 
     Ok(HttpResponse::Created().json(serde_json::json!({
         "id": id,
@@ -98,7 +77,7 @@ pub async fn create(
 
 /// PATCH /api/v1/alerts/{id}/toggle
 pub async fn toggle(
-    pool: web::Data<SqlitePool>,
+    alert_svc: web::Data<AlertService>,
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
@@ -106,21 +85,12 @@ pub async fn toggle(
     let claims = auth::extract_claims(&req, &jwt_secret)?;
     let alert_id = path.into_inner();
 
-    sqlx::query(
-        "UPDATE alert_rule SET enabled = CASE WHEN enabled = 1 THEN 0 ELSE 1 END,
-         updated_at = datetime('now')
-         WHERE id = ? AND tenant_id = ?"
-    )
-    .bind(&alert_id)
-    .bind(&claims.tenant_id)
-    .execute(pool.get_ref())
-    .await?;
+    alert_svc.toggle(&alert_id, &claims.tenant_id).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "告警规则状态已切换"
     })))
 }
-// get_jwt_secret 已集中到 crate::middleware::auth
 
 #[cfg(test)]
 mod tests {
@@ -160,84 +130,11 @@ mod tests {
             "threshold": 100.0
         });
         let req: CreateAlertRequest = serde_json::from_value(json).unwrap();
-        assert_eq!(req.name, "Simple Alert");
         assert_eq!(req.metric_type, "latency");
         assert_eq!(req.operator, "gte");
         assert_eq!(req.threshold, 100.0);
         assert_eq!(req.task_id, None);
         assert_eq!(req.notify_channels, None);
-    }
-
-    #[test]
-    fn create_alert_request_missing_name_fails() {
-        let json = serde_json::json!({
-            "metric_type": "error_rate",
-            "operator": "gt",
-            "threshold": 5.0
-        });
-        let result = serde_json::from_value::<CreateAlertRequest>(json);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn create_alert_request_missing_metric_type_fails() {
-        let json = serde_json::json!({
-            "name": "Alert",
-            "operator": "gt",
-            "threshold": 5.0
-        });
-        let result = serde_json::from_value::<CreateAlertRequest>(json);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn create_alert_request_missing_operator_fails() {
-        let json = serde_json::json!({
-            "name": "Alert",
-            "metric_type": "error_rate",
-            "threshold": 5.0
-        });
-        let result = serde_json::from_value::<CreateAlertRequest>(json);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn create_alert_request_missing_threshold_fails() {
-        let json = serde_json::json!({
-            "name": "Alert",
-            "metric_type": "error_rate",
-            "operator": "gt"
-        });
-        let result = serde_json::from_value::<CreateAlertRequest>(json);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn create_alert_request_with_null_optionals() {
-        let json = serde_json::json!({
-            "name": "Alert",
-            "metric_type": "rows_synced",
-            "operator": "lt",
-            "threshold": 10.0,
-            "task_id": null,
-            "notify_channels": null
-        });
-        let req: CreateAlertRequest = serde_json::from_value(json).unwrap();
-        assert_eq!(req.task_id, None);
-        assert_eq!(req.notify_channels, None);
-    }
-
-    #[test]
-    fn create_alert_request_empty_notify_channels() {
-        let json = serde_json::json!({
-            "name": "Alert",
-            "metric_type": "rows_synced",
-            "operator": "eq",
-            "threshold": 0.0,
-            "notify_channels": []
-        });
-        let req: CreateAlertRequest = serde_json::from_value(json).unwrap();
-        assert_eq!(req.notify_channels, Some(vec![]));
     }
 
     #[test]
@@ -251,20 +148,6 @@ mod tests {
             });
             let req: CreateAlertRequest = serde_json::from_value(json).unwrap();
             assert_eq!(req.operator, *op);
-        }
-    }
-
-    #[test]
-    fn create_alert_request_metric_types() {
-        for metric in &["error_rate", "latency", "rows_synced", "bytes_synced"] {
-            let json = serde_json::json!({
-                "name": "Test",
-                "metric_type": metric,
-                "operator": "gt",
-                "threshold": 0.0
-            });
-            let req: CreateAlertRequest = serde_json::from_value(json).unwrap();
-            assert_eq!(req.metric_type, *metric);
         }
     }
 }

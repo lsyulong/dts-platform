@@ -1,4 +1,19 @@
-use actix_web::{web, HttpRequest, HttpResponse};
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+use actix_web::{HttpRequest, HttpResponse, web};
 use actix_ws::Message;
 use futures::StreamExt;
 use tokio::sync::broadcast;
@@ -9,6 +24,12 @@ use crate::models::error::AppError;
 #[derive(Clone)]
 pub struct WsHub {
     pub tx: broadcast::Sender<(String, String)>,
+}
+
+impl Default for WsHub {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl WsHub {
@@ -30,9 +51,15 @@ impl WsHub {
     }
 
     /// 向任务频道推送进度
-    pub fn push_progress(&self, task_id: &str, rows_synced: u64, bytes_synced: u64, total_rows: u64) {
+    pub fn push_progress(
+        &self,
+        task_id: &str,
+        rows_synced: u64,
+        bytes_synced: u64,
+        total_rows: u64,
+    ) {
         let percentage = if total_rows > 0 {
-            (rows_synced as f64 / total_rows as f64 * 100.0)
+            rows_synced as f64 / total_rows as f64 * 100.0
         } else {
             0.0
         };
@@ -58,11 +85,9 @@ pub async fn task_log_ws(
 ) -> Result<HttpResponse, AppError> {
     let task_id = path.into_inner();
 
-    log::info!("WebSocket 连接请求: task_id={}", task_id);
+    tracing::info!("WebSocket 连接请求: task_id={task_id}");
 
     let (response, mut session, mut msg_stream) = actix_ws::handle(&req, stream)?;
-
-    let task_id_clone = task_id.clone();
     let mut rx = hub.tx.subscribe();
 
     let mut heartbeat_interval = tokio::time::interval(tokio::time::Duration::from_secs(15));
@@ -72,14 +97,14 @@ pub async fn task_log_ws(
             tokio::select! {
                 result = rx.recv() => {
                     match result {
-                        Ok((tid, msg)) if tid == task_id_clone => {
+                        Ok((tid, msg)) if tid == task_id => {
                             if session.text(msg).await.is_err() {
                                 break;
                             }
                         }
                         Ok(_) => {}
                         Err(broadcast::error::RecvError::Lagged(n)) => {
-                            log::warn!("WebSocket 广播落后 {} 条消息", n);
+                            tracing::warn!("WebSocket 广播落后 {n} 条消息");
                         }
                         Err(_) => break,
                     }
@@ -100,7 +125,7 @@ pub async fn task_log_ws(
                 }
             }
         }
-        log::info!("WebSocket 连接关闭: task_id={}", task_id_clone);
+        tracing::info!("WebSocket 连接关闭: task_id={task_id}");
     });
 
     Ok(response)
@@ -141,8 +166,7 @@ mod tests {
         let received = rx.try_recv().unwrap();
         assert_eq!(received.0, "task-1");
 
-        let payload: serde_json::Value =
-            serde_json::from_str(&received.1).unwrap();
+        let payload: serde_json::Value = serde_json::from_str(&received.1).unwrap();
         assert_eq!(payload["type"], "log");
         assert_eq!(payload["task_id"], "task-1");
         assert_eq!(payload["level"], "info");
@@ -179,8 +203,7 @@ mod tests {
         let levels: Vec<String> = (0..3)
             .map(|_| {
                 let msg = rx.try_recv().unwrap();
-                let payload: serde_json::Value =
-                    serde_json::from_str(&msg.1).unwrap();
+                let payload: serde_json::Value = serde_json::from_str(&msg.1).unwrap();
                 payload["level"].as_str().unwrap().to_string()
             })
             .collect();
@@ -195,8 +218,7 @@ mod tests {
         hub.push_log("task-1", "info", "");
 
         let received = rx.try_recv().unwrap();
-        let payload: serde_json::Value =
-            serde_json::from_str(&received.1).unwrap();
+        let payload: serde_json::Value = serde_json::from_str(&received.1).unwrap();
         assert_eq!(payload["message"], "");
         assert_eq!(payload["type"], "log");
     }
@@ -213,8 +235,7 @@ mod tests {
         let received = rx.try_recv().unwrap();
         assert_eq!(received.0, "task-1");
 
-        let payload: serde_json::Value =
-            serde_json::from_str(&received.1).unwrap();
+        let payload: serde_json::Value = serde_json::from_str(&received.1).unwrap();
         assert_eq!(payload["type"], "progress");
         assert_eq!(payload["task_id"], "task-1");
         assert_eq!(payload["rows_synced"], 50);
@@ -240,8 +261,7 @@ mod tests {
         for (rows_synced, total_rows, expected_pct) in cases {
             hub.push_progress("t1", rows_synced, 0, total_rows);
             let received = rx.try_recv().unwrap();
-            let payload: serde_json::Value =
-                serde_json::from_str(&received.1).unwrap();
+            let payload: serde_json::Value = serde_json::from_str(&received.1).unwrap();
             let pct = payload["percentage"].as_f64().unwrap();
             assert!(
                 (pct - expected_pct).abs() < 0.01,
@@ -262,8 +282,7 @@ mod tests {
         hub.push_progress("task-1", 10, 256, 0);
 
         let received = rx.try_recv().unwrap();
-        let payload: serde_json::Value =
-            serde_json::from_str(&received.1).unwrap();
+        let payload: serde_json::Value = serde_json::from_str(&received.1).unwrap();
         assert_eq!(payload["percentage"].as_f64().unwrap(), 0.0);
     }
 
@@ -275,8 +294,7 @@ mod tests {
         hub.push_progress("task-1", 500_000_000, 10_000_000_000, 1_000_000_000);
 
         let received = rx.try_recv().unwrap();
-        let payload: serde_json::Value =
-            serde_json::from_str(&received.1).unwrap();
+        let payload: serde_json::Value = serde_json::from_str(&received.1).unwrap();
         let pct = payload["percentage"].as_f64().unwrap();
         assert!((pct - 50.0).abs() < 0.01);
     }

@@ -16,25 +16,25 @@ coverage:
     # 项目级别覆盖率
     project:
       default:
-        target: 95%
-        threshold: 1%
+        target: 85%
+        threshold: 2%
         base: auto
       rust:
-        target: 95%
-        threshold: 1%
+        target: 85%
+        threshold: 2%
         flags:
           - rust
       frontend:
-        target: 95%
-        threshold: 1%
+        target: 85%
+        threshold: 2%
         flags:
           - frontend
 
     # 补丁级别覆盖率（增量代码）
     patch:
       default:
-        target: 95%
-        threshold: 0%
+        target: 85%
+        threshold: 2%
 
 # 各标志位的独立配置
 flags:

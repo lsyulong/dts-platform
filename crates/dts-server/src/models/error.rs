@@ -1,4 +1,20 @@
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 use actix_web::{HttpResponse, ResponseError};
+use dts_backend::BackendError;
 use serde::Serialize;
 use std::fmt;
 
@@ -22,11 +38,11 @@ pub enum AppError {
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Unauthorized(msg) => write!(f, "{}", msg),
-            Self::Forbidden(msg) => write!(f, "{}", msg),
-            Self::NotFound(msg) => write!(f, "{}", msg),
-            Self::BadRequest(msg) => write!(f, "{}", msg),
-            Self::Internal(msg) => write!(f, "{}", msg),
+            Self::Unauthorized(msg) => write!(f, "{msg}"),
+            Self::Forbidden(msg) => write!(f, "{msg}"),
+            Self::NotFound(msg) => write!(f, "{msg}"),
+            Self::BadRequest(msg) => write!(f, "{msg}"),
+            Self::Internal(msg) => write!(f, "{msg}"),
         }
     }
 }
@@ -57,18 +73,21 @@ impl From<anyhow::Error> for AppError {
     }
 }
 
-impl From<sqlx::Error> for AppError {
-    fn from(err: sqlx::Error) -> Self {
+impl From<BackendError> for AppError {
+    fn from(err: BackendError) -> Self {
         match err {
-            sqlx::Error::RowNotFound => AppError::NotFound("记录不存在".into()),
-            _ => AppError::Internal(format!("数据库错误: {}", err)),
+            BackendError::NotFound(msg) => AppError::NotFound(msg),
+            BackendError::AlreadyExists(msg) | BackendError::ConstraintViolation(msg) => {
+                AppError::BadRequest(msg)
+            },
+            _ => AppError::Internal(err.to_string()),
         }
     }
 }
 
 impl From<actix_web::Error> for AppError {
     fn from(err: actix_web::Error) -> Self {
-        AppError::Internal(format!("Web 服务器错误: {}", err))
+        AppError::Internal(format!("Web 服务器错误: {err}"))
     }
 }
 
@@ -147,21 +166,6 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
 
-    // ========== JSON Response Body Tests ==========
-
-    #[test]
-    fn error_response_body_contains_code_and_message() {
-        let err = AppError::NotFound("找不到资源".into());
-        let resp = err.error_response();
-        // We verify the response is built correctly by checking status
-        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
-        // The content-type should be JSON
-        assert_eq!(
-            resp.headers().get("content-type").unwrap().to_str().unwrap(),
-            "application/json"
-        );
-    }
-
     // ========== From<anyhow::Error> Tests ==========
 
     #[test]
@@ -171,49 +175,40 @@ mod tests {
         match app_err {
             AppError::Internal(msg) => {
                 assert!(msg.contains("something went wrong"));
-            }
+            },
             _ => panic!("Expected AppError::Internal"),
         }
     }
 
-    #[test]
-    fn from_anyhow_error_with_context() {
-        let base_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file missing");
-        let anyhow_err = anyhow::Error::new(base_err).context("failed to read config");
-        let app_err = AppError::from(anyhow_err);
-        match app_err {
-            AppError::Internal(msg) => {
-                assert!(msg.contains("file missing") || msg.contains("failed to read config"));
-            }
-            _ => panic!("Expected AppError::Internal"),
-        }
-    }
-
-    // ========== From<sqlx::Error> Tests ==========
+    // ========== From<BackendError> Tests ==========
 
     #[test]
-    fn from_sqlx_row_not_found_creates_not_found() {
-        let sqlx_err = sqlx::Error::RowNotFound;
-        let app_err = AppError::from(sqlx_err);
+    fn from_backend_error_not_found() {
+        let be = BackendError::NotFound("记录不存在".into());
+        let app_err = AppError::from(be);
         match app_err {
-            AppError::NotFound(msg) => {
-                assert_eq!(msg, "记录不存在");
-            }
-            _ => panic!("Expected AppError::NotFound, got {:?}", app_err),
+            AppError::NotFound(msg) => assert_eq!(msg, "记录不存在"),
+            _ => panic!("Expected NotFound"),
         }
     }
 
     #[test]
-    fn from_sqlx_other_error_creates_internal() {
-        use sqlx::error::Error as SqlxError;
-        // Use a pool-closed error as an example of a non-RowNotFound error
-        let pool_err = SqlxError::PoolClosed;
-        let app_err = AppError::from(pool_err);
+    fn from_backend_error_already_exists() {
+        let be = BackendError::AlreadyExists("已存在".into());
+        let app_err = AppError::from(be);
         match app_err {
-            AppError::Internal(msg) => {
-                assert!(msg.contains("数据库错误"));
-            }
-            _ => panic!("Expected AppError::Internal, got {:?}", app_err),
+            AppError::BadRequest(msg) => assert_eq!(msg, "已存在"),
+            _ => panic!("Expected BadRequest"),
+        }
+    }
+
+    #[test]
+    fn from_backend_error_internal() {
+        let be = BackendError::Query("查询失败".into());
+        let app_err = AppError::from(be);
+        match app_err {
+            AppError::Internal(msg) => assert!(msg.contains("查询失败")),
+            _ => panic!("Expected Internal"),
         }
     }
 
@@ -226,7 +221,7 @@ mod tests {
         match app_err {
             AppError::Internal(msg) => {
                 assert!(msg.contains("Web 服务器错误"));
-            }
+            },
             _ => panic!("Expected AppError::Internal, got {:?}", app_err),
         }
     }

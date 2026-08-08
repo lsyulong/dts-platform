@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { server } from '../../../test/mocks/server';
+import { renderWithProviders } from '../../../test/test-utils';
 import TaskListPage from '../index';
 
 describe('TaskListPage', () => {
@@ -11,18 +11,14 @@ describe('TaskListPage', () => {
   afterAll(() => server.close());
 
   function renderPage() {
-    return render(
-      <MemoryRouter initialEntries={['/tasks']}>
-        <TaskListPage />
-      </MemoryRouter>
-    );
+    return renderWithProviders(<TaskListPage />, { route: '/tasks' });
   }
 
   describe('loading state', () => {
     it('shows a spinner while loading', () => {
       const { container } = renderPage();
-      const spinner = container.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
+      const skeleton = container.querySelector('.animate-pulse');
+      expect(skeleton).toBeInTheDocument();
     });
   });
 
@@ -30,21 +26,21 @@ describe('TaskListPage', () => {
     it('renders the page header', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('任务管理')).toBeInTheDocument();
+        expect(screen.getByText('tasks.title')).toBeInTheDocument();
       });
     });
 
     it('renders the subtitle', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('管理所有数据同步任务')).toBeInTheDocument();
+        expect(screen.getByText('tasks.subtitle')).toBeInTheDocument();
       });
     });
 
     it('renders the create task link button', async () => {
       renderPage();
       await waitFor(() => {
-        const createLink = screen.getByText('创建任务');
+        const createLink = screen.getByText('tasks.createTask');
         expect(createLink).toBeInTheDocument();
         expect(createLink.closest('a')?.getAttribute('href')).toBe('/tasks/create');
       });
@@ -53,7 +49,7 @@ describe('TaskListPage', () => {
     it('renders the search input', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByPlaceholderText(/搜索任务名称或描述/)).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/tasks.searchPlaceholder/)).toBeInTheDocument();
       });
     });
 
@@ -71,11 +67,11 @@ describe('TaskListPage', () => {
     it('displays task status labels in Chinese', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('运行中')).toBeInTheDocument();
-        expect(screen.getByText('草稿')).toBeInTheDocument();
-        expect(screen.getByText('已暂停')).toBeInTheDocument();
-        expect(screen.getByText('失败')).toBeInTheDocument();
-        expect(screen.getByText('已完成')).toBeInTheDocument();
+        expect(screen.getByText('tasks.status.running')).toBeInTheDocument();
+        expect(screen.getByText('tasks.status.draft')).toBeInTheDocument();
+        expect(screen.getByText('tasks.status.paused')).toBeInTheDocument();
+        expect(screen.getByText('tasks.status.failed')).toBeInTheDocument();
+        expect(screen.getByText('tasks.status.completed')).toBeInTheDocument();
       });
     });
 
@@ -102,7 +98,7 @@ describe('TaskListPage', () => {
 
       await waitFor(() => screen.getByText('MySQL to PostgreSQL Sync'));
 
-      const searchInput = screen.getByPlaceholderText(/搜索任务名称或描述/);
+      const searchInput = screen.getByPlaceholderText(/tasks.searchPlaceholder/);
       await user.type(searchInput, 'MySQL');
 
       await waitFor(() => {
@@ -117,7 +113,7 @@ describe('TaskListPage', () => {
 
       await waitFor(() => screen.getByText('MySQL to PostgreSQL Sync'));
 
-      const searchInput = screen.getByPlaceholderText(/搜索任务名称或描述/);
+      const searchInput = screen.getByPlaceholderText(/tasks.searchPlaceholder/);
       await user.clear(searchInput);
       await user.type(searchInput, 'Real-time');
 
@@ -133,12 +129,12 @@ describe('TaskListPage', () => {
 
       await waitFor(() => screen.getByText('MySQL to PostgreSQL Sync'));
 
-      const searchInput = screen.getByPlaceholderText(/搜索任务名称或描述/);
+      const searchInput = screen.getByPlaceholderText(/tasks.searchPlaceholder/);
       await user.type(searchInput, 'NONEXISTENT');
 
       await waitFor(() => {
-        expect(screen.getByText('暂无同步任务')).toBeInTheDocument();
-        expect(screen.getByText('创建第一个任务 →')).toBeInTheDocument();
+        expect(screen.getByText('tasks.noTasks')).toBeInTheDocument();
+        expect(screen.getByText('tasks.createFirst →')).toBeInTheDocument();
       });
     });
   });
@@ -148,7 +144,7 @@ describe('TaskListPage', () => {
       renderPage();
       await waitFor(() => screen.getByText('MongoDB to ClickHouse'));
       // The play buttons are in a hidden (opacity-0) group, visible on hover
-      const playButtons = screen.getAllByTitle('启动');
+      const playButtons = screen.getAllByTitle('tasks.detail.start');
       expect(playButtons.length).toBeGreaterThan(0);
     });
 
@@ -156,7 +152,7 @@ describe('TaskListPage', () => {
       renderPage();
       await waitFor(() => screen.getByText('MySQL to PostgreSQL Sync'));
 
-      const pauseButtons = screen.getAllByTitle('暂停');
+      const pauseButtons = screen.getAllByTitle('tasks.detail.pause');
       expect(pauseButtons.length).toBeGreaterThan(0);
     });
 
@@ -164,7 +160,7 @@ describe('TaskListPage', () => {
       renderPage();
       await waitFor(() => screen.getByText('MySQL to PostgreSQL Sync'));
 
-      const viewLinks = screen.getAllByText('查看');
+      const viewLinks = screen.getAllByText('common.view');
       expect(viewLinks.length).toBe(5);
     });
   });

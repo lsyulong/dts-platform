@@ -1,0 +1,17 @@
+[package]
+name = "dts-scheduler-client"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "jiascheduler REST API 客户端，用于 DTS Platform 集成调度能力"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tokio = { workspace = true }
+reqwest = { version = "0.12", features = ["json", "cookies"] }
+tracing = "0.1"

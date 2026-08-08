@@ -1,0 +1,22 @@
+[package]
+name = "dts-engine-ape"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "ape-dts 引擎封装，实现 EngineService trait"
+
+[lints]
+workspace = true
+
+[dependencies]
+dts-engine = { path = "../dts-engine" }
+dts-core = { path = "../dts-core" }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+tracing = "0.1"
+uuid = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+toml = "0.8"

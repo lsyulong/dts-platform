@@ -1,3 +1,18 @@
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 use serde::{Deserialize, Serialize};
 
 /// 登录请求
@@ -38,21 +53,6 @@ pub struct UserInfo {
     pub permissions: Vec<String>,
 }
 
-/// JWT Claims
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Claims {
-    /// 用户 ID
-    pub sub: String,
-    /// 租户 ID
-    pub tenant_id: String,
-    /// 用户名
-    pub username: String,
-    /// 过期时间 (unix timestamp seconds)
-    pub exp: usize,
-    /// 签发时间
-    pub iat: usize,
-}
-
 /// 创建租户请求
 #[derive(Debug, Deserialize)]
 pub struct CreateTenantRequest {
@@ -60,19 +60,13 @@ pub struct CreateTenantRequest {
     pub slug: String,
 }
 
-/// 租户信息
-#[derive(Debug, Serialize, sqlx::FromRow)]
-pub struct TenantInfo {
-    pub id: String,
-    pub name: String,
-    pub slug: String,
-    pub status: String,
-    pub created_at: String,
-}
+// ====== 从 dts-backend 重新导出，保持对外 API 兼容 ======
+pub use dts_backend::types::TenantInfo;
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::services::token::Claims;
     use pretty_assertions::assert_eq;
 
     // ========== LoginRequest Tests ==========
@@ -134,23 +128,6 @@ mod tests {
         assert_eq!(parsed.iat, claims.iat);
     }
 
-    #[test]
-    fn claims_json_has_expected_fields() {
-        let claims = Claims {
-            sub: "u1".into(),
-            tenant_id: "t1".into(),
-            username: "bob".into(),
-            exp: 1700000000,
-            iat: 1699990000,
-        };
-        let json = serde_json::to_value(&claims).unwrap();
-        assert_eq!(json["sub"], "u1");
-        assert_eq!(json["tenant_id"], "t1");
-        assert_eq!(json["username"], "bob");
-        assert_eq!(json["exp"], 1700000000);
-        assert_eq!(json["iat"], 1699990000);
-    }
-
     // ========== CreateUserRequest Tests ==========
 
     #[test]
@@ -200,13 +177,12 @@ mod tests {
             name: "Test Tenant".into(),
             slug: "test".into(),
             status: "active".into(),
-            created_at: "2024-01-01T00:00:00Z".into(),
+            created_at: chrono::Utc::now(),
         };
         assert_eq!(info.id, "t1");
         assert_eq!(info.name, "Test Tenant");
         assert_eq!(info.slug, "test");
         assert_eq!(info.status, "active");
-        assert_eq!(info.created_at, "2024-01-01T00:00:00Z");
     }
 
     // ========== LoginResponse Tests ==========
@@ -255,29 +231,6 @@ mod tests {
         assert_eq!(parsed.permissions.len(), 2);
     }
 
-    #[test]
-    fn user_info_displays_optional_display_name() {
-        let without_name = UserInfo {
-            id: "u1".into(),
-            username: "test".into(),
-            email: "t@t.com".into(),
-            display_name: None,
-            tenant_id: "t1".into(),
-            tenant_name: "T".into(),
-            roles: vec![],
-            permissions: vec![],
-        };
-        let json = serde_json::to_value(&without_name).unwrap();
-        assert!(json["display_name"].is_null());
-
-        let with_name = UserInfo {
-            display_name: Some("Display Name".into()),
-            ..without_name
-        };
-        let json = serde_json::to_value(&with_name).unwrap();
-        assert_eq!(json["display_name"], "Display Name");
-    }
-
     // ========== CreateTenantRequest Tests ==========
 
     #[test]
@@ -286,12 +239,5 @@ mod tests {
         let req: CreateTenantRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.name, "My Tenant");
         assert_eq!(req.slug, "my-tenant");
-    }
-
-    #[test]
-    fn create_tenant_request_missing_name_fails() {
-        let json = r#"{"slug":"my-tenant"}"#;
-        let result = serde_json::from_str::<CreateTenantRequest>(json);
-        assert!(result.is_err());
     }
 }

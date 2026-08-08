@@ -21,7 +21,12 @@ dist/
 .idea/
 *.swp
 *.swo
+
+# Claude
 .claude/
+.agents/
+skills-lock.json
+docs/superpowers/
 
 # OS
 .DS_Store

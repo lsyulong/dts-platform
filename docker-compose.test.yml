@@ -1,0 +1,21 @@
+# Docker Compose for local PostgreSQL integration tests
+# Usage: docker compose -f docker-compose.test.yml up -d
+#        DATABASE_URL="postgresql://dts:dts_test@localhost:5433/dts_test" cargo test -p dts-backend-postgres
+
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: dts-postgres-test
+    environment:
+      POSTGRES_USER: dts
+      POSTGRES_PASSWORD: dts_test
+      POSTGRES_DB: dts_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dts -d dts_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 10

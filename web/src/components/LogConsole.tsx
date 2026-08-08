@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface LogEntry {
   timestamp: string;
@@ -17,11 +18,12 @@ const levelColors: Record<string, string> = {
   INFO: 'text-blue-400',
   WARN: 'text-amber-400',
   ERROR: 'text-rose-400',
-  DEBUG: 'text-zinc-500',
+  DEBUG: 'text-[var(--color-text-tertiary)]',
   FATAL: 'text-red-600',
 };
 
-export default function LogConsole({ title = '实时日志', logs = [], maxHeight = '300px' }: LogConsoleProps) {
+export default function LogConsole({ title, logs = [], maxHeight = '300px' }: LogConsoleProps) {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState('ALL');
 
@@ -32,12 +34,13 @@ export default function LogConsole({ title = '实时日志', logs = [], maxHeigh
   }, [logs]);
 
   const filteredLogs = filter === 'ALL' ? logs : logs.filter((l) => l.level === filter);
+  const displayTitle = title || t('dashboard.realtimeLog');
 
   return (
-    <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 backdrop-blur-sm">
+    <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] backdrop-blur-sm">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800/60 px-4 py-3">
-        <h3 className="text-sm font-medium text-zinc-300">{title}</h3>
+      <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-4 py-3">
+        <h3 className="text-sm font-medium text-[var(--color-text-secondary)]">{displayTitle}</h3>
         <div className="flex gap-2">
           {['ALL', 'INFO', 'WARN', 'ERROR'].map((level) => (
             <button
@@ -45,8 +48,8 @@ export default function LogConsole({ title = '实时日志', logs = [], maxHeigh
               onClick={() => setFilter(level)}
               className={`rounded-lg px-2 py-0.5 text-xs font-medium transition-colors ${
                 filter === level
-                  ? 'bg-zinc-700 text-zinc-200'
-                  : 'text-zinc-500 hover:text-zinc-300'
+                  ? 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)]'
+                  : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'
               }`}
             >
               {level}
@@ -62,16 +65,16 @@ export default function LogConsole({ title = '实时日志', logs = [], maxHeigh
         style={{ maxHeight }}
       >
         {filteredLogs.length === 0 ? (
-          <p className="text-zinc-600">等待日志输出...</p>
+          <p className="text-[var(--color-text-disabled)]">{t('dashboard.waitingForLogs')}</p>
         ) : (
           filteredLogs.map((log, i) => (
             <div key={i} className="flex gap-3 py-0.5">
-              <span className="shrink-0 text-zinc-600">{log.timestamp}</span>
-              <span className={`shrink-0 font-medium ${levelColors[log.level] || 'text-zinc-400'}`}>
+              <span className="shrink-0 text-[var(--color-text-disabled)]">{log.timestamp}</span>
+              <span className={`shrink-0 font-medium ${levelColors[log.level] || 'text-[var(--color-text-secondary)]'}`}>
                 [{log.level}]
               </span>
-              <span className="text-zinc-500">[{log.component}]</span>
-              <span className="text-zinc-300">{log.message}</span>
+              <span className="text-[var(--color-text-tertiary)]">[{log.component}]</span>
+              <span className="text-[var(--color-text-secondary)]">{log.message}</span>
             </div>
           ))
         )}

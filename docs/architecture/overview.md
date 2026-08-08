@@ -2,7 +2,7 @@
 
 ## 项目简介
 
-DTS Platform 是基于 ape-dts 数据同步引擎构建的企业级数据同步管理平台，提供 Web UI 管理界面、RBAC 权限控制、多租户隔离、任务调度与实时监控等企业级功能。
+DTS Platform 是基于 ape-dts 数据同步引擎构建的轻量级数据中台，整合集成引擎 (ape-dts)、调度引擎 (jiascheduler)、分析引擎 (SwanLake)、AI 智能体 (DeerFlow)，提供统一门户的数据接入、任务调度、智能分析与 AI 驱动能力。当前已实现多后端存储 (SQLite/PostgreSQL)、引擎集成、RBAC 多租户、实时 WebSocket 推送等核心功能。
 
 ## 技术愿景
 
@@ -13,25 +13,34 @@ DTS Platform 是基于 ape-dts 数据同步引擎构建的企业级数据同步�
 ```
 ┌─────────────────────────────────────────────────────┐
 │                   Vite + React                      │
-│  (SPA, shadcn/ui + Tailwind, 部署到 Vercel)          │
-│  参考现有 6 个 HTML 页面进行组件化重构                   │
+│  (SPA, Tailwind CSS + CSS Variables, 中英双语)        │
+│  6 个业务页面 + 深浅色主题切换                          │
 └─────────────────────┬───────────────────────────────┘
                       │ REST API + WebSocket
 ┌─────────────────────┴───────────────────────────────┐
 │               dts-server (actix-web)                 │
 │  ├── Auth (JWT + RBAC + 多租户)                       │
-│  ├── API Routes (任务/数据源/监控/告警)                 │
-│  ├── 任务调度器 (cron)                                │
-│  └── 实时推送 (WebSocket)                             │
+│  ├── API Routes (任务/数据源/监控/告警/调度)            │
+│  ├── Service Layer (厚业务逻辑)                        │
+│  ├── Engine Service (trait 抽象 → ape-dts CLI)        │
+│  ├── Scheduler Client (jiascheduler HTTP)            │
+│  └── WsHub (实时日志/进度推送)                         │
 │         │                                           │
-│         ├── 调用 ape-dts (git 依赖)                   │
-│         └── SQLite 持久化 (配置/历史/用户/租户)          │
+│         ├── 调用 ape-dts (CLI 子进程)                  │
+│         └── 多后端存储 (SQLite dev / PostgreSQL prod)   │
 └─────────────────────────────────────────────────────┘
                       │
 ┌─────────────────────┴───────────────────────────────┐
-│              ape-dts 现有引擎                         │
-│  dt-main / dt-task / dt-connector ...               │
-│  (library 调用，通过 trait 抽象)                      │
+│              多后端存储层 (9 crates)                    │
+│  dts-backend (traits) → dts-backend-rdbms (公共)     │
+│  → dts-backend-sqlite / dts-backend-postgres        │
+│  运行时通过 DATABASE_BACKEND 环境变量派发              │
+└─────────────────────────────────────────────────────┘
+                      │
+┌─────────────────────┴───────────────────────────────┐
+│              外部集成组件                               │
+│  ape-dts (CLI 子进程) + jiascheduler (HTTP)           │
+│  SwanLake + DeerFlow (Phase 3 计划中)                 │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -69,39 +78,46 @@ DTS Platform 是基于 ape-dts 数据同步引擎构建的企业级数据同步�
 4. **不可变模式**：始终创建新对象，不修改现有对象
 5. **错误显式处理**：使用 `thiserror` + `anyhow`，不静默吞掉错误
 
+## 相关文档
+
+- [数据库后端架构设计](./database-backend.md) — 多后端存储的详细设计（trait 层次、feature flags、迁移策略、如何新增后端）
+
 ## 技术栈
 
 | 层级 | 技术 | 说明 |
 |------|------|------|
 | 前端 | Vite + React + TypeScript | SPA 仪表盘 |
-| UI 框架 | shadcn/ui + Tailwind CSS | 组件库 + 样式 |
-| 状态管理 | Zustand | 轻量状态管理 |
+| UI 样式 | Tailwind CSS + CSS Variables | 深浅色主题系统 |
+| 国际化 | react-i18next | 中英双语 (zh-CN / en-US) |
+| 状态管理 | Zustand + TanStack Query | 客户端 + 服务端状态分离 |
 | 图表 | Recharts | 监控图表 |
-| 表格 | TanStack Table | 任务/数据源表格 |
 | 后端 | actix-web 4.x | Rust Web 框架 |
-| ORM | sqlx 0.8.x | 异步 SQL 工具 |
-| 数据库 | SQLite (Phase 1) | 嵌入式数据库 |
-| 数据库 (Phase 2) | Supabase/PostgreSQL | 生产数据库 |
+| DB 驱动 | sqlx 0.8.x | 异步 SQL 工具 |
+| 数据库 | SQLite (开发默认) | 零配置、文件存储、内存测试 |
+| 数据库 (生产) | PostgreSQL | 运行时 Feature Flag 切换 |
 | 密码哈希 | argon2 | 安全密码存储 |
 | JWT | jsonwebtoken | 无状态认证 |
-| 引擎 | ape-dts (git dep) | 数据同步引擎 |
+| 引擎 | ape-dts (git dep) | CLI 子进程模式调用 |
+| 调度 | jiascheduler (HTTP client) | 分布式调度引擎 |
+| 日志 | tracing | 结构化日志 |
 
 ## Phase 演进路线
 
-### Phase 1 — 单机可用 (本次实现)
-- dts-server: API + 直接调用 dt-task library
-- SQLite 数据库
-- 完整前端 (6 个页面)
-- 本地开发 + Vercel 部署前端
+### Phase 1 — 单机可用 ✅
+- dts-server: REST API + JWT + RBAC 多租户
+- 多后端存储：SQLite (开发) + PostgreSQL (生产)，运行时 Feature Flag 切换
+- 完整前端 (6 个页面) + 中英双语 + 深浅色主题
+- 数据库 trait 抽象层 (8 个 Repository trait)
 
-### Phase 2 — 引擎增强 (给上游贡献)
-- 给 dt-task 增加进度回调接口
-- WebSocket 实时日志/进度推送
-- Prometheus metrics 完善
+### Phase 2 — 引擎集成 ✅
+- EngineService trait 抽象 + ape-dts CLI 子进程适配器
+- TaskScheduler + TaskRunRepo
+- WebSocket 实时日志/进度推送 (WsHub)
+- Service 层重构 + tracing 结构化日志
+- jiascheduler 调度集成 (dts-scheduler-client)
 
-### Phase 3 — 分布式 (生产级扩展)
-- EngineService trait 抽象
-- Coordinator-Worker 拆分
-- NATS 消息队列
-- PostgreSQL/Supabase 替换 SQLite
-- K8s Helm Chart
+### Phase 3 — AI + 分析 (🚧 进行中)
+- DeerFlow AI 集成 (AI 助手浮层面板)
+- SwanLake 分析引擎集成 (Arrow Flight SQL)
+- 智能分析页 (NL2SQL + SQL 工作台 + 报告生成)
+- 分布式 Coordinator-Worker + K8s

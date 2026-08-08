@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/dts-server"]
+members = ["crates/dts-server", "crates/dts-backend", "crates/dts-backend-rdbms", "crates/dts-backend-postgres", "crates/dts-backend-sqlite", "crates/dts-core", "crates/dts-engine", "crates/dts-engine-ape", "crates/dts-scheduler-client", "crates/dts-deerflow-client"]
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -10,12 +10,12 @@ uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2"
 anyhow = "1"
-log = "0.4"
-env_logger = "0.11"
 dashmap = "6"
 async-trait = "0.1"
 rand = "0.8"
 dotenv = "0.15"
+reqwest = { version = "0.12", features = ["json"] }
+dts-scheduler-client = { path = "crates/dts-scheduler-client" }
 
 [workspace.lints.clippy]
 # 正确性 — 必须修复

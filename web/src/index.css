@@ -1,19 +1,139 @@
 @import "tailwindcss";
 
-html {
+/* Enable class-based dark mode for shadcn/ui components */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Page transition animation */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition {
+  animation: page-enter 0.25s ease-out;
+}
+
+/* ============================================================
+   Theme System — CSS Custom Properties
+   Light mode: :root (default)
+   Dark mode:  .dark class on <html>
+   ============================================================ */
+
+:root {
+  /* Surface colors */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #fafafa;
+  --color-bg-tertiary: #f4f4f5;
+  --color-bg-elevated: #ffffff;
+
+  /* Border colors */
+  --color-border-default: #e4e4e7;
+  --color-border-subtle: #f4f4f5;
+  --color-border-hover: #d4d4d8;
+
+  /* Text colors */
+  --color-text-primary: #18181b;
+  --color-text-secondary: #52525b;
+  --color-text-tertiary: #a1a1aa;
+  --color-text-disabled: #d4d4d8;
+
+  /* Accent (blue) */
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-accent-subtle: rgba(59, 130, 246, 0.1);
+  --color-accent-glow: rgba(37, 99, 235, 0.2);
+
+  /* Semantic */
+  --color-success: #10b981;
+  --color-success-subtle: rgba(16, 185, 129, 0.1);
+  --color-warning: #f59e0b;
+  --color-warning-subtle: rgba(245, 158, 11, 0.1);
+  --color-error: #f43f5e;
+  --color-error-subtle: rgba(244, 63, 94, 0.1);
+  --color-info: #3b82f6;
+  --color-info-subtle: rgba(59, 130, 246, 0.1);
+
+  /* Scrollbar */
+  --color-scrollbar-thumb: #d4d4d8;
+  --color-scrollbar-thumb-hover: #a1a1aa;
+
+  /* Misc */
+  --color-backdrop: rgba(0, 0, 0, 0.4);
+
+  color-scheme: light;
+}
+
+.dark {
+  /* Surface colors */
+  --color-bg-primary: #09090b;
+  --color-bg-secondary: #18181b;
+  --color-bg-tertiary: #27272a;
+  --color-bg-elevated: #18181b;
+
+  /* Border colors */
+  --color-border-default: rgba(39, 39, 42, 0.6);
+  --color-border-subtle: rgba(39, 39, 42, 0.4);
+  --color-border-hover: rgba(63, 63, 70, 0.6);
+
+  /* Text colors */
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-text-tertiary: #71717a;
+  --color-text-disabled: #3f3f46;
+
+  /* Accent (blue — slightly brighter for dark) */
+  --color-accent: #3b82f6;
+  --color-accent-hover: #60a5fa;
+  --color-accent-subtle: rgba(59, 130, 246, 0.1);
+  --color-accent-glow: rgba(37, 99, 235, 0.2);
+
+  /* Semantic */
+  --color-success: #34d399;
+  --color-success-subtle: rgba(52, 211, 153, 0.1);
+  --color-warning: #fbbf24;
+  --color-warning-subtle: rgba(251, 191, 36, 0.1);
+  --color-error: #fb7185;
+  --color-error-subtle: rgba(251, 113, 133, 0.1);
+  --color-info: #60a5fa;
+  --color-info-subtle: rgba(96, 165, 250, 0.1);
+
+  /* Scrollbar */
+  --color-scrollbar-thumb: #27272a;
+  --color-scrollbar-thumb-hover: #3f3f46;
+
+  /* Misc */
+  --color-backdrop: rgba(0, 0, 0, 0.6);
+
   color-scheme: dark;
+}
+
+/* ============================================================
+   Base Styles
+   ============================================================ */
+
+html {
+  color-scheme: light dark; /* overridden by :root/.dark */
 }
 
 body {
   margin: 0;
-  background-color: #09090b;
-  color: #fafafa;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar */
+/* ============================================================
+   Custom Scrollbar
+   ============================================================ */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -24,16 +144,38 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgb(39, 39, 42);
+  background-color: var(--color-scrollbar-thumb);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgb(63, 63, 70);
+  background-color: var(--color-scrollbar-thumb-hover);
 }
 
-/* Animation for progress bar */
+/* ============================================================
+   Animations
+   ============================================================ */
+
 @keyframes progress-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
+}
+
+/* ============================================================
+   Theme Transition (smooth color changes)
+   ============================================================ */
+
+html,
+html *,
+html *::before,
+html *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.15s ease;
+}
+
+/* Disable transition on page load to prevent flash */
+html.no-transitions,
+html.no-transitions *,
+html.no-transitions *::before,
+html.no-transitions *::after {
+  transition: none !important;
 }

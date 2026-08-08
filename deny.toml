@@ -5,24 +5,19 @@
 # 安全公告
 # --------------------------------------------------
 [advisories]
-# 发现漏洞时拒绝构建
 vulnerability = "deny"
-# 发现未维护的 crate 时告警
 unmaintained = "warn"
-# 被 yanked 的版本拒绝构建
 yanked = "deny"
-# 忽略特定公告（按需解除）
 ignore = []
 
 # --------------------------------------------------
 # 许可合规
 # --------------------------------------------------
 [licenses]
-# 未经明确许可的许可证拒绝构建
 unlicensed = "deny"
-# 不清楚的许可证拒绝构建
-unknown = "deny"
-# 允许的许可证列表
+allow-osi-fsf-free = "either"
+copyleft = "deny"
+default = "deny"
 allow = [
     "MIT",
     "Apache-2.0",
@@ -30,14 +25,12 @@ allow = [
     "BSD-3-Clause",
     "ISC",
 ]
-# 排除特定 crate 的许可证检查限制
 exceptions = []
 
 # --------------------------------------------------
 # Crate 来源限制
 # --------------------------------------------------
 [sources]
-# 允许的来源
 unknown-registry = "deny"
 unknown-git = "deny"
 
@@ -45,9 +38,7 @@ unknown-git = "deny"
 # 重复依赖检测
 # --------------------------------------------------
 [bans]
-# 发现同一 crate 多个版本时告警
 multiple-versions = "warn"
-# 空值：默认所有 crate 均可使用
 deny = []
 
 # --------------------------------------------------

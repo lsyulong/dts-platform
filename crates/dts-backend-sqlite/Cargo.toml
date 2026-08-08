@@ -1,0 +1,29 @@
+[package]
+name = "dts-backend-sqlite"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "DTS Platform SQLite 存储后端"
+
+[lints]
+workspace = true
+
+[dependencies]
+dts-backend = { path = "../dts-backend" }
+dts-backend-rdbms = { path = "../dts-backend-rdbms" }
+dts-core = { path = "../dts-core" }
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
+tracing = "0.1"
+argon2 = "0.5"
+rand_core = { version = "0.6", features = ["getrandom"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros"] }
+uuid = { workspace = true, features = ["v4"] }
+dts-backend = { path = "../dts-backend" }
+dts-core = { path = "../dts-core" }
+dts-backend-rdbms = { path = "../dts-backend-rdbms" }
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }

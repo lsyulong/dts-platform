@@ -1,16 +1,19 @@
-# DTS Platform — 企业级数据同步管理平台
+# DTS Platform — 轻量级数据中台
 
-基于 [ape-dts](https://github.com/apecloud/ape-dts) 数据同步引擎构建的企业级 Web 管理平台。
+基于 [ape-dts](https://github.com/apecloud/ape-dts) 数据同步引擎构建的轻量级数据中台，整合集成引擎 (ape-dts)、调度引擎 (jiascheduler)、分析引擎 (SwanLake)、AI 智能体 (DeerFlow)，提供统一门户的数据接入、任务调度、智能分析与 AI 驱动能力。
 
 ## 技术栈
 
 | 层级 | 技术 |
 |------|------|
 | 前端 | Vite + React + TypeScript + Tailwind CSS |
-| 后端 | Rust (actix-web) |
-| 数据库 | SQLite (Phase 1) → Supabase/PostgreSQL (Phase 3) |
+| 后端 | Rust (actix-web 4, sqlx 0.8) |
+| 数据库 | SQLite (开发默认) + PostgreSQL (运行时切换) |
 | 认证 | JWT + argon2 密码哈希 |
-| 引擎 | ape-dts (Git 依赖) |
+| 引擎 | ape-dts (CLI 子进程模式) |
+| 调度 | jiascheduler (HTTP client) |
+| i18n | 中英双语 (react-i18next) |
+| 主题 | CSS Variables 深浅色切换 |
 
 ## 快速开始
 
@@ -46,28 +49,38 @@ cd web && npm install && npm run dev
 
 ```
 dts-platform/
-├── crates/dts-server/       # Rust 后端
-│   ├── src/
-│   │   ├── main.rs          # 启动入口
-│   │   ├── app.rs           # actix-web 路由配置
-│   │   ├── config.rs        # 配置管理
-│   │   ├── db/              # 数据库连接 + 迁移 + 种子数据
-│   │   ├── models/          # 数据模型 + 错误类型
-│   │   ├── api/             # REST API handlers
-│   │   ├── services/        # 业务逻辑
-│   │   ├── middleware/       # JWT 认证 + 租户隔离
-│   │   └── ws/              # WebSocket (实时日志/进度)
-│   └── migrations/          # 数据库迁移 SQL
-├── web/                     # Vite + React 前端
+├── crates/
+│   ├── dts-core/               # 共享类型定义 (DB-agnostic)
+│   ├── dts-backend/            # Repository trait 定义 + domain types
+│   ├── dts-backend-rdbms/      # RDBMS 公共层 (错误映射 + 密码工具)
+│   ├── dts-backend-sqlite/     # SQLite 后端实现 (开发默认)
+│   ├── dts-backend-postgres/   # PostgreSQL 后端实现 (生产推荐)
+│   ├── dts-engine/             # 引擎 trait 定义
+│   ├── dts-engine-ape/         # ape-dts 引擎适配器 (CLI 子进程)
+│   ├── dts-scheduler-client/   # jiascheduler HTTP 客户端
+│   └── dts-server/             # Rust 后端 (actix-web)
+│       ├── src/
+│       │   ├── main.rs         # 启动入口
+│       │   ├── app.rs          # actix-web 路由配置
+│       │   ├── config.rs       # 配置管理 + 运行时后端派发
+│       │   ├── db/             # 数据库连接 + 迁移 + 种子数据
+│       │   ├── models/         # 数据模型 + 错误类型
+│       │   ├── api/            # REST API handlers (薄层)
+│       │   ├── services/       # 业务逻辑 (厚层)
+│       │   ├── middleware/     # JWT 认证 + 租户隔离
+│       │   └── ws/             # WebSocket (实时日志/进度)
+│       └── migrations/         # 数据库迁移 SQL
+├── web/                        # Vite + React 前端
 │   └── src/
-│       ├── layouts/         # 布局组件
-│       ├── pages/           # 6 个业务页面
-│       ├── components/      # 可复用组件
-│       ├── api/             # API 调用封装
-│       └── stores/          # Zustand 状态管理
-└── docs/                    # 技术文档
-    ├── architecture/        # 架构设计 + 数据模型 + 引擎集成
-    └── development/         # 开发指南 + 实现计划
+│       ├── layouts/            # 布局组件
+│       ├── pages/              # 6 个业务页面
+│       ├── components/         # 可复用组件
+│       ├── api/                # API 调用封装
+│       ├── stores/             # Zustand 状态管理
+│       ├── i18n/               # 国际化配置
+│       └── locales/            # 中英文翻译文件
+└── docs/                       # 架构设计文档
+    └── architecture/           # 架构总览 + 数据模型 + 多后端 + 引擎集成
 ```
 
 ## API 端点
@@ -101,6 +114,6 @@ dts-platform/
 
 ## 演进路线
 
-- **Phase 1** (已完成): 单机版，SQLite + REST API + 前端
-- **Phase 2** (计划中): ape-dts 引擎集成，实时进度推送
-- **Phase 3** (计划中): 分布式 Coordinator-Worker，PostgreSQL，K8s
+- **Phase 1** (✅ 完成): 单机版，SQLite + REST API + RBAC 多租户 + 前端
+- **Phase 2** (✅ 完成): ape-dts 引擎集成 + TaskScheduler + TaskRunRepo + Service 层重构 + 多后端存储 (SQLite/PostgreSQL) + i18n + 主题系统
+- **Phase 3** (🚧 进行中): 分布式 Coordinator-Worker、DeerFlow AI 集成、SwanLake 分析引擎、K8s

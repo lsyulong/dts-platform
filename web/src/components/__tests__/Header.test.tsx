@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Header from '../Header';
 import { useAuthStore } from '../../stores/auth';
+import { useAppStore } from '../../stores/app';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -30,6 +31,11 @@ describe('Header', () => {
       },
       loading: false,
     });
+    useAppStore.setState({
+      mobileSidebarOpen: false,
+      sidebarCollapsed: false,
+      theme: 'dark',
+    });
     mockNavigate.mockClear();
   });
 
@@ -43,7 +49,7 @@ describe('Header', () => {
 
   it('displays the welcome message with display name', () => {
     renderHeader();
-    expect(screen.getByText(/欢迎回来/)).toBeInTheDocument();
+    expect(screen.getByText(/auth.welcomeBack/)).toBeInTheDocument();
     expect(screen.getByText('管理员')).toBeInTheDocument();
   });
 
@@ -76,7 +82,22 @@ describe('Header', () => {
 
   it('renders logout button', () => {
     renderHeader();
-    expect(screen.getByText('退出')).toBeInTheDocument();
+    expect(screen.getByText('auth.logout')).toBeInTheDocument();
+  });
+
+  it('renders hamburger menu button with correct aria-label', () => {
+    renderHeader();
+    const menuButton = screen.getByLabelText('nav.toggleMenu');
+    expect(menuButton).toBeInTheDocument();
+    expect(menuButton.className).toContain('lg:hidden');
+  });
+
+  it('toggles mobile sidebar on hamburger click', async () => {
+    const user = userEvent.setup();
+    renderHeader();
+    const menuButton = screen.getByLabelText('nav.toggleMenu');
+    await user.click(menuButton);
+    expect(useAppStore.getState().mobileSidebarOpen).toBe(true);
   });
 
   describe('logout behavior', () => {
@@ -84,7 +105,7 @@ describe('Header', () => {
       const user = userEvent.setup();
       renderHeader();
 
-      await user.click(screen.getByText('退出'));
+      await user.click(screen.getByText('auth.logout'));
 
       expect(useAuthStore.getState().token).toBeNull();
       expect(useAuthStore.getState().user).toBeNull();
@@ -96,7 +117,7 @@ describe('Header', () => {
     it('renders gracefully when user is null', () => {
       useAuthStore.setState({ user: null });
       renderHeader();
-      expect(screen.getByText('退出')).toBeInTheDocument();
+      expect(screen.getByText('auth.logout')).toBeInTheDocument();
     });
 
     it('renders no role badges when user has no roles', () => {
@@ -112,7 +133,8 @@ describe('Header', () => {
         },
       });
       const { container } = renderHeader();
-      const roleBadges = container.querySelectorAll('.rounded-full.bg-zinc-800');
+      // No role spans should be rendered when roles array is empty
+      const roleBadges = container.querySelectorAll('[class*="rounded-full"]');
       expect(roleBadges.length).toBe(0);
     });
   });

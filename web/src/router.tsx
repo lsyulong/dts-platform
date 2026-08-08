@@ -7,6 +7,10 @@ import TaskCreatePage from './pages/tasks/create';
 import TaskDetailPage from './pages/tasks/detail';
 import DatasourcesPage from './pages/datasources';
 import MonitoringPage from './pages/monitoring';
+import OpsCenterPage from './pages/ops';
+import SystemSettingsPage from './pages/system';
+import QueryPage from './pages/query';
+import AnalysisPage from './pages/analysis';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token');
@@ -33,6 +37,10 @@ export const router = createBrowserRouter([
       { path: 'tasks/:id', element: <TaskDetailPage /> },
       { path: 'datasources', element: <DatasourcesPage /> },
       { path: 'monitoring', element: <MonitoringPage /> },
+      { path: 'ops', element: <OpsCenterPage /> },
+      { path: 'system', element: <SystemSettingsPage /> },
+      { path: 'query', element: <QueryPage /> },
+      { path: 'analysis', element: <AnalysisPage /> },
     ],
   },
 ]);

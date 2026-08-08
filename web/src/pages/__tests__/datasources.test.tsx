@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { renderWithProviders } from '../../test/test-utils';
 import { server } from '../../test/mocks/server';
 import DatasourcesPage from '../datasources';
 
@@ -11,18 +11,14 @@ describe('DatasourcesPage', () => {
   afterAll(() => server.close());
 
   function renderPage() {
-    return render(
-      <MemoryRouter>
-        <DatasourcesPage />
-      </MemoryRouter>
-    );
+    return renderWithProviders(<DatasourcesPage />, { route: '/datasources' });
   }
 
   describe('loading state', () => {
     it('shows a spinner while loading', () => {
       const { container } = renderPage();
-      const spinner = container.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
+      const skeleton = container.querySelector('.animate-pulse');
+      expect(skeleton).toBeInTheDocument();
     });
   });
 
@@ -30,7 +26,7 @@ describe('DatasourcesPage', () => {
     it('renders the page header', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('数据源管理')).toBeInTheDocument();
+        expect(screen.getByText('datasources.title')).toBeInTheDocument();
       });
     });
 
@@ -55,27 +51,27 @@ describe('DatasourcesPage', () => {
     it('displays health summary count of total connections', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('总连接数')).toBeInTheDocument();
+        expect(screen.getByText('datasources.totalConnections')).toBeInTheDocument();
       });
     });
 
     it('displays healthy connections count', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('健康连接')).toBeInTheDocument();
+        expect(screen.getByText('datasources.healthyConnections')).toBeInTheDocument();
       });
     });
 
     it('displays unhealthy connections count', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('异常连接')).toBeInTheDocument();
+        expect(screen.getByText('datasources.unhealthyConnections')).toBeInTheDocument();
       });
     });
   });
 
   describe('create datasource modal', () => {
-    it('opens the create modal when "添加数据源" button is clicked', async () => {
+    it('opens the create modal when "datasources.addDatasource" button is clicked', async () => {
       const user = userEvent.setup();
       renderPage();
 
@@ -83,14 +79,14 @@ describe('DatasourcesPage', () => {
         expect(screen.getByText('prod-mysql')).toBeInTheDocument();
       });
 
-      // Click the "添加数据源" button in the header
-      const addButton = screen.getByRole('button', { name: /添加数据源/ });
+      // Click the "datasources.addDatasource" button in the header
+      const addButton = screen.getByRole('button', { name: /datasources.addDatasource/ });
       await user.click(addButton);
 
-      // After click, there should now be TWO elements with "添加数据源" text
+      // After click, there should now be TWO elements with "datasources.addDatasource" text
       // (button + modal title), so use getAllByText
       await waitFor(() => {
-        const elements = screen.getAllByText('添加数据源');
+        const elements = screen.getAllByText('datasources.addDatasource');
         expect(elements.length).toBeGreaterThanOrEqual(2);
       });
     });
@@ -100,13 +96,13 @@ describe('DatasourcesPage', () => {
       renderPage();
 
       await waitFor(() => screen.getByText('prod-mysql'));
-      await user.click(screen.getByRole('button', { name: /添加数据源/ }));
+      await user.click(screen.getByRole('button', { name: /datasources.addDatasource/ }));
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('连接名称')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('主机')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('用户名')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('数据库名')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('datasources.connectionName')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('datasources.host')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('datasources.username')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('datasources.databaseName')).toBeInTheDocument();
       });
     });
 
@@ -115,18 +111,18 @@ describe('DatasourcesPage', () => {
       renderPage();
 
       await waitFor(() => screen.getByText('prod-mysql'));
-      await user.click(screen.getByRole('button', { name: /添加数据源/ }));
+      await user.click(screen.getByRole('button', { name: /datasources.addDatasource/ }));
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('连接名称')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('datasources.connectionName')).toBeInTheDocument();
       });
 
-      const cancelButton = screen.getByText('取消');
+      const cancelButton = screen.getByText('common.cancel');
       await user.click(cancelButton);
 
       // Modal should be removed
       await waitFor(() => {
-        expect(screen.queryByPlaceholderText('连接名称')).not.toBeInTheDocument();
+        expect(screen.queryByPlaceholderText('datasources.connectionName')).not.toBeInTheDocument();
       });
     });
 
@@ -135,19 +131,19 @@ describe('DatasourcesPage', () => {
       renderPage();
 
       await waitFor(() => screen.getByText('prod-mysql'));
-      await user.click(screen.getByRole('button', { name: /添加数据源/ }));
+      await user.click(screen.getByRole('button', { name: /datasources.addDatasource/ }));
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('连接名称')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('datasources.connectionName')).toBeInTheDocument();
       });
 
-      await user.type(screen.getByPlaceholderText('连接名称'), 'New MySQL');
-      await user.type(screen.getByPlaceholderText('主机'), '192.168.1.1');
+      await user.type(screen.getByPlaceholderText('datasources.connectionName'), 'New MySQL');
+      await user.type(screen.getByPlaceholderText('datasources.host'), '192.168.1.1');
 
-      await user.click(screen.getByText('添加'));
+      await user.click(screen.getByText('datasources.add'));
 
       await waitFor(() => {
-        expect(screen.queryByPlaceholderText('连接名称')).not.toBeInTheDocument();
+        expect(screen.queryByPlaceholderText('datasources.connectionName')).not.toBeInTheDocument();
       });
     });
   });

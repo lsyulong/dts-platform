@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen, waitFor } from '@testing-library/react';
+import { renderWithProviders } from '../../test/test-utils';
 import { server } from '../../test/mocks/server';
 import DashboardPage from '../dashboard';
 
@@ -10,18 +10,14 @@ describe('DashboardPage', () => {
   afterAll(() => server.close());
 
   function renderDashboard() {
-    return render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>
-    );
+    return renderWithProviders(<DashboardPage />, { route: '/' });
   }
 
   describe('loading state', () => {
     it('shows a spinner while loading', () => {
       const { container } = renderDashboard();
-      const spinner = container.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
+      const skeleton = container.querySelector('.animate-pulse');
+      expect(skeleton).toBeInTheDocument();
     });
   });
 
@@ -29,21 +25,21 @@ describe('DashboardPage', () => {
     it('renders the page header', async () => {
       renderDashboard();
       await waitFor(() => {
-        expect(screen.getByText('仪表盘概览')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.title')).toBeInTheDocument();
       });
     });
 
     it('renders the subtitle', async () => {
       renderDashboard();
       await waitFor(() => {
-        expect(screen.getByText('系统运行状态与关键指标')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.subtitle')).toBeInTheDocument();
       });
     });
 
     it('displays total tasks count', async () => {
       renderDashboard();
       await waitFor(() => {
-        expect(screen.getByText('同步任务总数')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.totalTasks')).toBeInTheDocument();
         expect(screen.getByText('12')).toBeInTheDocument();
       });
     });
@@ -51,14 +47,14 @@ describe('DashboardPage', () => {
     it('displays running tasks in subtitle', async () => {
       renderDashboard();
       await waitFor(() => {
-        expect(screen.getByText('3 个运行中')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.runningCount(3)')).toBeInTheDocument();
       });
     });
 
     it('displays success rate', async () => {
       renderDashboard();
       await waitFor(() => {
-        expect(screen.getByText('成功率')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.successRate')).toBeInTheDocument();
         expect(screen.getByText('95.8%')).toBeInTheDocument();
       });
     });
@@ -66,7 +62,7 @@ describe('DashboardPage', () => {
     it('displays healthy datasources count', async () => {
       renderDashboard();
       await waitFor(() => {
-        expect(screen.getByText('健康数据源')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.healthyDatasources')).toBeInTheDocument();
         expect(screen.getByText('7/8')).toBeInTheDocument();
       });
     });
@@ -74,14 +70,14 @@ describe('DashboardPage', () => {
     it('renders recent execution records section', async () => {
       renderDashboard();
       await waitFor(() => {
-        expect(screen.getByText('最近执行记录')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.recentRuns')).toBeInTheDocument();
       });
     });
 
-    it('renders "查看全部" link to tasks page', async () => {
+    it('renders "dashboard.viewAll" link to tasks page', async () => {
       renderDashboard();
       await waitFor(() => {
-        const link = screen.getByText('查看全部 →');
+        const link = screen.getByText('dashboard.viewAll');
         expect(link).toBeInTheDocument();
         expect(link.getAttribute('href')).toBe('/tasks');
       });
@@ -99,25 +95,24 @@ describe('DashboardPage', () => {
     it('renders status badges for recent runs', async () => {
       renderDashboard();
       await waitFor(() => {
-        expect(screen.getByText('running')).toBeInTheDocument();
-        expect(screen.getByText('completed')).toBeInTheDocument();
-        expect(screen.getByText('failed')).toBeInTheDocument();
+        expect(screen.getByText('tasks.status.running')).toBeInTheDocument();
+        expect(screen.getByText('tasks.status.completed')).toBeInTheDocument();
+        expect(screen.getByText('tasks.status.failed')).toBeInTheDocument();
       });
     });
 
-    it('renders data flow visualization placeholder', async () => {
+    it('renders chart sections', async () => {
       renderDashboard();
       await waitFor(() => {
-        expect(screen.getByText('数据流可视化')).toBeInTheDocument();
-        expect(screen.getByText('实时数据流拓扑图')).toBeInTheDocument();
-        expect(screen.getByText('集成 ape-dts 引擎后启用')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.syncVolumeChart')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.taskDistribution')).toBeInTheDocument();
       });
     });
 
     it('renders the log console section', async () => {
       renderDashboard();
       await waitFor(() => {
-        expect(screen.getByText('系统日志')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.systemLog')).toBeInTheDocument();
       });
     });
   });
@@ -136,7 +131,7 @@ describe('DashboardPage', () => {
     it('displays formatted number for synced rows', async () => {
       renderDashboard();
       await waitFor(() => {
-        // 2500000 = 2.5M - the full subtitle text is "2.5M 行"
+        // 2500000 = 2.5M - the full subtitle text is "2.5M dashboard.rowsCount"
         expect(screen.getByText(/2\.5M/)).toBeInTheDocument();
       });
     });

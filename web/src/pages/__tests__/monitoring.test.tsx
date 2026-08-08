@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { renderWithProviders } from '../../test/test-utils';
 import { server } from '../../test/mocks/server';
 import MonitoringPage from '../monitoring';
 
@@ -11,11 +11,7 @@ describe('MonitoringPage', () => {
   afterAll(() => server.close());
 
   function renderPage() {
-    return render(
-      <MemoryRouter>
-        <MonitoringPage />
-      </MemoryRouter>
-    );
+    return renderWithProviders(<MonitoringPage />, { route: '/monitoring' });
   }
 
   describe('loading state', () => {
@@ -30,23 +26,23 @@ describe('MonitoringPage', () => {
     it('renders the page header', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('监控告警')).toBeInTheDocument();
+        expect(screen.getByText('monitoring.title')).toBeInTheDocument();
       });
     });
 
     it('renders the subtitle', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('系统运行状态监控与告警配置')).toBeInTheDocument();
+        expect(screen.getByText('monitoring.subtitle')).toBeInTheDocument();
       });
     });
 
     it('renders static system health metrics', () => {
       renderPage();
-      expect(screen.getByText('CPU 使用率')).toBeInTheDocument();
-      expect(screen.getByText('内存')).toBeInTheDocument();
-      expect(screen.getByText('网络 I/O')).toBeInTheDocument();
-      expect(screen.getByText('平均延迟')).toBeInTheDocument();
+      expect(screen.getByText('monitoring.cpuUsage')).toBeInTheDocument();
+      expect(screen.getByText('monitoring.memory')).toBeInTheDocument();
+      expect(screen.getByText('monitoring.networkIO')).toBeInTheDocument();
+      expect(screen.getByText('monitoring.avgLatency')).toBeInTheDocument();
     });
 
     it('displays CPU value of 42%', () => {
@@ -75,7 +71,7 @@ describe('MonitoringPage', () => {
     it('renders alert rules section header', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('告警规则')).toBeInTheDocument();
+        expect(screen.getByText('monitoring.alertRules')).toBeInTheDocument();
       });
     });
   });
@@ -93,9 +89,9 @@ describe('MonitoringPage', () => {
     it('displays metric labels for alerts', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText(/延迟 \(ms\) > 500/)).toBeInTheDocument();
-        expect(screen.getByText(/错误率 \(%\) > 5/)).toBeInTheDocument();
-        expect(screen.getByText(/吞吐量 \(MB\/s\) < 10/)).toBeInTheDocument();
+        expect(screen.getByText(/metrics.latency > 500/)).toBeInTheDocument();
+        expect(screen.getByText(/metrics.error_rate > 5/)).toBeInTheDocument();
+        expect(screen.getByText(/metrics.throughput < 10/)).toBeInTheDocument();
       });
     });
 
@@ -133,16 +129,16 @@ describe('MonitoringPage', () => {
     it('renders the global log console', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('全局日志')).toBeInTheDocument();
+        expect(screen.getByText('dashboard.globalLog')).toBeInTheDocument();
       });
     });
 
     it('renders log entries in the console', async () => {
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText('系统健康检查通过')).toBeInTheDocument();
-        expect(screen.getByText('数据同步进度: 45.2%')).toBeInTheDocument();
-        expect(screen.getByText('连接池使用率 > 80%')).toBeInTheDocument();
+        expect(screen.getByText('System health check passed')).toBeInTheDocument();
+        expect(screen.getByText('Data sync progress: 45.2%')).toBeInTheDocument();
+        expect(screen.getByText('Connection pool usage > 80%')).toBeInTheDocument();
       });
     });
   });

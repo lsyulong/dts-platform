@@ -2,33 +2,64 @@
 name = "dts-server"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
 description = "企业级数据同步管理平台 - Web 后端服务"
 
 [lints]
 workspace = true
 
+[features]
+default = ["sqlite", "engine-ape"]
+sqlite = ["dts-backend-sqlite"]
+postgres = ["dts-backend-postgres"]
+engine-ape = ["dts-engine-ape"]
+
 [dependencies]
+# 本地 crate
+dts-backend = { path = "../dts-backend" }
+dts-backend-rdbms = { path = "../dts-backend-rdbms" }
+dts-backend-sqlite = { path = "../dts-backend-sqlite", optional = true }
+dts-backend-postgres = { path = "../dts-backend-postgres", optional = true }
+dts-engine = { path = "../dts-engine" }
+dts-engine-ape = { path = "../dts-engine-ape", optional = true }
+dts-scheduler-client = { path = "../dts-scheduler-client" }
+dts-deerflow-client = { path = "../dts-deerflow-client" }
+tokio-stream = "0.1"
+
+# Web 框架
 actix-web = "4"
 actix-cors = "0.7"
 actix-ws = "0.3"
 actix-rt = "2"
+
+# 序列化
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+
+# 异步运行时
 tokio = { workspace = true }
+
+# 工具
 uuid = { workspace = true, features = ["v4"] }
 chrono = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-log = { workspace = true }
-env_logger = { workspace = true }
 dashmap = { workspace = true }
 async-trait = { workspace = true }
 rand = { workspace = true }
 dotenv = { workspace = true }
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid"] }
+
+# 可观测性
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-log = "0.2"
+
+# 认证
 jsonwebtoken = "9"
 argon2 = "0.5"
 futures = "0.3"
+reqwest = { version = "0.12", features = ["json"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "mysql", "postgres", "tls-rustls"] }
 
 [dev-dependencies]
 actix-rt = "2"

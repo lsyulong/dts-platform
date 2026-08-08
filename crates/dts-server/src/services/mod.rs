@@ -1,2 +1,27 @@
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+pub mod ai_svc;
+pub mod alert_svc;
 pub mod auth_svc;
+pub mod datasource_svc;
+pub mod monitoring_svc;
+pub mod notify;
+pub mod precheck;
+pub mod scheduler;
+pub mod task_svc;
 pub mod tenant_svc;
+pub mod token;
+pub mod user_svc;

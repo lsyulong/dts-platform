@@ -1,5 +1,20 @@
-use actix_web::{web, HttpResponse};
-use log::info;
+// Copyright 2026 DTS Platform Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+use actix_web::{HttpResponse, web};
+use tracing::info;
 
 use crate::models::auth::CreateTenantRequest;
 use crate::models::error::AppError;
@@ -9,7 +24,6 @@ use crate::services::tenant_svc::TenantService;
 /// POST /api/v1/tenants
 pub async fn create(
     tenant_svc: web::Data<TenantService>,
-    _auth_svc: web::Data<AuthService>,
     body: web::Json<CreateTenantRequest>,
 ) -> Result<HttpResponse, AppError> {
     let password_hash = AuthService::hash_password_sync("admin123")
@@ -29,7 +43,10 @@ pub async fn create(
         .await
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
-    info!("新租户创建: {} ({}), 管理员: {}", body.name, body.slug, admin_username);
+    info!(
+        "新租户创建: {} ({}), 管理员: {}",
+        body.name, body.slug, admin_username
+    );
 
     Ok(HttpResponse::Created().json(serde_json::json!({
         "id": tenant_id,
@@ -41,9 +58,7 @@ pub async fn create(
 }
 
 /// GET /api/v1/tenants
-pub async fn list(
-    tenant_svc: web::Data<TenantService>,
-) -> Result<HttpResponse, AppError> {
+pub async fn list(tenant_svc: web::Data<TenantService>) -> Result<HttpResponse, AppError> {
     let tenants = tenant_svc
         .list()
         .await
