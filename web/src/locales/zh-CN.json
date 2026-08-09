@@ -300,5 +300,34 @@
     "permissionCode": "权限代码",
     "permissionGroup": "分组",
     "permissionDesc": "说明"
+  },
+  "query": {
+    "execute": "执行",
+    "schemas": "数据源",
+    "noSchemas": "暂无数据源（请先 ATTACH）",
+    "history": "历史",
+    "clearHistory": "清空历史",
+    "error": "查询错误",
+    "executing": "查询中...",
+    "rowsReturned": "返回 {{count}} 行",
+    "columns": "列",
+    "ready": "在编辑器中输入 SQL，按 Ctrl+Enter 执行",
+    "toExecute": "执行",
+    "truncated": "仅显示前 {{shown}} 行，共 {{total}} 行"
+  },
+  "analysis": {
+    "ask": "提问",
+    "askQuestion": "用自然语言描述你的数据分析需求",
+    "questionPlaceholder": "例如: 统计每个客户的订单总额，按金额降序排列",
+    "thinking": "DeerFlow AI 正在理解你的问题...",
+    "generatedSql": "生成的 SQL",
+    "copy": "复制",
+    "copied": "已复制",
+    "execute": "执行",
+    "executing": "执行中...",
+    "error": "错误",
+    "rowsReturned": "返回 {{count}} 行",
+    "ready": "用自然语言提问，AI 将为你生成 SQL 并执行",
+    "hint": "试试: \"最近一个月每天新增的订单数\"、\"各产品类别的销售额排名\"、\"找出重复的客户邮箱\""
   }
 }

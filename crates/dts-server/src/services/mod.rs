@@ -15,6 +15,7 @@
 
 pub mod ai_svc;
 pub mod alert_svc;
+pub mod query_svc;
 pub mod auth_svc;
 pub mod datasource_svc;
 pub mod monitoring_svc;

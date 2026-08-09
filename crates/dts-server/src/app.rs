@@ -25,6 +25,7 @@ use crate::services::alert_svc::AlertService;
 use crate::services::auth_svc::AuthService;
 use crate::services::datasource_svc::DatasourceService;
 use crate::services::monitoring_svc::MonitoringService;
+use crate::services::query_svc::QueryService;
 use crate::services::scheduler::TaskScheduler;
 use crate::services::task_svc::TaskService;
 use crate::services::tenant_svc::TenantService;
@@ -62,6 +63,9 @@ pub async fn create_app(
 
     // AI 服务
     let ai_svc = AiService::new(&config.deerflow);
+
+    // SwanLake 查询服务
+    let query_svc = QueryService::new(&config.swanlake);
 
     // 创建引擎实例（ape-dts）
     let engine: Arc<dyn dts_engine::EngineService> =
@@ -111,6 +115,8 @@ pub async fn create_app(
             .app_data(web::Data::new(ws_hub.clone()))
             // AI 服务
             .app_data(web::Data::new(ai_svc.clone()))
+            // SwanLake 查询服务
+            .app_data(web::Data::new(query_svc.clone()))
             // 任务调度器
             .app_data(web::Data::new(scheduler.clone()))
             // jiascheduler 配置
@@ -168,6 +174,12 @@ pub async fn create_app(
                         web::scope("/ai")
                             .route("/chat", web::post().to(crate::api::ai::chat))
                             .route("/diagnose", web::post().to(crate::api::ai::diagnose)),
+                    )
+                    // 查询分析 (SwanLake)
+                    .service(
+                        web::scope("/query")
+                            .route("/execute", web::post().to(crate::api::query::execute))
+                            .route("/schemas", web::get().to(crate::api::query::schemas)),
                     )
                     // 系统设置
                     .service(

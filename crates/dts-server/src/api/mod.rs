@@ -15,6 +15,7 @@
 
 pub mod ai;
 pub mod alerts;
+pub mod query;
 pub mod auth;
 pub mod datasources;
 pub mod monitoring;

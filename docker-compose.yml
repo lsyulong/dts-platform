@@ -1,0 +1,122 @@
+# DTS Platform — Docker Compose
+#
+# 启动全部依赖服务 + dts-server
+#
+# Usage:
+#   docker compose up -d              # 启动全部
+#   docker compose up -d mysql postgres swanlake  # 仅基础设施
+#   docker compose logs -f dts-server # 查看日志
+#   docker compose down -v            # 停止并清理数据
+
+services:
+  # ── 源端测试数据库 (MySQL) ──────────────────────────
+  mysql:
+    image: mysql:8.4
+    container_name: dts-mysql-source
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: source_db
+      MYSQL_USER: dts
+      MYSQL_PASSWORD: dts123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── 目标端数据库 (PostgreSQL) ────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    container_name: dts-postgres-target
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: dts_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d target_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── SwanLake 分析引擎 (DuckDB + Arrow Flight SQL) ────
+  swanlake:
+    image: ghcr.io/swanlake-io/swanlake:latest
+    container_name: dts-swanlake
+    restart: unless-stopped
+    environment:
+      SWANLAKE_HOST: "0.0.0.0"
+      SWANLAKE_PORT: "4214"
+      SWANLAKE_STATUS_ENABLED: "true"
+      SWANLAKE_STATUS_PORT: "4215"
+      SWANLAKE_LOG_FORMAT: "compact"
+      SWANLAKE_MAX_SESSIONS: "20"
+      SWANLAKE_SESSION_TIMEOUT_SECONDS: "1800"
+      # DuckDB 初始化 SQL — ATTACH PostgreSQL 目标库
+      SWANLAKE_DUCKLAKE_INIT_SQL: |
+        ATTACH 'host=postgres port=5432 dbname=dts_platform user=postgres password=postgres123' AS dts_pg (TYPE postgres, READ_ONLY);
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres123
+    ports:
+      - "4214:4214"   # Flight SQL gRPC
+      - "4215:4215"   # Status HTTP
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4215/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── DTS Platform 后端 ────────────────────────────────
+  dts-server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: dts-server
+    restart: unless-stopped
+    environment:
+      DATABASE_BACKEND: "postgres"
+      DATABASE_URL: "postgresql://postgres:postgres123@postgres:5432/dts_platform"
+      JWT_SECRET: "dev-jwt-secret-change-in-production"
+      SERVER_HOST: "0.0.0.0"
+      SERVER_PORT: "8080"
+      # DeerFlow AI (optional — set DEERFLOW_ENABLED=true to enable)
+      DEERFLOW_ENABLED: "false"
+      DEERFLOW_BASE_URL: "http://localhost:11434"
+      DEERFLOW_API_KEY: ""
+      # SwanLake 分析引擎
+      SWANLAKE_ENABLED: "true"
+      SWANLAKE_HOST: "swanlake"
+      SWANLAKE_PORT: "4214"
+      # Engine
+      APE_DTS_BIN: "/usr/local/bin/ape-dts"
+    ports:
+      - "8080:8080"
+    volumes:
+      - dts_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      swanlake:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
+  postgres_data:
+  dts_data:

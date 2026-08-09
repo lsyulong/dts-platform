@@ -300,5 +300,34 @@
     "permissionCode": "Code",
     "permissionGroup": "Group",
     "permissionDesc": "Description"
+  },
+  "query": {
+    "execute": "Execute",
+    "schemas": "Schemas",
+    "noSchemas": "No data sources (ATTACH first)",
+    "history": "History",
+    "clearHistory": "Clear History",
+    "error": "Query Error",
+    "executing": "Executing...",
+    "rowsReturned": "{{count}} rows returned",
+    "columns": "columns",
+    "ready": "Enter SQL in the editor and press Ctrl+Enter to execute",
+    "toExecute": "to execute",
+    "truncated": "Showing first {{shown}} of {{total}} rows"
+  },
+  "analysis": {
+    "ask": "Ask",
+    "askQuestion": "Describe your data analysis needs in natural language",
+    "questionPlaceholder": "e.g. Calculate total order amount per customer, sorted by amount",
+    "thinking": "DeerFlow AI is analyzing your question...",
+    "generatedSql": "Generated SQL",
+    "copy": "Copy",
+    "copied": "Copied",
+    "execute": "Execute",
+    "executing": "Executing...",
+    "error": "Error",
+    "rowsReturned": "{{count}} rows returned",
+    "ready": "Ask questions in natural language, and AI will generate and execute SQL",
+    "hint": "Try: \"Daily new orders over the last month\", \"Sales ranking by product category\", \"Find duplicate customer emails\""
   }
 }

@@ -78,6 +78,31 @@ impl Default for DeerFlowConfig {
     }
 }
 
+/// SwanLake 分析引擎配置 (DuckDB + Arrow Flight SQL)
+#[derive(Clone, Debug)]
+pub struct SwanLakeConfig {
+    pub enabled: bool,
+    pub host: String,
+    pub port: u16,
+}
+
+impl Default for SwanLakeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            host: "localhost".to_string(),
+            port: 4214,
+        }
+    }
+}
+
+impl SwanLakeConfig {
+    /// gRPC 连接 URI
+    pub fn uri(&self) -> String {
+        format!("grpc://{}:{}", self.host, self.port)
+    }
+}
+
 /// 应用配置，通过环境变量或手动构造加载
 #[derive(Clone, Debug)]
 pub struct AppConfig {
@@ -90,6 +115,7 @@ pub struct AppConfig {
     pub data_dir: String,
     pub scheduler: SchedulerConfig,
     pub deerflow: DeerFlowConfig,
+    pub swanlake: SwanLakeConfig,
 }
 
 impl AppConfig {
@@ -113,6 +139,7 @@ impl AppConfig {
             data_dir: data_dir.into(),
             scheduler: SchedulerConfig::default(),
             deerflow: DeerFlowConfig::default(),
+            swanlake: SwanLakeConfig::default(),
         }
     }
 
@@ -128,6 +155,7 @@ impl AppConfig {
             data_dir: defaults::DATA_DIR.to_string(),
             scheduler: SchedulerConfig::default(),
             deerflow: DeerFlowConfig::default(),
+            swanlake: SwanLakeConfig::default(),
         }
     }
 
@@ -173,6 +201,16 @@ impl AppConfig {
                 base_url: env::var("DEERFLOW_BASE_URL")
                     .unwrap_or_else(|_| "http://localhost:11434".to_string()),
                 api_key: env::var("DEERFLOW_API_KEY").unwrap_or_default(),
+            },
+            swanlake: SwanLakeConfig {
+                enabled: env::var("SWANLAKE_ENABLED")
+                    .map(|v| v == "true" || v == "1")
+                    .unwrap_or(false),
+                host: env::var("SWANLAKE_HOST").unwrap_or_else(|_| "localhost".into()),
+                port: env::var("SWANLAKE_PORT")
+                    .unwrap_or_else(|_| "4214".into())
+                    .parse()
+                    .unwrap_or(4214),
             },
         })
     }
