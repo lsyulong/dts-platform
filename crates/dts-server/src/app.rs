@@ -106,6 +106,7 @@ pub async fn create_app(
             .app_data(web::Data::new(ctx.role_repo.clone()))
             .app_data(web::Data::new(ctx.datasource_repo.clone()))
             .app_data(web::Data::new(ctx.task_repo.clone()))
+            .app_data(web::Data::new(ctx.task_run_repo.clone()))
             // WebSocket Hub
             .app_data(web::Data::new(ws_hub.clone()))
             // AI 服务
@@ -165,7 +166,8 @@ pub async fn create_app(
                     // AI 助手
                     .service(
                         web::scope("/ai")
-                            .route("/chat", web::post().to(crate::api::ai::chat)),
+                            .route("/chat", web::post().to(crate::api::ai::chat))
+                            .route("/diagnose", web::post().to(crate::api::ai::diagnose)),
                     )
                     // 系统设置
                     .service(

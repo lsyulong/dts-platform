@@ -12,23 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use dts_engine::{EngineError, EngineService, SyncProgress, TaskSubmission};
+use tokio::sync::oneshot;
 use tracing::{error, info, warn};
 
 use crate::adapter;
 
+type CancelMap = Arc<Mutex<HashMap<String, oneshot::Sender<()>>>>;
+
 /// ape-dts 引擎服务
 ///
-/// 当前为骨架实现。submit 通过 tokio::spawn 异步执行，
-/// cancel 尚未实现（ape-dts 可能不支持运行时取消）。
+/// `submit` 通过 tokio::spawn 异步执行 ape-dts CLI 子进程。
+/// `cancel` 通过 oneshot channel 通知子进程退出，
+/// 适配器收到信号后 kill 子进程并清理临时文件。
 #[derive(Clone)]
-pub struct ApeEngineService;
+pub struct ApeEngineService {
+    cancel_txs: CancelMap,
+}
 
 impl ApeEngineService {
     pub fn new() -> Self {
-        Self
+        Self {
+            cancel_txs: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    /// 活跃任务数（用于监控/测试）
+    pub fn active_count(&self) -> usize {
+        self.cancel_txs.lock().unwrap_or_else(|e| e.into_inner()).len()
     }
 }
 
@@ -58,21 +73,51 @@ impl EngineService for ApeEngineService {
             "提交同步任务到 ape-dts 引擎"
         );
 
+        // 创建取消通道
+        let (cancel_tx, cancel_rx) = oneshot::channel::<()>();
+        {
+            let mut map = self.cancel_txs.lock().unwrap_or_else(|e| e.into_inner());
+            map.insert(run_id.clone(), cancel_tx);
+        }
+
         let rid = run_id.clone();
+        let cancel_map = self.cancel_txs.clone();
         tokio::spawn(async move {
-            if let Err(e) = adapter::run_sync(task, &rid, progress_tx).await {
+            if let Err(e) = adapter::run_sync(task, &rid, progress_tx, cancel_rx).await {
                 error!(run_id = %rid, error = %e, "同步任务执行失败");
             }
+            // 清理取消通道
+            let mut map = cancel_map.lock().unwrap_or_else(|e| e.into_inner());
+            map.remove(&rid);
         });
 
         Ok(run_id)
     }
 
     async fn cancel(&self, run_id: &str) -> Result<(), EngineError> {
-        warn!(run_id = %run_id, "cancel 尚未实现（ape-dts 不支持运行时取消）");
-        Err(EngineError::Internal(
-            "cancel 尚未实现：ape-dts 暂不支持运行时取消".into(),
-        ))
+        let tx = {
+            let mut map = self.cancel_txs.lock().unwrap_or_else(|e| e.into_inner());
+            map.remove(run_id)
+        };
+
+        match tx {
+            Some(tx) => {
+                info!(run_id = %run_id, "发送取消信号到 ape-dts 子进程");
+                // oneshot::send 可能失败（接收端已 dropped），但这种情况说明任务已结束
+                if tx.send(()).is_err() {
+                    warn!(run_id = %run_id, "取消信号发送失败：任务可能已结束");
+                    Ok(())
+                } else {
+                    Ok(())
+                }
+            },
+            None => {
+                // 任务 ID 不存在或已结束
+                Err(EngineError::Internal(format!(
+                    "无法取消：run_id '{run_id}' 不存在或已结束"
+                )))
+            },
+        }
     }
 }
 
@@ -144,11 +189,32 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn cancel_returns_error_not_implemented() {
+    async fn cancel_nonexistent_run_returns_error() {
         let engine = ApeEngineService::new();
-        let result = engine.cancel("run-123").await;
+        let result = engine.cancel("nonexistent-run").await;
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("尚未实现"));
+        assert!(err.to_string().contains("不存在或已结束"));
+    }
+
+    #[tokio::test]
+    async fn cancel_cleans_up_registry() {
+        let engine = ApeEngineService::new();
+        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+
+        let run_id = engine
+            .submit(make_test_submission(), tx)
+            .await
+            .expect("submit failed");
+
+        assert_eq!(engine.active_count(), 1);
+
+        // Cancel should succeed
+        let result = engine.cancel(&run_id).await;
+        assert!(result.is_ok());
+
+        // Second cancel should fail (already removed)
+        let result2 = engine.cancel(&run_id).await;
+        assert!(result2.is_err());
     }
 }

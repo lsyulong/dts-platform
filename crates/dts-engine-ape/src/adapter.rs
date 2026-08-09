@@ -21,6 +21,7 @@ use dts_engine::{EngineError, RunStatus, SyncProgress, TaskSubmission};
 use serde::Serialize;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
+use tokio::sync::oneshot;
 use tracing::{error, info, warn};
 
 /// ape-dts 二进制文件路径（可通过环境变量覆盖）
@@ -33,11 +34,14 @@ const DEFAULT_APE_DTS_BIN: &str = "../ape-dts/target/release/dt-main";
 /// 2. 写入临时文件
 /// 3. 启动 `dt-main <config_path>` 子进程
 /// 4. 逐行读取 stdout 解析日志，提取进度信息
-/// 5. 等待进程结束，报告最终状态
+/// 5. 等待进程结束或收到取消信号，报告最终状态
+///
+/// 当 `cancel_rx` 收到信号时，kill 子进程并清理临时文件。
 pub(crate) async fn run_sync(
     task: TaskSubmission,
     run_id: &str,
     progress_tx: tokio::sync::mpsc::UnboundedSender<SyncProgress>,
+    cancel_rx: oneshot::Receiver<()>,
 ) -> Result<(), EngineError> {
     let task_id = task.task_id.clone();
     let total_tables = task.config.table_mappings.len();
@@ -149,9 +153,36 @@ pub(crate) async fn run_sync(
         }
     });
 
-    // 6. 等待进程结束
-    let timeout = Duration::from_secs(3600); // 1 hour max
-    let exit_status = tokio::time::timeout(timeout, child.wait()).await;
+    // 6. 等待进程结束或收到取消信号
+    let max_duration = Duration::from_secs(3600); // 1 hour max
+
+    let exit_status = tokio::select! {
+        // Check cancel signal first (biased ordering)
+        _ = cancel_rx => {
+            info!(run_id = %run_id, "收到取消信号，终止 ape-dts 子进程");
+            child.kill().await.ok();
+            let _ = tokio::time::timeout(Duration::from_secs(2), stdout_handle).await;
+            let _ = tokio::time::timeout(Duration::from_secs(2), stderr_handle).await;
+            if let Err(e) = std::fs::remove_file(&config_path) {
+                warn!(run_id = %run_id, path = %config_path, error = %e, "failed to clean up temp config");
+            }
+            let _ = progress_tx.send(SyncProgress {
+                run_id: run_id.into(),
+                task_id,
+                status: RunStatus::Cancelled,
+                rows_synced: 0,
+                bytes_synced: 0,
+                total_rows: None,
+                current_table: None,
+                percent: 0.0,
+                message: Some("任务已取消".into()),
+            });
+            return Ok(());
+        }
+        exit = tokio::time::timeout(max_duration, child.wait()) => {
+            exit
+        }
+    };
 
     let (rows, last_table) = match stdout_handle.await {
         Ok(result) => result,

@@ -1,15 +1,5 @@
-# DTS Platform - 代码所有权
-# 自动为 PR 请求指定代码所有者进行评审
+# DTS Platform - Code Owners
+# Auto-assigns PR reviewers based on changed paths.
 
-# Rust 后端代码
-/crates/  @team-backend
-
-# 前端代码
-/web/  @team-frontend
-
-# CI/CD 基础设施
-/.github/  @team-devops
-
-# 安全相关配置
-/deny.toml  @team-devops @team-backend
-/codecov.yml  @team-devops
+# All code paths — currently maintained by the project lead
+*  @guyulong

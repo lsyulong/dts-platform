@@ -102,6 +102,8 @@ dts-platform/
 | GET | `/api/v1/alerts` | 告警规则列表 |
 | POST | `/api/v1/alerts` | 创建告警规则 |
 | PATCH | `/api/v1/alerts/:id/toggle` | 切换告警状态 |
+| POST | `/api/v1/ai/chat` | AI 对话 (SSE 流) |
+| POST | `/api/v1/ai/diagnose` | AI 故障诊断 (SSE 流) |
 | WS | `/ws/tasks/:id` | 任务实时日志 WebSocket |
 
 ## RBAC 权限
