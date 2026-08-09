@@ -173,7 +173,8 @@ pub async fn create_app(
                     .service(
                         web::scope("/ai")
                             .route("/chat", web::post().to(crate::api::ai::chat))
-                            .route("/diagnose", web::post().to(crate::api::ai::diagnose)),
+                            .route("/diagnose", web::post().to(crate::api::ai::diagnose))
+                            .route("/report", web::post().to(crate::api::ai::report)),
                     )
                     // 查询分析 (SwanLake)
                     .service(

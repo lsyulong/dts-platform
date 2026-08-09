@@ -123,6 +123,82 @@ pub async fn diagnose(
     Ok(sse_response(rx))
 }
 
+/// POST /api/v1/ai/report — SSE 流式数据同步分析报告
+pub async fn report(
+    ai_svc: web::Data<crate::services::ai_svc::AiService>,
+    task_repo: web::Data<Arc<dyn TaskRepo>>,
+    task_run_repo: web::Data<Arc<dyn TaskRunRepo>>,
+    datasource_repo: web::Data<Arc<dyn DatasourceRepo>>,
+    req: HttpRequest,
+    query: web::Query<AiDiagnoseQuery>,
+) -> Result<HttpResponse, AppError> {
+    let jwt_secret = auth::get_jwt_secret(None);
+    let claims = auth::extract_claims(&req, &jwt_secret)?;
+
+    let task = task_repo
+        .find_detail_by_id(&query.task_id, &claims.tenant_id)
+        .await
+        .map_err(|e| AppError::BadRequest(format!("无法获取任务信息: {e}")))?
+        .ok_or_else(|| AppError::BadRequest("任务不存在".into()))?;
+
+    let source = datasource_repo
+        .find_detail_by_id(&task.source_id, &claims.tenant_id)
+        .await
+        .map_err(|e| AppError::BadRequest(format!("无法获取源端信息: {e}")))?;
+    let target = datasource_repo
+        .find_detail_by_id(&task.target_id, &claims.tenant_id)
+        .await
+        .map_err(|e| AppError::BadRequest(format!("无法获取目标端信息: {e}")))?;
+
+    let recent_runs = task_run_repo
+        .find_recent(&query.task_id, 20)
+        .await
+        .map_err(|e| AppError::BadRequest(format!("无法获取运行历史: {e}")))?;
+
+    // 计算统计指标
+    let total_runs = recent_runs.len();
+    let success_count = recent_runs.iter().filter(|r| r.status == "completed").count();
+    let success_rate = if total_runs > 0 {
+        success_count as f64 / total_runs as f64
+    } else {
+        0.0
+    };
+    let total_rows_synced: i64 = recent_runs.iter().map(|r| r.rows_synced).sum();
+    let avg_rows_per_run = if total_runs > 0 {
+        total_rows_synced / total_runs as i64
+    } else {
+        0
+    };
+
+    let ctx = crate::services::ai_svc::ReportContext {
+        task_name: task.name.clone(),
+        task_description: task.description.clone(),
+        source_db_type: source
+            .map(|s| s.db_type)
+            .unwrap_or_else(|| "unknown".into()),
+        target_db_type: target
+            .map(|t| t.db_type)
+            .unwrap_or_else(|| "unknown".into()),
+        total_runs,
+        success_rate,
+        total_rows_synced,
+        avg_rows_per_run,
+        period_hours: 24,
+        recent_runs: recent_runs
+            .iter()
+            .map(|r| crate::services::ai_svc::ReportRunSummary {
+                status: r.status.clone(),
+                rows_synced: r.rows_synced,
+                duration_secs: None,
+                start_time: r.start_time.clone(),
+            })
+            .collect(),
+    };
+
+    let rx = ai_svc.generate_report(ctx).await?;
+    Ok(sse_response(rx))
+}
+
 /// 将 channel receiver 转为 actix SSE 流式响应
 fn sse_response(rx: tokio::sync::mpsc::Receiver<String>) -> HttpResponse {
     let receiver_stream = tokio_stream::wrappers::ReceiverStream::new(rx);

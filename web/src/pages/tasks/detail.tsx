@@ -5,6 +5,7 @@ import { ArrowLeft, Pause, Play, Clock, ExternalLink } from 'lucide-react';
 import MetricCard from '../../components/MetricCard';
 import { EmptyState, StatusBadge, FormInput } from '../../components/ui';
 import { TaskDetailSkeleton } from '../../components/skeletons';
+import { AiReportPanel } from '../../components/ai';
 import { useTask, useUpdateTaskStatus, useScheduleStatus, useSetSchedule, useDeleteSchedule } from '../../hooks/useApi';
 import { useTaskProgress, formatBytes, formatRows } from '../../hooks/useTaskProgress';
 
@@ -308,6 +309,14 @@ export default function TaskDetailPage() {
           </div>
         )}
       </div>
+
+      {/* AI Report */}
+      {id && (
+        <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5 backdrop-blur-sm">
+          <h3 className="mb-4 text-sm font-medium text-[var(--color-text-secondary)]">AI 分析报告</h3>
+          <AiReportPanel taskId={id} />
+        </div>
+      )}
     </div>
   );
 }

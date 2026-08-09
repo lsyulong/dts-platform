@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Editor, { type OnMount } from '@monaco-editor/react';
-import { Play, Database, Clock, ChevronDown, Trash2, Loader2 } from 'lucide-react';
+import { Play, Database, Clock, ChevronDown, Trash2, Loader2, BarChart3, LineChart, PieChart } from 'lucide-react';
 import client from '../../api/client';
 
-type ColumnMeta = { name: string; data_type: string };
-type QueryResult = { columns: ColumnMeta[]; rows: Record<string, unknown>[]; row_count: number };
+type ColumnMeta = { name: string; data_type: string; is_numeric: boolean };
+type ChartSuggestion = { chart_type: string; x_column: string | null; y_column: string | null; reason: string };
+type QueryResult = { columns: ColumnMeta[]; rows: Record<string, unknown>[]; row_count: number; suggested_chart: ChartSuggestion | null };
 type SchemaInfo = { catalog: string | null; schema: string; tables: { name: string }[] };
+
+const CHART_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
+  bar: BarChart3,
+  line: LineChart,
+  pie: PieChart,
+};
 
 const HISTORY_KEY = 'dts-query-history';
 const MAX_HISTORY = 50;
@@ -241,6 +248,26 @@ export default function QueryPage() {
                   {t('query.rowsReturned', { count: result.row_count })}
                   {result.columns.length > 0 && ` · ${result.columns.length} ${t('query.columns')}`}
                 </p>
+
+                {/* Chart Suggestion */}
+                {result.suggested_chart && (() => {
+                  const sc = result.suggested_chart;
+                  const ChartIcon = CHART_ICONS[sc.chart_type] || BarChart3;
+                  return (
+                    <div className="mb-4 rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+                        <ChartIcon size={20} className="text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-[var(--color-text-primary)]">
+                          推荐图表: {sc.chart_type === 'bar' ? '柱状图' : sc.chart_type === 'line' ? '折线图' : '饼图'}
+                        </p>
+                        <p className="text-[11px] text-[var(--color-text-tertiary)]">{sc.reason}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="overflow-x-auto rounded-xl border border-[var(--color-border-default)]">
                   <table className="w-full text-left text-xs">
                     <thead>

@@ -30,12 +30,29 @@ pub struct QueryResult {
     pub columns: Vec<ColumnMeta>,
     pub rows: Vec<serde_json::Value>,
     pub row_count: usize,
+    /// 图表推荐（基于列类型自动推断，可选）
+    pub suggested_chart: Option<ChartSuggestion>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct ColumnMeta {
     pub name: String,
     pub data_type: String,
+    /// 是否为数值列
+    pub is_numeric: bool,
+}
+
+/// 图表推荐
+#[derive(Debug, Serialize)]
+pub struct ChartSuggestion {
+    /// 推荐图表类型: "bar" | "line" | "pie"
+    pub chart_type: String,
+    /// X 轴候选列名（category/time）
+    pub x_column: Option<String>,
+    /// Y 轴候选列名（numeric）
+    pub y_column: Option<String>,
+    /// 推荐理由
+    pub reason: String,
 }
 
 /// Schema/表信息
@@ -124,12 +141,14 @@ impl QueryService {
         }
 
         let row_count = all_rows.len();
+        let suggested_chart = suggest_chart(&columns);
         info!(row_count = row_count, columns = columns.len(), "SwanLake 查询完成");
 
         Ok(QueryResult {
             columns,
             rows: all_rows,
             row_count,
+            suggested_chart,
         })
     }
 
@@ -231,11 +250,67 @@ fn columns_from_schema(schema: SchemaRef) -> Vec<ColumnMeta> {
     schema
         .fields()
         .iter()
-        .map(|f| ColumnMeta {
-            name: f.name().to_string(),
-            data_type: format!("{:?}", f.data_type()),
+        .map(|f| {
+            let dt = format!("{:?}", f.data_type());
+            let is_numeric = dt.contains("Int") || dt.contains("Float") || dt.contains("Decimal");
+            ColumnMeta {
+                name: f.name().to_string(),
+                data_type: dt,
+                is_numeric,
+            }
         })
         .collect()
+}
+
+/// 基于列元数据推荐图表类型
+fn suggest_chart(columns: &[ColumnMeta]) -> Option<ChartSuggestion> {
+    if columns.is_empty() {
+        return None;
+    }
+
+    let numeric_cols: Vec<&ColumnMeta> = columns.iter().filter(|c| c.is_numeric).collect();
+    let string_cols: Vec<&ColumnMeta> = columns
+        .iter()
+        .filter(|c| !c.is_numeric && c.data_type.contains("Utf8"))
+        .collect();
+
+    if numeric_cols.is_empty() {
+        return None; // 没有可度量的数值列
+    }
+
+    // 规则 1: 一个 category + 一个 numeric → bar chart
+    if !string_cols.is_empty() && !numeric_cols.is_empty() {
+        return Some(ChartSuggestion {
+            chart_type: "bar".into(),
+            x_column: Some(string_cols[0].name.clone()),
+            y_column: Some(numeric_cols[0].name.clone()),
+            reason: format!(
+                "类别列 '{}' 与数值列 '{}' 适合柱状图对比",
+                string_cols[0].name, numeric_cols[0].name
+            ),
+        });
+    }
+
+    // 规则 2: 多个 numeric → line chart (趋势)
+    if numeric_cols.len() >= 2 {
+        return Some(ChartSuggestion {
+            chart_type: "line".into(),
+            x_column: None, // 用行索引
+            y_column: Some(numeric_cols[0].name.clone()),
+            reason: format!(
+                "多个数值列适合折线图趋势对比: {}",
+                numeric_cols.iter().map(|c| c.name.as_str()).collect::<Vec<_>>().join(", ")
+            ),
+        });
+    }
+
+    // 规则 3: 单个 numeric → bar chart (分布)
+    Some(ChartSuggestion {
+        chart_type: "bar".into(),
+        x_column: None,
+        y_column: Some(numeric_cols[0].name.clone()),
+        reason: format!("数值列 '{}' 适合柱状图查看分布", numeric_cols[0].name),
+    })
 }
 
 /// 将 Arrow RecordBatch 转为 JSON 行向量
