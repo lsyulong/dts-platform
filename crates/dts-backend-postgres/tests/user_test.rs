@@ -39,7 +39,9 @@ async fn setup() -> Option<(PgUserRepo, String)> {
 
 #[tokio::test]
 async fn create_and_find_by_username() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     let user_id = uuid::Uuid::new_v4().to_string();
     let params = CreateUserParams {
         id: user_id.clone(),
@@ -63,14 +65,21 @@ async fn create_and_find_by_username() {
 
 #[tokio::test]
 async fn find_by_id_returns_none_for_missing() {
-    let Some((repo, _)) = setup().await else { return; };
-    let result = repo.find_detail_by_id("nonexistent").await.expect("query failed");
+    let Some((repo, _)) = setup().await else {
+        return;
+    };
+    let result = repo
+        .find_detail_by_id("nonexistent")
+        .await
+        .expect("query failed");
     assert!(result.is_none());
 }
 
 #[tokio::test]
 async fn list_all_filters_by_tenant() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     repo.create(&CreateUserParams {
         id: uuid::Uuid::new_v4().to_string(),
         tenant_id: tenant_id.clone(),
@@ -91,7 +100,9 @@ async fn list_all_filters_by_tenant() {
 
 #[tokio::test]
 async fn update_user_info() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     let user_id = uuid::Uuid::new_v4().to_string();
     repo.create(&CreateUserParams {
         id: user_id.clone(),
@@ -117,7 +128,9 @@ async fn update_user_info() {
 
 #[tokio::test]
 async fn soft_delete_user() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     let user_id = uuid::Uuid::new_v4().to_string();
     repo.create(&CreateUserParams {
         id: user_id.clone(),
@@ -130,12 +143,16 @@ async fn soft_delete_user() {
     .await
     .expect("create failed");
 
-    repo.soft_delete(&user_id).await.expect("soft delete failed");
+    repo.soft_delete(&user_id)
+        .await
+        .expect("soft delete failed");
 }
 
 #[tokio::test]
 async fn reset_password_works() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     let user_id = uuid::Uuid::new_v4().to_string();
     repo.create(&CreateUserParams {
         id: user_id.clone(),

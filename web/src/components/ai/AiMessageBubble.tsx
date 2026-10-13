@@ -11,15 +11,17 @@ export function AiMessageBubble({ role, content }: Props) {
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-          isUser ? 'bg-blue-500/10 text-blue-400' : 'bg-violet-500/10 text-violet-400'
+          isUser
+            ? 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)]'
+            : 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)]'
         }`}
       >
         {isUser ? <User size={16} /> : <Bot size={16} />}
       </div>
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+        className={`max-w-[80%] rounded-lg px-4 py-2.5 text-sm ${
           isUser
-            ? 'bg-blue-600 text-white'
+            ? 'bg-[var(--color-action)] text-white'
             : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border-default)]'
         }`}
       >

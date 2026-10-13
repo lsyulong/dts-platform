@@ -37,7 +37,7 @@ describe('MonitoringPage', () => {
       });
     });
 
-    it('renders static system health metrics', () => {
+    it('renders the uncollected metric categories', () => {
       renderPage();
       expect(screen.getByText('monitoring.cpuUsage')).toBeInTheDocument();
       expect(screen.getByText('monitoring.memory')).toBeInTheDocument();
@@ -45,27 +45,12 @@ describe('MonitoringPage', () => {
       expect(screen.getByText('monitoring.avgLatency')).toBeInTheDocument();
     });
 
-    it('displays CPU value of 42%', () => {
+    it('marks unsupported host metrics as uncollected instead of displaying fixed values', () => {
       renderPage();
-      expect(screen.getByText('42')).toBeInTheDocument();
-    });
-
-    it('displays memory value of 18.4 GB', () => {
-      renderPage();
-      expect(screen.getByText('18.4')).toBeInTheDocument();
-      expect(screen.getByText('GB')).toBeInTheDocument();
-    });
-
-    it('displays network I/O value', () => {
-      renderPage();
-      expect(screen.getByText('845')).toBeInTheDocument();
-      expect(screen.getByText('MB/s')).toBeInTheDocument();
-    });
-
-    it('displays average latency value', () => {
-      renderPage();
-      expect(screen.getByText('45')).toBeInTheDocument();
-      expect(screen.getByText('ms')).toBeInTheDocument();
+      expect(screen.getAllByText('monitoring.notCollected')).toHaveLength(4);
+      for (const value of ['42', '18.4', '845', '45', 'Normal', 'Total 32 GB', 'P99: 120ms']) {
+        expect(screen.queryByText(value)).not.toBeInTheDocument();
+      }
     });
 
     it('renders alert rules section header', async () => {
@@ -110,16 +95,16 @@ describe('MonitoringPage', () => {
       await waitFor(() => screen.getByText('高延迟告警'));
 
       const toggleButtons = container.querySelectorAll('.relative.h-6.w-11.rounded-full');
-      // First alert (高延迟告警) is enabled, its toggle has bg-blue-500
-      expect(toggleButtons[0]?.className).toContain('bg-blue-500');
+      // First alert (高延迟告警) is enabled, its toggle has bg-[var(--color-action)]
+      expect(toggleButtons[0]?.className).toContain('bg-[var(--color-action)]');
 
       // Click the third toggle (吞吐量过低, which is disabled)
       if (toggleButtons[2]) {
         await user.click(toggleButtons[2]);
-        // After click, it should toggle optimistically to enabled (bg-blue-500)
+        // After click, it should toggle optimistically to enabled (bg-[var(--color-action)])
         await waitFor(() => {
           const refreshedButtons = container.querySelectorAll('.relative.h-6.w-11.rounded-full');
-          expect(refreshedButtons[2]?.className).toContain('bg-blue-500');
+          expect(refreshedButtons[2]?.className).toContain('bg-[var(--color-action)]');
         });
       }
     });
@@ -133,13 +118,13 @@ describe('MonitoringPage', () => {
       });
     });
 
-    it('renders log entries in the console', async () => {
+    it('shows no logs instead of displaying example health and sync events', async () => {
       renderPage();
-      await waitFor(() => {
-        expect(screen.getByText('System health check passed')).toBeInTheDocument();
-        expect(screen.getByText('Data sync progress: 45.2%')).toBeInTheDocument();
-        expect(screen.getByText('Connection pool usage > 80%')).toBeInTheDocument();
-      });
+      expect(screen.getByText('dashboard.waitingForLogs')).toBeInTheDocument();
+      expect(screen.queryByText('System health check passed')).not.toBeInTheDocument();
+      expect(screen.queryByText('Data sync progress: 45.2%')).not.toBeInTheDocument();
+      expect(screen.queryByText('Connection pool usage > 80%')).not.toBeInTheDocument();
+      expect(await screen.findByText('高延迟告警')).toBeInTheDocument();
     });
   });
 });

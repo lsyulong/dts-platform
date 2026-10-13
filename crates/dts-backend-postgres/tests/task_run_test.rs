@@ -20,7 +20,9 @@ use dts_backend_postgres::PgTaskRunRepo;
 
 #[tokio::test]
 async fn create_and_find_recent_runs() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgTaskRunRepo::new(pool);
     let task_id = uuid::Uuid::new_v4().to_string();
     let run_id = uuid::Uuid::new_v4().to_string();
@@ -43,7 +45,9 @@ async fn create_and_find_recent_runs() {
 
 #[tokio::test]
 async fn update_task_run() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgTaskRunRepo::new(pool);
     let run_id = uuid::Uuid::new_v4().to_string();
     let task_id = uuid::Uuid::new_v4().to_string();
@@ -79,7 +83,9 @@ async fn update_task_run() {
 
 #[tokio::test]
 async fn find_recent_returns_empty_for_unknown() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgTaskRunRepo::new(pool);
     let runs = repo
         .find_recent("nonexistent-task", 10)

@@ -18,7 +18,7 @@ describe('FormInput', () => {
     render(<FormInput label="Name" required />);
     const asterisk = screen.getByText('*');
     expect(asterisk).toBeInTheDocument();
-    expect(asterisk).toHaveClass('text-red-400');
+    expect(asterisk).toHaveClass('text-[var(--color-error)]');
   });
 
   it('shows error message when error prop provided', () => {
@@ -69,7 +69,8 @@ describe('FormInput', () => {
 
   it('does not render error message when no error', () => {
     const { container } = render(<FormInput />);
-    expect(container.querySelector('.text-xs.text-red-400')).not.toBeInTheDocument();
+    expect(container.querySelector('p')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'false');
   });
 
   it('applies additional className', () => {

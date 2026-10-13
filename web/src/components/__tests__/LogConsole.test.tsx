@@ -132,21 +132,33 @@ describe('LogConsole', () => {
 
   describe('level colors', () => {
     it('applies blue color to INFO level', () => {
-      render(<LogConsole logs={[{ timestamp: '10:30:45', level: 'INFO', component: 'sys', message: 'test' }]} />);
+      render(
+        <LogConsole
+          logs={[{ timestamp: '10:30:45', level: 'INFO', component: 'sys', message: 'test' }]}
+        />,
+      );
       const levelSpan = screen.getByText('[INFO]');
-      expect(levelSpan.className).toContain('text-blue-400');
+      expect(levelSpan.className).toContain('text-[var(--color-accent)]');
     });
 
     it('applies amber color to WARN level', () => {
-      render(<LogConsole logs={[{ timestamp: '10:30:45', level: 'WARN', component: 'sys', message: 'test' }]} />);
+      render(
+        <LogConsole
+          logs={[{ timestamp: '10:30:45', level: 'WARN', component: 'sys', message: 'test' }]}
+        />,
+      );
       const levelSpan = screen.getByText('[WARN]');
-      expect(levelSpan.className).toContain('text-amber-400');
+      expect(levelSpan.className).toContain('text-[var(--color-warning)]');
     });
 
     it('applies rose color to ERROR level', () => {
-      render(<LogConsole logs={[{ timestamp: '10:30:45', level: 'ERROR', component: 'sys', message: 'test' }]} />);
+      render(
+        <LogConsole
+          logs={[{ timestamp: '10:30:45', level: 'ERROR', component: 'sys', message: 'test' }]}
+        />,
+      );
       const levelSpan = screen.getByText('[ERROR]');
-      expect(levelSpan.className).toContain('text-rose-400');
+      expect(levelSpan.className).toContain('text-[var(--color-error)]');
     });
   });
 

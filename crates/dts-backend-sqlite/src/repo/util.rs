@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 /// Parse a timestamp string from SQLite (TEXT column) into DateTime<Utc>.
 ///
 /// SQLite stores timestamps as TEXT via `datetime('now')` which produces

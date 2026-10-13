@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use dts_backend::repo::MonitoringRepo;
 use dts_backend_rdbms::MigrationRunner;
 use dts_backend_sqlite::{SqliteMigrationRunner, SqliteMonitoringRepo};
@@ -120,7 +119,7 @@ async fn setup() -> (SqlitePool, SqliteMonitoringRepo, String) {
         "INSERT INTO task_run (id, task_id, status, start_time, rows_synced, bytes_synced)
          VALUES (?1, ?2, 'success', datetime('now'), 500, 2048)",
     )
-    .bind(&uuid::Uuid::new_v4().to_string())
+    .bind(uuid::Uuid::new_v4().to_string())
     .bind(&task1_id)
     .execute(&pool)
     .await
@@ -130,7 +129,7 @@ async fn setup() -> (SqlitePool, SqliteMonitoringRepo, String) {
         "INSERT INTO task_run (id, task_id, status, start_time, rows_synced, bytes_synced)
          VALUES (?1, ?2, 'success', datetime('now'), 300, 1024)",
     )
-    .bind(&uuid::Uuid::new_v4().to_string())
+    .bind(uuid::Uuid::new_v4().to_string())
     .bind(&task3_id)
     .execute(&pool)
     .await

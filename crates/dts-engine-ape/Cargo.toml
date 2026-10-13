@@ -19,4 +19,6 @@ anyhow = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true }
-toml = "0.8"
+tempfile = "3"
+url = "2"
+percent-encoding = "2"

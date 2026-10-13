@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use dts_backend::BackendError;
 
 /// 将 sqlx 错误映射为 BackendError
@@ -23,6 +22,12 @@ pub fn map_sqlx_error(err: sqlx::Error) -> BackendError {
         sqlx::Error::RowNotFound => BackendError::NotFound("记录不存在".into()),
         sqlx::Error::Database(db_err) => {
             let msg = db_err.to_string();
+            if db_err.is_unique_violation() {
+                return BackendError::AlreadyExists(msg);
+            }
+            if db_err.is_foreign_key_violation() || db_err.is_check_violation() {
+                return BackendError::ConstraintViolation(msg);
+            }
             if let Some(code) = db_err.code() {
                 match code.as_ref() {
                     // 唯一约束冲突 (PostgreSQL: 23505, MySQL: 1062)

@@ -1,0 +1,95 @@
+use async_trait::async_trait;
+use dts_backend::{BackendError, ProductResource, repo::development_revisions::*};
+use sqlx::{Sqlite, SqlitePool, Transaction};
+mod authority;
+mod restore;
+mod save;
+mod storage;
+#[cfg(test)]
+mod tests;
+
+pub struct SqliteDevelopmentRevisionRepo {
+    pool: SqlitePool,
+}
+impl SqliteDevelopmentRevisionRepo {
+    pub fn new(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
+    async fn begin_read(&self) -> Result<Transaction<'_, Sqlite>, BackendError> {
+        self.pool.begin().await.map_err(storage::error)
+    }
+    async fn begin_write(
+        &self,
+        s: &DevelopmentRevisionScope,
+    ) -> Result<Transaction<'_, Sqlite>, BackendError> {
+        let mut tx = self
+            .pool
+            .begin_with("BEGIN IMMEDIATE")
+            .await
+            .map_err(storage::error)?;
+        authority::check(&mut tx, s, true, true).await?;
+        Ok(tx)
+    }
+}
+#[async_trait]
+impl DevelopmentRevisionRepo for SqliteDevelopmentRevisionRepo {
+    async fn current(&self, s: &DevelopmentRevisionScope) -> Result<ProductResource, BackendError> {
+        let mut tx = self.begin_read().await?;
+        authority::check(&mut tx, s, false, false).await?;
+        let resource = storage::source(&mut tx, s).await?;
+        tx.commit().await.map_err(storage::error)?;
+        Ok(resource)
+    }
+    async fn save(
+        &self,
+        p: &SaveDevelopmentRevisionParams,
+    ) -> Result<SaveDevelopmentRevisionResult, BackendError> {
+        validation::write(&p.scope, p.expected_version, &p.reason, &p.idempotency_key)?;
+        let mut tx = self.begin_write(&p.scope).await?;
+        let result = save::save(&mut tx, p).await?;
+        tx.commit().await.map_err(storage::error)?;
+        Ok(result)
+    }
+    async fn restore(
+        &self,
+        p: &RestoreDevelopmentRevisionParams,
+    ) -> Result<RestoreDevelopmentRevisionResult, BackendError> {
+        validation::write(&p.scope, p.expected_version, &p.reason, &p.idempotency_key)?;
+        validation::identifier(&p.revision_id)?;
+        let mut tx = self.begin_write(&p.scope).await?;
+        let result = restore::restore(&mut tx, p).await?;
+        tx.commit().await.map_err(storage::error)?;
+        Ok(result)
+    }
+    async fn detail(
+        &self,
+        p: &ReadDevelopmentRevisionParams,
+    ) -> Result<DevelopmentRevision, BackendError> {
+        validation::identifier(&p.revision_id)?;
+        let mut tx = self.begin_read().await?;
+        authority::check(&mut tx, &p.scope, false, false).await?;
+        storage::source(&mut tx, &p.scope).await?;
+        let revision = storage::revision(&mut tx, &p.scope, &p.revision_id).await?;
+        tx.commit().await.map_err(storage::error)?;
+        Ok(revision)
+    }
+    async fn history(
+        &self,
+        f: &DevelopmentRevisionFilter,
+    ) -> Result<DevelopmentRevisionPage, BackendError> {
+        validation::page(f.limit, f.offset)?;
+        let mut tx = self.begin_read().await?;
+        authority::check(&mut tx, &f.scope, false, false).await?;
+        storage::source(&mut tx, &f.scope).await?;
+        let total=sqlx::query_scalar("SELECT COUNT(*) FROM development_revision WHERE tenant_id=?1 AND source_kind=?2 AND source_id=?3")
+            .bind(&f.scope.tenant_id).bind(&f.scope.kind).bind(&f.scope.resource_id).fetch_one(&mut *tx).await.map_err(storage::error)?;
+        let rows=sqlx::query("SELECT id,tenant_id,source_kind,source_id,source_version,snapshot_hash,saved_by,saved_at,reason FROM development_revision WHERE tenant_id=?1 AND source_kind=?2 AND source_id=?3 ORDER BY source_version DESC,id LIMIT ?4 OFFSET ?5")
+            .bind(&f.scope.tenant_id).bind(&f.scope.kind).bind(&f.scope.resource_id).bind(i64::from(f.limit)).bind(i64::from(f.offset)).fetch_all(&mut *tx).await.map_err(storage::error)?;
+        let data = rows
+            .iter()
+            .map(storage::decode_summary)
+            .collect::<Result<_, _>>()?;
+        tx.commit().await.map_err(storage::error)?;
+        Ok(DevelopmentRevisionPage { data, total })
+    }
+}

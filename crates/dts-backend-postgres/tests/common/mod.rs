@@ -22,15 +22,14 @@
 
 use std::sync::OnceLock;
 
-use dts_backend_rdbms::MigrationRunner;
 use dts_backend_postgres::PgMigrationRunner;
+use dts_backend_rdbms::MigrationRunner;
 use sqlx::PgPool;
 
 /// Get the test database URL from environment or use the default.
 pub fn test_database_url() -> String {
-    std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-        "postgresql://dts:dts_test@localhost:5433/dts_test".to_string()
-    })
+    std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgresql://dts:dts_test@localhost:5433/dts_test".to_string())
 }
 
 /// Cached pool for test isolation — each test function gets the same pool,
@@ -54,12 +53,12 @@ pub async fn setup_pool() -> Option<PgPool> {
             let pool_clone = pool.clone();
             let _ = POOL.set(Some(pool));
             Some(pool_clone)
-        }
+        },
         Err(e) => {
             eprintln!("Skipping PostgreSQL tests: {e}");
             eprintln!("Start PostgreSQL with: docker compose -f docker-compose.test.yml up -d");
             let _ = POOL.set(None);
             None
-        }
+        },
     }
 }

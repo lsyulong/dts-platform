@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Enable class-based dark mode for shadcn/ui components */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -28,36 +28,43 @@
 :root {
   /* Surface colors */
   --color-bg-primary: #ffffff;
-  --color-bg-secondary: #fafafa;
-  --color-bg-tertiary: #f4f4f5;
+  --color-bg-secondary: #f4f6f8;
+  --color-bg-tertiary: #edf1f4;
   --color-bg-elevated: #ffffff;
 
   /* Border colors */
-  --color-border-default: #e4e4e7;
-  --color-border-subtle: #f4f4f5;
-  --color-border-hover: #d4d4d8;
+  --color-border-default: #e3e8ed;
+  --color-border-subtle: #edf1f4;
+  --color-border-hover: #bdc8d2;
 
   /* Text colors */
-  --color-text-primary: #18181b;
-  --color-text-secondary: #52525b;
-  --color-text-tertiary: #a1a1aa;
-  --color-text-disabled: #d4d4d8;
+  --color-text-primary: #243447;
+  --color-text-secondary: #526274;
+  --color-text-tertiary: #647487;
+  --color-text-disabled: #647487;
 
-  /* Accent (blue) */
-  --color-accent: #3b82f6;
-  --color-accent-hover: #2563eb;
-  --color-accent-subtle: rgba(59, 130, 246, 0.1);
-  --color-accent-glow: rgba(37, 99, 235, 0.2);
+  --color-accent: #087f73;
+  --color-accent-hover: #066b61;
+  --color-accent-subtle: #e7f5f1;
+  --color-accent-glow: rgba(8, 127, 115, 0.18);
+  --color-action: #087f73;
+  --color-action-hover: #066b61;
+
+  --color-nav-bg: #1d2633;
+  --color-nav-text: #aebccc;
+  --color-nav-muted: #8798ab;
+  --color-nav-hover: #283548;
+  --color-nav-active: #25c7ad;
 
   /* Semantic */
-  --color-success: #10b981;
+  --color-success: #087f5b;
   --color-success-subtle: rgba(16, 185, 129, 0.1);
-  --color-warning: #f59e0b;
+  --color-warning: #9a5a00;
   --color-warning-subtle: rgba(245, 158, 11, 0.1);
-  --color-error: #f43f5e;
+  --color-error: #c83249;
   --color-error-subtle: rgba(244, 63, 94, 0.1);
-  --color-info: #3b82f6;
-  --color-info-subtle: rgba(59, 130, 246, 0.1);
+  --color-info: #087f73;
+  --color-info-subtle: rgba(8, 127, 115, 0.1);
 
   /* Scrollbar */
   --color-scrollbar-thumb: #d4d4d8;
@@ -71,27 +78,26 @@
 
 .dark {
   /* Surface colors */
-  --color-bg-primary: #09090b;
-  --color-bg-secondary: #18181b;
-  --color-bg-tertiary: #27272a;
-  --color-bg-elevated: #18181b;
+  --color-bg-primary: #17212d;
+  --color-bg-secondary: #111a25;
+  --color-bg-tertiary: #243242;
+  --color-bg-elevated: #1b2837;
 
   /* Border colors */
-  --color-border-default: rgba(39, 39, 42, 0.6);
-  --color-border-subtle: rgba(39, 39, 42, 0.4);
-  --color-border-hover: rgba(63, 63, 70, 0.6);
+  --color-border-default: #334254;
+  --color-border-subtle: #29384a;
+  --color-border-hover: #52647b;
 
   /* Text colors */
   --color-text-primary: #fafafa;
   --color-text-secondary: #a1a1aa;
-  --color-text-tertiary: #71717a;
-  --color-text-disabled: #3f3f46;
+  --color-text-tertiary: #91a1b3;
+  --color-text-disabled: #8798ab;
 
-  /* Accent (blue — slightly brighter for dark) */
-  --color-accent: #3b82f6;
-  --color-accent-hover: #60a5fa;
-  --color-accent-subtle: rgba(59, 130, 246, 0.1);
-  --color-accent-glow: rgba(37, 99, 235, 0.2);
+  --color-accent: #35c9b2;
+  --color-accent-hover: #52ddc7;
+  --color-accent-subtle: rgba(53, 201, 178, 0.12);
+  --color-accent-glow: rgba(53, 201, 178, 0.18);
 
   /* Semantic */
   --color-success: #34d399;
@@ -117,17 +123,89 @@
    Base Styles
    ============================================================ */
 
-html {
-  color-scheme: light dark; /* overridden by :root/.dark */
-}
-
 body {
   margin: 0;
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Segoe UI',
+    'Microsoft YaHei',
+    system-ui,
+    -apple-system,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+button:not(:disabled),
+a,
+summary {
+  cursor: pointer;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--color-accent);
+}
+
+.data-panel {
+  overflow: hidden;
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+  background: var(--color-bg-elevated);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.data-table thead {
+  background: var(--color-bg-secondary);
+}
+
+.data-table th {
+  padding: 12px 16px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 13px 16px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-accent-subtle);
+}
+
+.data-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-bg-elevated);
+}
+
+.workspace-content > .page-transition > div > div:first-child h1 {
+  font-size: 20px;
+  font-weight: 600;
 }
 
 /* ============================================================
@@ -157,19 +235,27 @@ body {
    ============================================================ */
 
 @keyframes progress-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* ============================================================
    Theme Transition (smooth color changes)
    ============================================================ */
 
-html,
-html *,
-html *::before,
-html *::after {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.15s ease;
+body,
+header,
+aside,
+.data-panel {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.15s ease;
 }
 
 /* Disable transition on page load to prevent flash */
@@ -178,4 +264,16 @@ html.no-transitions *,
 html.no-transitions *::before,
 html.no-transitions *::after {
   transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
 }

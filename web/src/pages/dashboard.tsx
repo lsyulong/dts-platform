@@ -26,6 +26,10 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const { data: overview, isLoading, error } = useOverview();
   const { data: tasks = [] } = useTasks();
+  const hasTasks = (overview?.total_tasks ?? 0) > 0;
+  const hasDatasources = (overview?.total_datasources ?? 0) > 0;
+  const connectionsConfirmed =
+    hasDatasources && overview?.healthy_datasources === overview?.total_datasources;
 
   const fetchError = error ? t('errors.somethingWentWrong') : null;
 
@@ -45,7 +49,9 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">{t('dashboard.title')}</h1>
+        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">
+          {t('dashboard.title')}
+        </h1>
         <p className="mt-1 text-sm text-[var(--color-text-tertiary)]">{t('dashboard.subtitle')}</p>
       </div>
 
@@ -60,20 +66,38 @@ export default function DashboardPage() {
         <MetricCard
           title={t('dashboard.todaySyncData')}
           value={formatBytes(overview?.today_synced_bytes ?? 0)}
-          subtitle={t('dashboard.rowsCount', { count: formatNumber(overview?.today_synced_rows ?? 0) })}
+          subtitle={t('dashboard.rowsCount', {
+            count: formatNumber(overview?.today_synced_rows ?? 0),
+          })}
           trend="up"
         />
         <MetricCard
           title={t('dashboard.successRate')}
-          value={`${(overview?.success_rate ?? 100).toFixed(1)}%`}
-          subtitle={t('dashboard.failedCount', { count: overview?.failed_tasks ?? 0 })}
-          trend={overview && overview.failed_tasks > 0 ? 'down' : 'up'}
+          value={hasTasks ? `${(overview?.success_rate ?? 0).toFixed(1)}%` : '--'}
+          subtitle={
+            hasTasks
+              ? t('dashboard.failedCount', { count: overview?.failed_tasks ?? 0 })
+              : t('dashboard.noData')
+          }
+          trend={hasTasks ? (overview && overview.failed_tasks > 0 ? 'down' : 'up') : 'neutral'}
           icon={<CheckCircle size={18} />}
         />
         <MetricCard
           title={t('dashboard.healthyDatasources')}
-          value={`${overview?.healthy_datasources ?? 0}/${overview?.total_datasources ?? 0}`}
-          subtitle={t('dashboard.connectionHealthy')}
+          value={
+            hasDatasources
+              ? `${overview?.healthy_datasources ?? 0}/${overview?.total_datasources ?? 0}`
+              : '--'
+          }
+          subtitle={
+            !hasDatasources
+              ? t('datasources.noDatasources')
+              : t(
+                  connectionsConfirmed
+                    ? 'dashboard.connectionHealthy'
+                    : 'dashboard.connectionUnconfirmed',
+                )
+          }
           icon={<Database size={18} />}
         />
       </div>
@@ -81,10 +105,15 @@ export default function DashboardPage() {
       {/* Recent runs + Charts */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent task runs */}
-        <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5 backdrop-blur-sm">
+        <div className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5 backdrop-blur-sm">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-[var(--color-text-secondary)]">{t('dashboard.recentRuns')}</h3>
-            <Link to="/tasks" className="text-xs text-blue-400 hover:text-blue-300">
+            <h3 className="text-sm font-medium text-[var(--color-text-secondary)]">
+              {t('dashboard.recentRuns')}
+            </h3>
+            <Link
+              to="/tasks"
+              className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
+            >
               {t('dashboard.viewAll')}
             </Link>
           </div>
@@ -95,12 +124,12 @@ export default function DashboardPage() {
               overview?.recent_runs?.slice(0, 5).map((run) => (
                 <div
                   key={run.id}
-                  className="flex items-center justify-between rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-3"
+                  className="flex items-center justify-between rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-3"
                 >
                   <div>
                     <Link
                       to={`/tasks/${run.task_id}`}
-                      className="text-sm font-medium text-[var(--color-text-primary)] hover:text-blue-400"
+                      className="text-sm font-medium text-[var(--color-text-primary)] hover:text-[var(--color-accent-hover)]"
                     >
                       {run.task_name}
                     </Link>
@@ -119,23 +148,24 @@ export default function DashboardPage() {
         </div>
 
         {/* Charts */}
-        <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5 backdrop-blur-sm">
-          <SyncVolumeChart runs={overview?.recent_runs?.map((r) => ({ task_name: r.task_name, rows_synced: r.rows_synced })) ?? []} />
+        <div className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5 backdrop-blur-sm">
+          <SyncVolumeChart
+            runs={
+              overview?.recent_runs?.map((r) => ({
+                task_name: r.task_name,
+                rows_synced: r.rows_synced,
+              })) ?? []
+            }
+          />
         </div>
       </div>
 
       {/* Task distribution + Log */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5 backdrop-blur-sm">
+        <div className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5 backdrop-blur-sm">
           <TaskStatusPie tasks={tasks} />
         </div>
-        <LogConsole
-          title={t('dashboard.systemLog')}
-          logs={[
-            { timestamp: new Date().toISOString(), level: 'INFO', component: 'system', message: t('dashboard.logStarted') },
-            { timestamp: new Date().toISOString(), level: 'INFO', component: 'db', message: t('dashboard.logDbConnected') },
-          ]}
-        />
+        <LogConsole title={t('dashboard.systemLog')} />
       </div>
     </div>
   );

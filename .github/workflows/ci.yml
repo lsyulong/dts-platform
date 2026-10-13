@@ -100,7 +100,7 @@ jobs:
 
       - name: 文件大小检查 (max 800 lines per .rs file)
         run: |
-          LARGE_FILES=$(find crates -name '*.rs' -exec wc -l {} + | awk '$1 > 800 { print $2 ": " $1 " lines (max 800)"; }')
+          LARGE_FILES=$(find crates -name '*.rs' -exec wc -l {} + | awk '$2 != "total" && $1 > 800 { print $2 ": " $1 " lines (max 800)"; }')
           if [ -n "$LARGE_FILES" ]; then
             echo "❌ Files exceeding 800 lines:"
             echo "$LARGE_FILES"

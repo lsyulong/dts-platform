@@ -21,7 +21,9 @@ use dts_core::types::CreateTenantParams;
 
 #[tokio::test]
 async fn create_and_find_tenant() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgTenantRepo::new(pool);
     let id = uuid::Uuid::new_v4().to_string();
     let params = CreateTenantParams {
@@ -43,7 +45,9 @@ async fn create_and_find_tenant() {
 
 #[tokio::test]
 async fn find_by_id_returns_none_for_missing() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgTenantRepo::new(pool);
     let result = repo.find_by_id("nonexistent").await.expect("query failed");
     assert!(result.is_none());
@@ -51,7 +55,9 @@ async fn find_by_id_returns_none_for_missing() {
 
 #[tokio::test]
 async fn create_duplicate_slug_returns_error() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgTenantRepo::new(pool);
     let slug = "duplicate-slug";
     repo.create(&CreateTenantParams {
@@ -74,7 +80,9 @@ async fn create_duplicate_slug_returns_error() {
 
 #[tokio::test]
 async fn list_all_returns_tenants() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgTenantRepo::new(pool);
     let tenants = repo.list_all().await.expect("list failed");
     // May or may not have tenants from other tests — just verify it doesn't crash
@@ -83,7 +91,9 @@ async fn list_all_returns_tenants() {
 
 #[tokio::test]
 async fn count_returns_non_negative() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgTenantRepo::new(pool);
     let count = repo.count().await.expect("count failed");
     assert!(count >= 0);

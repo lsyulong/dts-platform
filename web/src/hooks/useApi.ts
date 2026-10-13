@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '../api/client';
+import type { TableMapping } from '../lib/validations';
+import { captureSession, isCurrentSession } from '../lib/session';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -48,7 +50,24 @@ export interface Datasource {
   username: string | null;
   database_name: string | null;
   health_status: string;
+  last_test_at: string | null;
   created_at: string;
+}
+
+export interface DatasourceProbe {
+  id: string;
+  datasource_id: string;
+  supported: boolean;
+  status: 'healthy' | 'unhealthy' | 'unknown';
+  latency_ms: number | null;
+  error_message: string | null;
+  actor_id: string;
+  observed_at: string;
+}
+
+export interface DatasourceTable {
+  schema: string;
+  name: string;
 }
 
 export interface Overview {
@@ -88,6 +107,7 @@ export function useTasks() {
   return useQuery({
     queryKey: ['tasks'],
     queryFn: () => client.get('/tasks').then((r) => r.data.data as Task[]),
+    refetchInterval: 10000,
   });
 }
 
@@ -96,28 +116,20 @@ export function useTask(id: string | undefined) {
     queryKey: ['tasks', id],
     queryFn: () => client.get(`/tasks/${id}`).then((r) => r.data as TaskDetail),
     enabled: !!id,
+    refetchInterval: (query) => (query.state.data?.status === 'running' ? 5000 : false),
   });
 }
 
 export function useUpdateTaskStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      client.patch(`/tasks/${id}/status`, { status }),
-    onMutate: async ({ id, status }) => {
-      await qc.cancelQueries({ queryKey: ['tasks'] });
-      const previous = qc.getQueryData<Task[]>(['tasks']);
-      qc.setQueryData<Task[]>(['tasks'], (old) =>
-        old?.map((t) => (t.id === id ? { ...t, status } : t))
-      );
-      return { previous };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.previous) {
-        qc.setQueryData(['tasks'], context.previous);
-      }
-    },
-    onSettled: () => {
+    onMutate: captureSession,
+    mutationFn: ({ id, status }: { id: string; status: 'running' | 'cancelled' }) =>
+      status === 'running'
+        ? client.post(`/tasks/${id}/start`)
+        : client.patch(`/tasks/${id}/status`, { status }),
+    onSettled: (_data, _error, _vars, session) => {
+      if (!isCurrentSession(session)) return;
       qc.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
@@ -126,14 +138,19 @@ export function useUpdateTaskStatus() {
 export function useCreateTask() {
   const qc = useQueryClient();
   return useMutation({
+    onMutate: captureSession,
     mutationFn: (body: {
       name: string;
       description: string;
       source_id: string;
       target_id: string;
       cron_expr: string | null;
+      table_mappings: TableMapping[];
+      sync_mode: 'full';
+      batch_size?: number;
     }) => client.post('/tasks', body),
-    onSuccess: () => {
+    onSuccess: (_data, _vars, session) => {
+      if (!isCurrentSession(session)) return;
       qc.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
@@ -151,8 +168,10 @@ export function useDatasources() {
 export function useCreateDatasource() {
   const qc = useQueryClient();
   return useMutation({
+    onMutate: captureSession,
     mutationFn: (body: Record<string, unknown>) => client.post('/datasources', body),
-    onSuccess: () => {
+    onSuccess: (_data, _vars, session) => {
+      if (!isCurrentSession(session)) return;
       qc.invalidateQueries({ queryKey: ['datasources'] });
     },
   });
@@ -161,10 +180,49 @@ export function useCreateDatasource() {
 export function useDeleteDatasource() {
   const qc = useQueryClient();
   return useMutation({
+    onMutate: captureSession,
     mutationFn: (id: string) => client.delete(`/datasources/${id}`),
-    onSuccess: () => {
+    onSuccess: (_data, _vars, session) => {
+      if (!isCurrentSession(session)) return;
       qc.invalidateQueries({ queryKey: ['datasources'] });
     },
+  });
+}
+
+export function useTestDatasource() {
+  const qc = useQueryClient();
+  return useMutation({
+    onMutate: captureSession,
+    mutationFn: (id: string) =>
+      client.post(`/datasources/${id}/test`).then((response) => response.data as DatasourceProbe),
+    onSuccess: (_data, id, session) => {
+      if (!isCurrentSession(session)) return;
+      qc.invalidateQueries({ queryKey: ['datasources'] });
+      qc.invalidateQueries({ queryKey: ['datasources', id, 'probes'] });
+    },
+  });
+}
+
+export function useDatasourceProbeHistory(id: string | undefined) {
+  return useQuery({
+    queryKey: ['datasources', id, 'probes'],
+    queryFn: () =>
+      client
+        .get(`/datasources/${id}/probes`, { params: { limit: 20 } })
+        .then((response) => response.data.data as DatasourceProbe[]),
+    enabled: !!id,
+  });
+}
+
+export function useDatasourceTables(id: string | undefined) {
+  return useQuery({
+    queryKey: ['datasources', id, 'tables'],
+    queryFn: () =>
+      client
+        .get(`/datasources/${id}/tables`)
+        .then((response) => response.data.data as DatasourceTable[]),
+    enabled: !!id,
+    staleTime: 30_000,
   });
 }
 
@@ -189,19 +247,22 @@ export function useToggleAlert() {
   return useMutation({
     mutationFn: (id: string) => client.patch(`/alerts/${id}/toggle`),
     onMutate: async (id: string) => {
+      const session = captureSession();
       await qc.cancelQueries({ queryKey: ['alerts'] });
+      if (!isCurrentSession(session)) return { session, previous: undefined };
       const previous = qc.getQueryData<AlertRule[]>(['alerts']);
       qc.setQueryData<AlertRule[]>(['alerts'], (old) =>
-        old?.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a))
+        old?.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a)),
       );
-      return { previous };
+      return { previous, session };
     },
     onError: (_err, _id, context) => {
-      if (context?.previous) {
+      if (isCurrentSession(context?.session) && context?.previous) {
         qc.setQueryData(['alerts'], context.previous);
       }
     },
-    onSettled: () => {
+    onSettled: (_data, _error, _id, context) => {
+      if (!isCurrentSession(context?.session)) return;
       qc.invalidateQueries({ queryKey: ['alerts'] });
     },
   });
@@ -210,6 +271,10 @@ export function useToggleAlert() {
 // ── Scheduler ─────────────────────────────────────────────────────
 
 export interface ScheduleStatus {
+  enabled?: boolean;
+  active?: boolean;
+  state?: 'active' | 'pending' | 'offline' | 'stopped' | 'inactive' | 'disabled';
+  timezone?: string;
   has_timer: boolean;
   cron_expr: string | null;
   next_run: string | null;
@@ -220,9 +285,7 @@ export interface ScheduleStatus {
 export interface ScheduleInstance {
   id: number;
   name: string;
-  start_time: string | null;
-  end_time: string | null;
-  exit_code: number | null;
+  created_time: string | null;
   status: string;
 }
 
@@ -237,9 +300,11 @@ export function useScheduleStatus(taskId: string | undefined) {
 export function useSetSchedule() {
   const qc = useQueryClient();
   return useMutation({
+    onMutate: captureSession,
     mutationFn: ({ taskId, cronExpr }: { taskId: string; cronExpr: string }) =>
       client.post(`/tasks/${taskId}/schedule`, { cron_expr: cronExpr }),
-    onSuccess: (_data, vars) => {
+    onSuccess: (_data, vars, session) => {
+      if (!isCurrentSession(session)) return;
       qc.invalidateQueries({ queryKey: ['schedule', vars.taskId] });
     },
   });
@@ -248,8 +313,10 @@ export function useSetSchedule() {
 export function useDeleteSchedule() {
   const qc = useQueryClient();
   return useMutation({
+    onMutate: captureSession,
     mutationFn: (taskId: string) => client.delete(`/tasks/${taskId}/schedule`),
-    onSuccess: (_data, taskId) => {
+    onSuccess: (_data, taskId, session) => {
+      if (!isCurrentSession(session)) return;
       qc.invalidateQueries({ queryKey: ['schedule', taskId] });
     },
   });

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use dts_backend::{BackendError, repo::RoleRepo, repo::role::DefaultRoles, types::*};
@@ -93,18 +92,11 @@ impl RoleRepo for SqliteRoleRepo {
                 name: "tenant_admin".into(),
                 description: "租户管理员".into(),
                 is_system: true,
-                permissions: vec![
-                    "task:read".into(),
-                    "task:write".into(),
-                    "task:execute".into(),
-                    "datasource:read".into(),
-                    "datasource:write".into(),
-                    "monitor:read".into(),
-                    "alert:read".into(),
-                    "alert:write".into(),
-                    "user:manage".into(),
-                    "audit:read".into(),
-                ],
+                permissions: dts_backend::PERMISSIONS
+                    .iter()
+                    .filter(|permission| **permission != "tenant:create")
+                    .map(|permission| (*permission).to_owned())
+                    .collect(),
             })
             .await?;
 
@@ -221,39 +213,34 @@ impl RoleRepo for SqliteRoleRepo {
     }
 
     async fn delete(&self, role_id: &str) -> Result<(), BackendError> {
+        let mut transaction = self
+            .pool
+            .begin_with("BEGIN IMMEDIATE")
+            .await
+            .map_err(map_sqlx_error)?;
         sqlx::query("DELETE FROM role_permission WHERE role_id = ?1")
             .bind(role_id)
-            .execute(&self.pool)
+            .execute(&mut *transaction)
             .await
-            .map_err(map_sqlx_error)?;
+            .map_err(super::product_resource::map_reference_error)?;
         sqlx::query("DELETE FROM user_role WHERE role_id = ?1")
             .bind(role_id)
-            .execute(&self.pool)
+            .execute(&mut *transaction)
             .await
-            .map_err(map_sqlx_error)?;
+            .map_err(super::product_resource::map_reference_error)?;
         sqlx::query("DELETE FROM role WHERE id = ?1")
             .bind(role_id)
-            .execute(&self.pool)
+            .execute(&mut *transaction)
             .await
-            .map_err(map_sqlx_error)?;
+            .map_err(super::product_resource::map_reference_error)?;
+        transaction.commit().await.map_err(map_sqlx_error)?;
         Ok(())
     }
 
     async fn find_all_permissions(&self) -> Result<Vec<String>, BackendError> {
-        Ok(vec![
-            "task:read".into(),
-            "task:write".into(),
-            "task:delete".into(),
-            "ds:read".into(),
-            "ds:write".into(),
-            "ds:delete".into(),
-            "alert:read".into(),
-            "alert:write".into(),
-            "monitor:read".into(),
-            "ops:read".into(),
-            "admin:*".into(),
-            "system:read".into(),
-            "system:write".into(),
-        ])
+        Ok(dts_backend::PERMISSIONS
+            .iter()
+            .map(|permission| (*permission).to_owned())
+            .collect())
     }
 }

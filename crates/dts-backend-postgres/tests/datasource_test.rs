@@ -38,7 +38,9 @@ async fn setup() -> Option<(PgDatasourceRepo, String)> {
 
 #[tokio::test]
 async fn create_and_list_datasource() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     let id = uuid::Uuid::new_v4().to_string();
     let params = CreateDatasourceParams {
         id: id.clone(),
@@ -55,16 +57,15 @@ async fn create_and_list_datasource() {
     let result = repo.create(&params).await.expect("create failed");
     assert_eq!(result, id);
 
-    let list = repo
-        .list_by_tenant(&tenant_id)
-        .await
-        .expect("list failed");
+    let list = repo.list_by_tenant(&tenant_id).await.expect("list failed");
     assert!(!list.is_empty());
 }
 
 #[tokio::test]
 async fn find_detail_by_id_returns_correct_fields() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     let id = uuid::Uuid::new_v4().to_string();
     repo.create(&CreateDatasourceParams {
         id: id.clone(),
@@ -93,7 +94,9 @@ async fn find_detail_by_id_returns_correct_fields() {
 
 #[tokio::test]
 async fn delete_datasource() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     let id = uuid::Uuid::new_v4().to_string();
     repo.create(&CreateDatasourceParams {
         id: id.clone(),
@@ -122,7 +125,9 @@ async fn delete_datasource() {
 
 #[tokio::test]
 async fn count_by_tenant_returns_non_negative() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     let count = repo
         .count_by_tenant(&tenant_id)
         .await

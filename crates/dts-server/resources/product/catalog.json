@@ -1,0 +1,5583 @@
+{
+  "groups": [
+    {
+      "id": "workbench",
+      "title": {
+        "zh": "工作台",
+        "en": "Workbench"
+      },
+      "description": {
+        "zh": "工作概览、待办与个人信息",
+        "en": "Overview, work items and personal account information"
+      }
+    },
+    {
+      "id": "integration",
+      "title": {
+        "zh": "数据集成",
+        "en": "Data integration"
+      },
+      "description": {
+        "zh": "连接数据源、定义同步任务并跟踪执行",
+        "en": "Connect data sources, define pipelines and track execution"
+      }
+    },
+    {
+      "id": "warehouse",
+      "title": {
+        "zh": "数仓设计",
+        "en": "Warehouse design"
+      },
+      "description": {
+        "zh": "业务分类、数仓分层、数据域、过程、集市与主题",
+        "en": "Business categories, warehouse layers, domains, processes, marts and subjects"
+      }
+    },
+    {
+      "id": "standards",
+      "title": {
+        "zh": "数据标准",
+        "en": "Data standards"
+      },
+      "description": {
+        "zh": "统一命名、字段、枚举与计量单位",
+        "en": "Consistent naming, field definitions, enumerations and measurement units"
+      }
+    },
+    {
+      "id": "models",
+      "title": {
+        "zh": "模型设计",
+        "en": "Data models"
+      },
+      "description": {
+        "zh": "设计、导入、校验和发布数据模型",
+        "en": "Design, import, validate and publish versioned data models"
+      }
+    },
+    {
+      "id": "metrics",
+      "title": {
+        "zh": "数据指标",
+        "en": "Metrics"
+      },
+      "description": {
+        "zh": "原子、派生、复合指标与计算口径",
+        "en": "Atomic, derived and composite metrics with explicit calculation definitions"
+      }
+    },
+    {
+      "id": "development",
+      "title": {
+        "zh": "数据开发",
+        "en": "Data development"
+      },
+      "description": {
+        "zh": "SQL 开发、工作流、任务调度和运行监控",
+        "en": "SQL development, dependency workflows, scheduling and operations"
+      }
+    },
+    {
+      "id": "metadata",
+      "title": {
+        "zh": "元数据",
+        "en": "Metadata"
+      },
+      "description": {
+        "zh": "采集、检索和分析数据结构与血缘",
+        "en": "Collect, search and analyze data structures and evidenced lineage"
+      }
+    },
+    {
+      "id": "master-data",
+      "title": {
+        "zh": "主数据",
+        "en": "Master data"
+      },
+      "description": {
+        "zh": "主数据模型、编码、维护与分发",
+        "en": "Master data models, unique coding, maintenance and distribution"
+      }
+    },
+    {
+      "id": "data-security",
+      "title": {
+        "zh": "数据权限",
+        "en": "Data access"
+      },
+      "description": {
+        "zh": "数据访问申请、审批和审计",
+        "en": "Data access requests, approval decisions and audit records"
+      }
+    },
+    {
+      "id": "sensitive-data",
+      "title": {
+        "zh": "敏感数据",
+        "en": "Sensitive data"
+      },
+      "description": {
+        "zh": "数据密级、识别规则、识别任务与发现结果",
+        "en": "Classification levels, detection rules, tasks and findings"
+      }
+    },
+    {
+      "id": "privacy",
+      "title": {
+        "zh": "数据隐私",
+        "en": "Data privacy"
+      },
+      "description": {
+        "zh": "字段脱敏规则与用户组授权",
+        "en": "Column masking policies and user group access"
+      }
+    },
+    {
+      "id": "watermark",
+      "title": {
+        "zh": "数据水印",
+        "en": "Data watermark"
+      },
+      "description": {
+        "zh": "水印策略与溯源证据",
+        "en": "Export provenance policies and verifiable tracing evidence"
+      }
+    },
+    {
+      "id": "quality",
+      "title": {
+        "zh": "数据质量",
+        "en": "Data quality"
+      },
+      "description": {
+        "zh": "质量规则、校验任务、结果与报告",
+        "en": "Quality checks, execution tasks, results and reports"
+      }
+    },
+    {
+      "id": "assets",
+      "title": {
+        "zh": "数据资产",
+        "en": "Data assets"
+      },
+      "description": {
+        "zh": "资产地图、目录与使用分析",
+        "en": "Asset relationships, catalog entries and recorded usage analysis"
+      }
+    },
+    {
+      "id": "services",
+      "title": {
+        "zh": "数据服务",
+        "en": "Data services"
+      },
+      "description": {
+        "zh": "API 定义、授权应用与调用记录",
+        "en": "Versioned data APIs, authorized applications and actual call records"
+      }
+    },
+    {
+      "id": "bi",
+      "title": {
+        "zh": "BI 分析",
+        "en": "BI analysis"
+      },
+      "description": {
+        "zh": "人员分析与可复用分析报告",
+        "en": "Personnel analysis and reusable, permission-aware reports"
+      }
+    },
+    {
+      "id": "support",
+      "title": {
+        "zh": "辅助管理",
+        "en": "Supporting tools"
+      },
+      "description": {
+        "zh": "标签与告警配置",
+        "en": "Asset tags and event-driven alert settings"
+      }
+    },
+    {
+      "id": "access",
+      "title": {
+        "zh": "公共权限与系统",
+        "en": "Access and system"
+      },
+      "description": {
+        "zh": "租户、组织、账户、角色、菜单、通知与平台设置",
+        "en": "Tenants, organizations, accounts, roles, menus, notifications and settings"
+      }
+    }
+  ],
+  "modules": [
+    {
+      "id": "dashboard",
+      "groupId": "workbench",
+      "title": {
+        "zh": "工作台",
+        "en": "Workbench"
+      },
+      "description": {
+        "zh": "查看当前租户的真实资源和运行概览",
+        "en": "Review actual resources and recent pipeline runs for the current tenant"
+      },
+      "path": "/",
+      "reference": [
+        "1工作台",
+        "数据中台框架"
+      ],
+      "permission": "monitor:read",
+      "existingPath": "/",
+      "implementation": "existing",
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "datasources",
+      "groupId": "integration",
+      "title": {
+        "zh": "数据源管理",
+        "en": "Datasources"
+      },
+      "description": {
+        "zh": "维护连接配置并验证真实连接结果",
+        "en": "Manage connection settings and inspect real connection validation results"
+      },
+      "path": "/datasources",
+      "reference": [
+        "1.1数据源管理"
+      ],
+      "permission": "datasource:read",
+      "existingPath": "/datasources",
+      "implementation": "existing",
+      "workspaceType": "table"
+    },
+    {
+      "id": "integration-tasks",
+      "groupId": "integration",
+      "title": {
+        "zh": "任务管理",
+        "en": "Integration tasks"
+      },
+      "description": {
+        "zh": "创建同步任务、配置字段映射并跟踪运行",
+        "en": "Define source-to-target pipelines, field mappings and execution policies"
+      },
+      "path": "/tasks",
+      "reference": [
+        "1.2任务管理"
+      ],
+      "permission": "task:read",
+      "existingPath": "/tasks",
+      "implementation": "existing",
+      "workspaceType": "table"
+    },
+    {
+      "id": "integration-logs",
+      "groupId": "integration",
+      "title": {
+        "zh": "任务日志",
+        "en": "Task logs"
+      },
+      "description": {
+        "zh": "按任务和运行实例检查日志",
+        "en": "Inspect logs by pipeline and recorded run instance"
+      },
+      "path": "/integration/logs",
+      "reference": [
+        "1.3任务日志"
+      ],
+      "permission": "task:read",
+      "existingPath": "/monitoring",
+      "implementation": "existing",
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "integration-operations",
+      "groupId": "integration",
+      "title": {
+        "zh": "任务运维",
+        "en": "Task operations"
+      },
+      "description": {
+        "zh": "检查同步运行状态、失败原因和取消确认",
+        "en": "Inspect pipeline status, failures and confirmed cancellation outcomes"
+      },
+      "path": "/integration/operations",
+      "reference": [
+        "1.4任务运维"
+      ],
+      "permission": "monitor:read",
+      "existingPath": "/ops",
+      "implementation": "existing",
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "development-workspace",
+      "groupId": "development",
+      "title": {
+        "zh": "数据开发",
+        "en": "Development workspace"
+      },
+      "description": {
+        "zh": "保存 SQL 文档、参数、版本及发布记录",
+        "en": "Save SQL documents, parameters, revisions and publication records"
+      },
+      "path": "/development/workspace",
+      "reference": [
+        "3.1数据开发"
+      ],
+      "resourceKind": "sql_document",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "sql",
+          "label": {
+            "zh": "SQL 定义",
+            "en": "SQL definition"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "configuration_id",
+          "label": {
+            "zh": "已发布运行配置",
+            "en": "Published runtime configuration"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "development_config"
+        },
+        {
+          "key": "parameters",
+          "label": {
+            "zh": "参数定义",
+            "en": "Parameters"
+          },
+          "type": "json",
+          "required": false
+        },
+        {
+          "key": "model_id",
+          "label": {
+            "zh": "目标模型",
+            "en": "Target model"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "data_model"
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "save_version",
+        "validate",
+        "publish",
+        "withdraw",
+        "execute"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "periodic-workflows",
+      "groupId": "development",
+      "title": {
+        "zh": "周期任务",
+        "en": "Periodic workflows"
+      },
+      "description": {
+        "zh": "定义无环工作流和周期调度，跟踪各节点运行",
+        "en": "Define acyclic workflows and recurring schedules with per-node execution tracking"
+      },
+      "path": "/development/periodic",
+      "reference": [
+        "3.2周期任务"
+      ],
+      "resourceKind": "development_workflow",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "definition",
+          "label": {
+            "zh": "任务节点与依赖",
+            "en": "Nodes and dependencies"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "configuration_id",
+          "label": {
+            "zh": "已发布运行配置",
+            "en": "Published runtime configuration"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "development_config"
+        },
+        {
+          "key": "cron_expression",
+          "label": {
+            "zh": "Cron 表达式",
+            "en": "Cron expression"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "timezone",
+          "label": {
+            "zh": "时区",
+            "en": "Timezone"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "retry_limit",
+          "label": {
+            "zh": "重试次数",
+            "en": "Retry limit"
+          },
+          "type": "number",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "save_version",
+        "validate",
+        "publish",
+        "withdraw",
+        "register_schedule",
+        "unschedule",
+        "execute",
+        "cancel"
+      ],
+      "workspaceType": "workflow"
+    },
+    {
+      "id": "realtime-development",
+      "groupId": "development",
+      "title": {
+        "zh": "实时任务",
+        "en": "Realtime tasks"
+      },
+      "description": {
+        "zh": "定义持续同步任务、位点和运行策略",
+        "en": "Define continuous pipelines, checkpoints and recovery policies"
+      },
+      "path": "/development/realtime",
+      "reference": [
+        "3.3实时任务"
+      ],
+      "resourceKind": "realtime_task",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "source_id",
+          "label": {
+            "zh": "源数据源",
+            "en": "Source datasource"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "datasource"
+        },
+        {
+          "key": "target_id",
+          "label": {
+            "zh": "目标数据源",
+            "en": "Target datasource"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "datasource"
+        },
+        {
+          "key": "mapping",
+          "label": {
+            "zh": "字段映射",
+            "en": "Field mapping"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "checkpoint",
+          "label": {
+            "zh": "消费位点",
+            "en": "Checkpoint"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "start",
+        "stop",
+        "resume"
+      ],
+      "workspaceType": "workflow"
+    },
+    {
+      "id": "development-overview",
+      "groupId": "development",
+      "title": {
+        "zh": "运维概览",
+        "en": "Operations overview"
+      },
+      "description": {
+        "zh": "检查任务实例、失败和资源状态",
+        "en": "Review recorded task instances, failures and service health"
+      },
+      "path": "/development/overview",
+      "reference": [
+        "3.4.1运维概览"
+      ],
+      "permission": "development:read",
+      "existingPath": "/development/overview",
+      "implementation": "existing",
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "workflow-operations",
+      "groupId": "development",
+      "title": {
+        "zh": "工作流运维",
+        "en": "Workflow operations"
+      },
+      "description": {
+        "zh": "按实际工作流实例检查依赖、错误与重试",
+        "en": "Inspect workflow instances, dependency failures, retries and cancellation"
+      },
+      "path": "/development/workflow-runs",
+      "reference": [
+        "3.4.2工作流运维"
+      ],
+      "resourceKind": "workflow_run",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "workflow_id",
+          "label": {
+            "zh": "工作流",
+            "en": "Workflow"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "development_workflow"
+        },
+        {
+          "key": "node_results",
+          "label": {
+            "zh": "节点运行结果",
+            "en": "Node results"
+          },
+          "type": "json",
+          "required": false
+        },
+        {
+          "key": "trigger_type",
+          "label": {
+            "zh": "触发方式",
+            "en": "Trigger type"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "error",
+          "label": {
+            "zh": "错误原因",
+            "en": "Error"
+          },
+          "type": "textarea",
+          "required": false
+        }
+      ],
+      "actions": [
+        "retry",
+        "cancel"
+      ],
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "development-task-operations",
+      "groupId": "development",
+      "title": {
+        "zh": "任务运维",
+        "en": "Development task operations"
+      },
+      "description": {
+        "zh": "按真实 SQL 开发作业实例检查节点状态、结果与错误",
+        "en": "Inspect task instances, actual progress and execution failures"
+      },
+      "path": "/development/task-runs",
+      "reference": [
+        "3.4.3任务运维"
+      ],
+      "permission": "development:read",
+      "existingPath": "/development/task-runs",
+      "implementation": "existing",
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "temporary-query",
+      "groupId": "development",
+      "title": {
+        "zh": "临时查询",
+        "en": "SQL query"
+      },
+      "description": {
+        "zh": "执行有界 SQL 查询并查看真实结果",
+        "en": "Execute bounded SQL queries and inspect actual typed results"
+      },
+      "path": "/query",
+      "reference": [
+        "3.5临时查询"
+      ],
+      "permission": "task:execute",
+      "existingPath": "/query",
+      "implementation": "existing",
+      "workspaceType": "editor"
+    },
+    {
+      "id": "development-config",
+      "groupId": "development",
+      "title": {
+        "zh": "配置管理",
+        "en": "Development configuration"
+      },
+      "description": {
+        "zh": "维护任务运行变量、超时和并发策略",
+        "en": "Manage scoped runtime variables, timeouts and concurrency policies"
+      },
+      "path": "/development/configuration",
+      "reference": [
+        "3.6配置管理"
+      ],
+      "resourceKind": "development_config",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "scope",
+          "label": {
+            "zh": "配置范围",
+            "en": "Scope"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "shared",
+              "label": {
+                "zh": "共享配置",
+                "en": "Shared configuration"
+              }
+            },
+            {
+              "value": "source",
+              "label": {
+                "zh": "指定开发来源",
+                "en": "Specific source"
+              }
+            }
+          ]
+        },
+        {
+          "key": "source_kind",
+          "label": {
+            "zh": "开发来源类型",
+            "en": "Development source kind"
+          },
+          "type": "select",
+          "required": false,
+          "options": [
+            {
+              "value": "sql_document",
+              "label": {
+                "zh": "SQL 文档",
+                "en": "SQL document"
+              }
+            },
+            {
+              "value": "development_workflow",
+              "label": {
+                "zh": "开发工作流",
+                "en": "Development workflow"
+              }
+            }
+          ]
+        },
+        {
+          "key": "source_id",
+          "label": {
+            "zh": "开发来源",
+            "en": "Development source"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "variables",
+          "label": {
+            "zh": "运行变量",
+            "en": "Variables"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "timeout_seconds",
+          "label": {
+            "zh": "执行超时秒数",
+            "en": "Timeout seconds"
+          },
+          "type": "number",
+          "required": false
+        },
+        {
+          "key": "concurrency",
+          "label": {
+            "zh": "并发上限",
+            "en": "Concurrency limit"
+          },
+          "type": "number",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "withdraw"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "warehouse-categories",
+      "groupId": "warehouse",
+      "title": {
+        "zh": "业务分类",
+        "en": "Business categories"
+      },
+      "description": {
+        "zh": "维护业务分类层级及其负责人",
+        "en": "Maintain business category hierarchies and accountable owners"
+      },
+      "path": "/warehouse/categories",
+      "reference": [
+        "2.1.1业务分类"
+      ],
+      "resourceKind": "warehouse_category",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "owner_id",
+          "label": {
+            "zh": "负责人",
+            "en": "Owner"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "user"
+        },
+        {
+          "key": "sort_order",
+          "label": {
+            "zh": "排序",
+            "en": "Sort order"
+          },
+          "type": "number",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "workspaceType": "tree"
+    },
+    {
+      "id": "warehouse-layers",
+      "groupId": "warehouse",
+      "title": {
+        "zh": "数仓分层",
+        "en": "Warehouse layers"
+      },
+      "description": {
+        "zh": "定义 ODS、DWD、DWS 和应用层等项目分层规范",
+        "en": "Define warehouse layers, table naming prefixes and their purposes"
+      },
+      "path": "/warehouse/layers",
+      "reference": [
+        "2.1.2数仓分层"
+      ],
+      "resourceKind": "warehouse_layer",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "prefix",
+          "label": {
+            "zh": "表名前缀",
+            "en": "Table prefix"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "purpose",
+          "label": {
+            "zh": "分层用途",
+            "en": "Layer purpose"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "sort_order",
+          "label": {
+            "zh": "排序",
+            "en": "Sort order"
+          },
+          "type": "number",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "workspaceType": "tree"
+    },
+    {
+      "id": "warehouse-domains",
+      "groupId": "warehouse",
+      "title": {
+        "zh": "数据域",
+        "en": "Data domains"
+      },
+      "description": {
+        "zh": "建立公共层数据域并关联业务分类",
+        "en": "Organize shared data domains under business categories"
+      },
+      "path": "/warehouse/domains",
+      "reference": [
+        "2.1.3.1数据域"
+      ],
+      "resourceKind": "warehouse_domain",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "category_id",
+          "label": {
+            "zh": "业务分类",
+            "en": "Business category"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "warehouse_category"
+        },
+        {
+          "key": "owner_id",
+          "label": {
+            "zh": "负责人",
+            "en": "Owner"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "user"
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "workspaceType": "tree"
+    },
+    {
+      "id": "warehouse-processes",
+      "groupId": "warehouse",
+      "title": {
+        "zh": "业务过程",
+        "en": "Business processes"
+      },
+      "description": {
+        "zh": "描述业务事件、业务粒度及所属数据域",
+        "en": "Describe business events, their grain and related data domains"
+      },
+      "path": "/warehouse/processes",
+      "reference": [
+        "2.1.3.2业务过程"
+      ],
+      "resourceKind": "warehouse_process",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "domain_id",
+          "label": {
+            "zh": "数据域",
+            "en": "Data domain"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "warehouse_domain"
+        },
+        {
+          "key": "grain",
+          "label": {
+            "zh": "业务粒度",
+            "en": "Business grain"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "owner_id",
+          "label": {
+            "zh": "负责人",
+            "en": "Owner"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "user"
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "workspaceType": "tree"
+    },
+    {
+      "id": "warehouse-marts",
+      "groupId": "warehouse",
+      "title": {
+        "zh": "数据集市",
+        "en": "Data marts"
+      },
+      "description": {
+        "zh": "维护应用层集市及服务对象",
+        "en": "Maintain application data marts and the audiences they serve"
+      },
+      "path": "/warehouse/marts",
+      "reference": [
+        "2.1.4.1数据集市"
+      ],
+      "resourceKind": "warehouse_mart",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "category_id",
+          "label": {
+            "zh": "业务分类",
+            "en": "Business category"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "warehouse_category"
+        },
+        {
+          "key": "audience",
+          "label": {
+            "zh": "服务对象",
+            "en": "Audience"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "owner_id",
+          "label": {
+            "zh": "负责人",
+            "en": "Owner"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "user"
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "workspaceType": "tree"
+    },
+    {
+      "id": "warehouse-subjects",
+      "groupId": "warehouse",
+      "title": {
+        "zh": "主题域",
+        "en": "Subject areas"
+      },
+      "description": {
+        "zh": "组织集市下的业务主题和分析范围",
+        "en": "Organize subjects and analysis scopes within a data mart"
+      },
+      "path": "/warehouse/subjects",
+      "reference": [
+        "2.1.4.2主题域"
+      ],
+      "resourceKind": "warehouse_subject",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "mart_id",
+          "label": {
+            "zh": "数据集市",
+            "en": "Data mart"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "warehouse_mart"
+        },
+        {
+          "key": "scope",
+          "label": {
+            "zh": "主题范围",
+            "en": "Subject scope"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "owner_id",
+          "label": {
+            "zh": "负责人",
+            "en": "Owner"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "user"
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "workspaceType": "tree"
+    },
+    {
+      "id": "naming-standards",
+      "groupId": "standards",
+      "title": {
+        "zh": "命名标准",
+        "en": "Naming standards"
+      },
+      "description": {
+        "zh": "定义并校验表、字段和指标的命名格式",
+        "en": "Define and validate naming patterns for tables, columns and metrics"
+      },
+      "path": "/standards/naming",
+      "reference": [
+        "2.2.1命名标准"
+      ],
+      "resourceKind": "naming_standard",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "object_type",
+          "label": {
+            "zh": "适用对象",
+            "en": "Object type"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "table",
+              "label": {
+                "zh": "表",
+                "en": "Table"
+              }
+            },
+            {
+              "value": "column",
+              "label": {
+                "zh": "字段",
+                "en": "Column"
+              }
+            },
+            {
+              "value": "metric",
+              "label": {
+                "zh": "指标",
+                "en": "Metric"
+              }
+            }
+          ]
+        },
+        {
+          "key": "pattern",
+          "label": {
+            "zh": "命名表达式",
+            "en": "Naming pattern"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "example",
+          "label": {
+            "zh": "示例",
+            "en": "Example"
+          },
+          "type": "text",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "revise",
+        "withdraw"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "field-standards",
+      "groupId": "standards",
+      "title": {
+        "zh": "字段标准",
+        "en": "Field standards"
+      },
+      "description": {
+        "zh": "定义字段类型、口径、空值和字典引用",
+        "en": "Define column types, business meaning, nullability and dictionary references"
+      },
+      "path": "/standards/fields",
+      "reference": [
+        "2.2.2字段标准"
+      ],
+      "resourceKind": "field_standard",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "data_type",
+          "label": {
+            "zh": "数据类型",
+            "en": "Data type"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "nullable",
+          "label": {
+            "zh": "允许为空",
+            "en": "Nullable"
+          },
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "key": "definition",
+          "label": {
+            "zh": "业务口径",
+            "en": "Business definition"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "unit_id",
+          "label": {
+            "zh": "计量单位",
+            "en": "Unit"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "unit_standard"
+        },
+        {
+          "key": "unit_version",
+          "label": {
+            "zh": "固定单位发布版本",
+            "en": "Pinned unit revision"
+          },
+          "type": "number",
+          "required": false
+        },
+        {
+          "key": "enum_id",
+          "label": {
+            "zh": "枚举标准",
+            "en": "Enumeration"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "enum_standard"
+        },
+        {
+          "key": "enum_version",
+          "label": {
+            "zh": "固定枚举发布版本",
+            "en": "Pinned enumeration revision"
+          },
+          "type": "number",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "revise",
+        "withdraw"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "enum-standards",
+      "groupId": "standards",
+      "title": {
+        "zh": "枚举标准",
+        "en": "Enumeration standards"
+      },
+      "description": {
+        "zh": "维护稳定枚举编码和业务含义",
+        "en": "Maintain stable enumeration values and their business meanings"
+      },
+      "path": "/standards/enumerations",
+      "reference": [
+        "2.2.3枚举标准"
+      ],
+      "resourceKind": "enum_standard",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "enum_values",
+          "label": {
+            "zh": "枚举值与含义",
+            "en": "Values and meanings"
+          },
+          "type": "json",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "revise",
+        "withdraw"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "unit-standards",
+      "groupId": "standards",
+      "title": {
+        "zh": "单位标准",
+        "en": "Unit standards"
+      },
+      "description": {
+        "zh": "维护单位、维度和同维度换算规范",
+        "en": "Maintain units, dimensions and compatible conversion factors"
+      },
+      "path": "/standards/units",
+      "reference": [
+        "2.2.4单位标准"
+      ],
+      "resourceKind": "unit_standard",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "symbol",
+          "label": {
+            "zh": "单位符号",
+            "en": "Symbol"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "dimension",
+          "label": {
+            "zh": "计量维度",
+            "en": "Dimension"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "conversion_factor",
+          "label": {
+            "zh": "基准换算系数",
+            "en": "Conversion factor"
+          },
+          "type": "number",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "revise",
+        "withdraw",
+        "convert"
+      ],
+      "workspaceType": "table"
+    },
+    {
+      "id": "model-design",
+      "groupId": "models",
+      "title": {
+        "zh": "模型设计",
+        "en": "Model design"
+      },
+      "description": {
+        "zh": "设计模型及字段标准，形成版本并将 DDL 发布到受控引擎",
+        "en": "Edit model columns, validate versions and publish DDL through a controlled engine"
+      },
+      "path": "/models/design",
+      "reference": [
+        "2.3模型设计",
+        "2.3.1创建表",
+        "2.3.2发布表"
+      ],
+      "resourceKind": "data_model",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "layer_id",
+          "label": {
+            "zh": "数仓分层",
+            "en": "Warehouse layer"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "warehouse_layer"
+        },
+        {
+          "key": "domain_id",
+          "label": {
+            "zh": "数据域",
+            "en": "Data domain"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "warehouse_domain"
+        },
+        {
+          "key": "table_name",
+          "label": {
+            "zh": "物理表名",
+            "en": "Physical table"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "columns",
+          "label": {
+            "zh": "字段定义",
+            "en": "Columns"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "primary_key",
+          "label": {
+            "zh": "主键字段",
+            "en": "Primary key"
+          },
+          "type": "json",
+          "required": false
+        },
+        {
+          "key": "naming_standard_id",
+          "label": {
+            "zh": "表命名标准",
+            "en": "Table naming standard"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "naming_standard"
+        },
+        {
+          "key": "naming_standard_version",
+          "label": {
+            "zh": "固定命名发布版本",
+            "en": "Pinned naming revision"
+          },
+          "type": "number",
+          "required": false
+        },
+        {
+          "key": "standard_coverage",
+          "label": {
+            "zh": "标准覆盖策略",
+            "en": "Standard coverage"
+          },
+          "type": "text",
+          "required": false,
+          "readOnly": true
+        },
+        {
+          "key": "ddl",
+          "label": {
+            "zh": "DDL",
+            "en": "DDL"
+          },
+          "type": "textarea",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "import",
+        "validate",
+        "publish",
+        "rollback"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "atomic-metrics",
+      "groupId": "metrics",
+      "title": {
+        "zh": "原子指标",
+        "en": "Atomic metrics"
+      },
+      "description": {
+        "zh": "定义基础度量、业务粒度和计算表达式",
+        "en": "Define base measures, business grain and calculation expressions"
+      },
+      "path": "/metrics/atomic",
+      "reference": [
+        "2.4.1原子指标"
+      ],
+      "resourceKind": "atomic_metric",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "process_id",
+          "label": {
+            "zh": "业务过程",
+            "en": "Business process"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "warehouse_process"
+        },
+        {
+          "key": "model_id",
+          "label": {
+            "zh": "数据模型",
+            "en": "Data model"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "data_model"
+        },
+        {
+          "key": "metadata_object_id",
+          "label": {
+            "zh": "实际元数据对象",
+            "en": "Actual metadata object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "metadata_object"
+        },
+        {
+          "key": "expression",
+          "label": {
+            "zh": "表达式",
+            "en": "Expression"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "grain",
+          "label": {
+            "zh": "计算粒度",
+            "en": "Calculation grain"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "grain_columns",
+          "label": {
+            "zh": "物理粒度主键字段",
+            "en": "Physical grain key columns"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "time_column",
+          "label": {
+            "zh": "实际时间字段",
+            "en": "Actual time column"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "time_timezone",
+          "label": {
+            "zh": "来源时间字段时区",
+            "en": "Source time column timezone"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "dimensions",
+          "label": {
+            "zh": "结果分组字段",
+            "en": "Result grouping columns"
+          },
+          "type": "json",
+          "required": false
+        },
+        {
+          "key": "unit_id",
+          "label": {
+            "zh": "计量单位",
+            "en": "Unit"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "unit_standard"
+        },
+        {
+          "key": "unit_version",
+          "label": {
+            "zh": "固定单位发布版本",
+            "en": "Pinned unit revision"
+          },
+          "type": "number",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "withdraw",
+        "calculate"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "derived-metrics",
+      "groupId": "metrics",
+      "title": {
+        "zh": "派生指标",
+        "en": "Derived metrics"
+      },
+      "description": {
+        "zh": "组合原子指标、修饰条件和时间周期",
+        "en": "Combine atomic metrics with modifiers, periods and dimensions"
+      },
+      "path": "/metrics/derived",
+      "reference": [
+        "2.4.2派生指标-公共层"
+      ],
+      "resourceKind": "derived_metric",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "atomic_metric_id",
+          "label": {
+            "zh": "原子指标",
+            "en": "Atomic metric"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "atomic_metric"
+        },
+        {
+          "key": "modifier_id",
+          "label": {
+            "zh": "修饰词",
+            "en": "Modifier"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "metric_modifier"
+        },
+        {
+          "key": "period_id",
+          "label": {
+            "zh": "时间周期",
+            "en": "Time period"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "metric_period"
+        },
+        {
+          "key": "dimensions",
+          "label": {
+            "zh": "维度",
+            "en": "Dimensions"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "withdraw",
+        "calculate"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "composite-metrics",
+      "groupId": "metrics",
+      "title": {
+        "zh": "复合指标",
+        "en": "Composite metrics"
+      },
+      "description": {
+        "zh": "组合已定义指标并检查依赖循环和计算口径",
+        "en": "Combine metrics while validating dependencies and calculation definitions"
+      },
+      "path": "/metrics/composite",
+      "reference": [
+        "2.4.3复合指标-公共层"
+      ],
+      "resourceKind": "composite_metric",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "metric_ids",
+          "label": {
+            "zh": "依赖指标 ID",
+            "en": "Dependent metric IDs"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "expression",
+          "label": {
+            "zh": "表达式",
+            "en": "Expression"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "unit_id",
+          "label": {
+            "zh": "计量单位",
+            "en": "Unit"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "unit_standard"
+        },
+        {
+          "key": "unit_version",
+          "label": {
+            "zh": "固定单位发布版本",
+            "en": "Pinned unit revision"
+          },
+          "type": "number",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "withdraw",
+        "calculate"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "metric-modifiers",
+      "groupId": "metrics",
+      "title": {
+        "zh": "修饰词",
+        "en": "Metric modifiers"
+      },
+      "description": {
+        "zh": "定义可复用的业务过滤条件",
+        "en": "Define reusable business filter conditions and applicable dimensions"
+      },
+      "path": "/metrics/modifiers",
+      "reference": [
+        "2.4.4修饰词"
+      ],
+      "resourceKind": "metric_modifier",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "metadata_object_id",
+          "label": {
+            "zh": "实际元数据对象",
+            "en": "Actual metadata object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "metadata_object"
+        },
+        {
+          "key": "condition",
+          "label": {
+            "zh": "修饰条件",
+            "en": "Filter condition"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "dimension",
+          "label": {
+            "zh": "适用维度",
+            "en": "Dimension"
+          },
+          "type": "text",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "withdraw"
+      ],
+      "workspaceType": "table"
+    },
+    {
+      "id": "metric-periods",
+      "groupId": "metrics",
+      "title": {
+        "zh": "时间周期",
+        "en": "Metric periods"
+      },
+      "description": {
+        "zh": "定义指标统计窗口、长度及时间边界",
+        "en": "Define statistical windows, their length, timezone and boundaries"
+      },
+      "path": "/metrics/periods",
+      "reference": [
+        "2.4.5时间周期"
+      ],
+      "resourceKind": "metric_period",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "unit",
+          "label": {
+            "zh": "时间单位",
+            "en": "Time unit"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "day",
+              "label": {
+                "zh": "天",
+                "en": "Day"
+              }
+            },
+            {
+              "value": "week",
+              "label": {
+                "zh": "周",
+                "en": "Week"
+              }
+            },
+            {
+              "value": "month",
+              "label": {
+                "zh": "月",
+                "en": "Month"
+              }
+            },
+            {
+              "value": "year",
+              "label": {
+                "zh": "年",
+                "en": "Year"
+              }
+            }
+          ]
+        },
+        {
+          "key": "length",
+          "label": {
+            "zh": "周期长度",
+            "en": "Length"
+          },
+          "type": "number",
+          "required": true
+        },
+        {
+          "key": "timezone",
+          "label": {
+            "zh": "时区",
+            "en": "Timezone"
+          },
+          "type": "text",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "withdraw"
+      ],
+      "workspaceType": "table"
+    },
+    {
+      "id": "metadata-search",
+      "groupId": "metadata",
+      "title": {
+        "zh": "数据检索",
+        "en": "Metadata search"
+      },
+      "description": {
+        "zh": "检索采集得到的数据库、表与字段快照",
+        "en": "Search collected database, table and column snapshots"
+      },
+      "path": "/metadata/search",
+      "reference": [
+        "4.1.1数据检索"
+      ],
+      "resourceKind": "metadata_object",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "datasource_id",
+          "label": {
+            "zh": "数据源",
+            "en": "Datasource"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "datasource"
+        },
+        {
+          "key": "table_catalog",
+          "label": {
+            "zh": "Catalog",
+            "en": "Catalog"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "source_type",
+          "label": {
+            "zh": "来源类型",
+            "en": "Source type"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "schema_name",
+          "label": {
+            "zh": "Schema",
+            "en": "Schema"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "table_name",
+          "label": {
+            "zh": "表名",
+            "en": "Table name"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "columns",
+          "label": {
+            "zh": "字段元数据",
+            "en": "Column metadata"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "source_fingerprint",
+          "label": {
+            "zh": "源结构指纹",
+            "en": "Source fingerprint"
+          },
+          "type": "text",
+          "required": false
+        }
+      ],
+      "actions": [
+        "search",
+        "inspect"
+      ],
+      "workspaceType": "catalog"
+    },
+    {
+      "id": "metadata-analysis",
+      "groupId": "metadata",
+      "title": {
+        "zh": "元数据分析",
+        "en": "Metadata analysis"
+      },
+      "description": {
+        "zh": "保存有来源依据的血缘边并分析上下游影响",
+        "en": "Maintain evidenced lineage relationships and inspect downstream impact"
+      },
+      "path": "/metadata/analysis",
+      "reference": [
+        "4.1.2元数据分析"
+      ],
+      "resourceKind": "metadata_lineage",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "source_object_id",
+          "label": {
+            "zh": "上游对象",
+            "en": "Source object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "metadata_object"
+        },
+        {
+          "key": "target_object_id",
+          "label": {
+            "zh": "下游对象",
+            "en": "Target object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "metadata_object"
+        },
+        {
+          "key": "evidence",
+          "label": {
+            "zh": "血缘来源证据",
+            "en": "Lineage evidence"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "origin",
+          "label": {
+            "zh": "血缘来源",
+            "en": "Origin"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "manual",
+              "label": {
+                "zh": "人工确认",
+                "en": "Manual"
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "analyze"
+      ],
+      "workspaceType": "workflow"
+    },
+    {
+      "id": "metadata-collection",
+      "groupId": "metadata",
+      "title": {
+        "zh": "元数据采集",
+        "en": "Metadata collection"
+      },
+      "description": {
+        "zh": "连接真实数据源采集结构快照并记录变更",
+        "en": "Collect real source structures and record snapshot changes"
+      },
+      "path": "/metadata/collection",
+      "reference": [
+        "4.1.3元数据采集"
+      ],
+      "resourceKind": "metadata_collection",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "source_type",
+          "label": {
+            "zh": "采集来源",
+            "en": "Collection source"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "swanlake",
+              "label": {
+                "zh": "分析引擎",
+                "en": "Analytical engine"
+              }
+            },
+            {
+              "value": "datasource",
+              "label": {
+                "zh": "外部数据源",
+                "en": "External datasource"
+              }
+            }
+          ]
+        },
+        {
+          "key": "datasource_id",
+          "label": {
+            "zh": "数据源",
+            "en": "Datasource"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "datasource"
+        },
+        {
+          "key": "catalog_filter",
+          "label": {
+            "zh": "Catalog（精确匹配，可选）",
+            "en": "Catalog (exact, optional)"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "schema_filter",
+          "label": {
+            "zh": "Schema（精确匹配，可选）",
+            "en": "Schema (exact, optional)"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "table_filter",
+          "label": {
+            "zh": "表名（精确匹配，可选）",
+            "en": "Table (exact, optional)"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "schedule",
+          "label": {
+            "zh": "采集计划",
+            "en": "Schedule"
+          },
+          "type": "text",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "execute",
+        "cancel"
+      ],
+      "workspaceType": "workflow"
+    },
+    {
+      "id": "master-models",
+      "groupId": "master-data",
+      "title": {
+        "zh": "主数据模型",
+        "en": "Master data models"
+      },
+      "description": {
+        "zh": "定义主数据结构和唯一标识约束",
+        "en": "Define master data structures and business identity constraints"
+      },
+      "path": "/master-data/models",
+      "reference": [
+        "4.2.1主数据模型",
+        "4.2.1.1数据模型"
+      ],
+      "resourceKind": "master_data_model",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "columns",
+          "label": {
+            "zh": "字段定义",
+            "en": "Columns"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "key_fields",
+          "label": {
+            "zh": "唯一标识字段",
+            "en": "Identity fields"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "owner_id",
+          "label": {
+            "zh": "负责人",
+            "en": "Owner"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "user"
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "master-code-rules",
+      "groupId": "master-data",
+      "title": {
+        "zh": "编码规则",
+        "en": "Master data code rules"
+      },
+      "description": {
+        "zh": "定义并原子分配唯一主数据编码",
+        "en": "Define coding patterns and atomically allocate unique identifiers"
+      },
+      "path": "/master-data/code-rules",
+      "reference": [
+        "4.2.1.2编码规则"
+      ],
+      "resourceKind": "master_code_rule",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "model_id",
+          "label": {
+            "zh": "主数据模型",
+            "en": "Master data model"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "master_data_model"
+        },
+        {
+          "key": "prefix",
+          "label": {
+            "zh": "编码前缀",
+            "en": "Prefix"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "width",
+          "label": {
+            "zh": "序号长度",
+            "en": "Sequence width"
+          },
+          "type": "number",
+          "required": true
+        },
+        {
+          "key": "start_value",
+          "label": {
+            "zh": "起始序号",
+            "en": "Initial sequence"
+          },
+          "type": "number",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "allocate"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "master-records",
+      "groupId": "master-data",
+      "title": {
+        "zh": "主数据维护",
+        "en": "Master data maintenance"
+      },
+      "description": {
+        "zh": "校验并维护主数据记录、业务键与修订版本",
+        "en": "Validate and maintain master data records, business keys and revisions"
+      },
+      "path": "/master-data/records",
+      "reference": [
+        "4.2.2主数据维护"
+      ],
+      "resourceKind": "master_data_record",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "model_id",
+          "label": {
+            "zh": "主数据模型",
+            "en": "Master data model"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "master_data_model"
+        },
+        {
+          "key": "business_key",
+          "label": {
+            "zh": "业务唯一键",
+            "en": "Business key"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "values",
+          "label": {
+            "zh": "主数据字段值",
+            "en": "Field values"
+          },
+          "type": "json",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "submit",
+        "approve",
+        "reject"
+      ],
+      "workspaceType": "table"
+    },
+    {
+      "id": "master-distribution",
+      "groupId": "master-data",
+      "title": {
+        "zh": "主数据分发",
+        "en": "Master data distribution"
+      },
+      "description": {
+        "zh": "分发已批准主数据版本并记录目标提交结果",
+        "en": "Distribute approved master data versions and track destination commits"
+      },
+      "path": "/master-data/distribution",
+      "reference": [
+        "4.2.3主数据分发"
+      ],
+      "resourceKind": "master_distribution",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "model_id",
+          "label": {
+            "zh": "主数据模型",
+            "en": "Master data model"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "master_data_model"
+        },
+        {
+          "key": "target_id",
+          "label": {
+            "zh": "目标数据源",
+            "en": "Target datasource"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "datasource"
+        },
+        {
+          "key": "target_table",
+          "label": {
+            "zh": "目标表",
+            "en": "Target table"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "mapping",
+          "label": {
+            "zh": "分发字段映射",
+            "en": "Distribution mapping"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "conflict_policy",
+          "label": {
+            "zh": "冲突策略",
+            "en": "Conflict policy"
+          },
+          "type": "text",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "distribute",
+        "retry",
+        "cancel"
+      ],
+      "workspaceType": "workflow"
+    },
+    {
+      "id": "my-data-access",
+      "groupId": "data-security",
+      "title": {
+        "zh": "我的权限",
+        "en": "My data access"
+      },
+      "description": {
+        "zh": "申请、查看与撤销本人数据访问权限",
+        "en": "Request, inspect and withdraw personal data access requests"
+      },
+      "path": "/security/my-access",
+      "reference": [
+        "4.3.1.1我的权限"
+      ],
+      "resourceKind": "data_access_request",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "object_id",
+          "label": {
+            "zh": "数据对象",
+            "en": "Data object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "metadata_object"
+        },
+        {
+          "key": "columns",
+          "label": {
+            "zh": "申请字段",
+            "en": "Requested columns"
+          },
+          "type": "json",
+          "required": false
+        },
+        {
+          "key": "purpose",
+          "label": {
+            "zh": "使用目的",
+            "en": "Purpose"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "expires_at",
+          "label": {
+            "zh": "失效时间",
+            "en": "Expires at"
+          },
+          "type": "text",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "submit",
+        "withdraw"
+      ],
+      "workspaceType": "review"
+    },
+    {
+      "id": "data-access-approvals",
+      "groupId": "data-security",
+      "title": {
+        "zh": "权限审批",
+        "en": "Data access approvals"
+      },
+      "description": {
+        "zh": "审批权限申请并生成可撤销的实际数据授权",
+        "en": "Review access requests and issue or revoke actual data grants"
+      },
+      "path": "/security/approvals",
+      "reference": [
+        "4.3.1.2权限审批"
+      ],
+      "resourceKind": "data_access_approval",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "request_id",
+          "label": {
+            "zh": "权限申请",
+            "en": "Access request"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "data_access_request"
+        },
+        {
+          "key": "decision_reason",
+          "label": {
+            "zh": "审批意见",
+            "en": "Decision reason"
+          },
+          "type": "textarea",
+          "required": false
+        },
+        {
+          "key": "expires_at",
+          "label": {
+            "zh": "授权失效时间",
+            "en": "Grant expires at"
+          },
+          "type": "text",
+          "required": false
+        }
+      ],
+      "actions": [
+        "approve",
+        "reject",
+        "revoke"
+      ],
+      "workspaceType": "review"
+    },
+    {
+      "id": "data-access-audit",
+      "groupId": "data-security",
+      "title": {
+        "zh": "权限审计",
+        "en": "Data access audit"
+      },
+      "description": {
+        "zh": "查询实际授权与数据访问产生的只读审计事件",
+        "en": "Search read-only evidence of authorization changes and real data access"
+      },
+      "path": "/security/access-audit",
+      "reference": [
+        "4.3.1.3权限审计"
+      ],
+      "resourceKind": "data_access_audit",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "actor_id",
+          "label": {
+            "zh": "访问者",
+            "en": "Actor ID"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "object_id",
+          "label": {
+            "zh": "数据对象",
+            "en": "Data object"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "metadata_object"
+        },
+        {
+          "key": "action",
+          "label": {
+            "zh": "访问动作",
+            "en": "Action"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "outcome",
+          "label": {
+            "zh": "处理结果",
+            "en": "Outcome"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "evidence",
+          "label": {
+            "zh": "审计证据",
+            "en": "Evidence"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "search",
+        "export"
+      ],
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "data-classifications",
+      "groupId": "sensitive-data",
+      "title": {
+        "zh": "数据密级",
+        "en": "Data classifications"
+      },
+      "description": {
+        "zh": "定义敏感等级和处理策略",
+        "en": "Define ordered sensitivity levels and handling requirements"
+      },
+      "path": "/security/classifications",
+      "reference": [
+        "4.3.2.1数据密级"
+      ],
+      "resourceKind": "data_classification",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "rank",
+          "label": {
+            "zh": "密级顺序",
+            "en": "Classification rank"
+          },
+          "type": "number",
+          "required": true
+        },
+        {
+          "key": "handling_policy",
+          "label": {
+            "zh": "处理要求",
+            "en": "Handling policy"
+          },
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "withdraw"
+      ],
+      "workspaceType": "table"
+    },
+    {
+      "id": "recognition-rules",
+      "groupId": "sensitive-data",
+      "title": {
+        "zh": "识别规则",
+        "en": "Recognition rules"
+      },
+      "description": {
+        "zh": "定义名称或有界样本的敏感识别规则",
+        "en": "Define sensitive-data recognition using column names or bounded samples"
+      },
+      "path": "/security/recognition-rules",
+      "reference": [
+        "4.3.2.2识别规则"
+      ],
+      "resourceKind": "recognition_rule",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "classification_id",
+          "label": {
+            "zh": "数据密级",
+            "en": "Classification"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "data_classification"
+        },
+        {
+          "key": "pattern",
+          "label": {
+            "zh": "识别表达式",
+            "en": "Recognition pattern"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "match_target",
+          "label": {
+            "zh": "匹配对象",
+            "en": "Match target"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "column_name",
+              "label": {
+                "zh": "字段名称",
+                "en": "Column name"
+              }
+            },
+            {
+              "value": "sample_value",
+              "label": {
+                "zh": "抽样值",
+                "en": "Sample value"
+              }
+            }
+          ]
+        },
+        {
+          "key": "sample_limit",
+          "label": {
+            "zh": "抽样上限",
+            "en": "Sample limit"
+          },
+          "type": "number",
+          "required": false
+        },
+        {
+          "key": "source_types",
+          "label": {
+            "zh": "扫描字段类型",
+            "en": "Scanned field types"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "withdraw"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "recognition-tasks",
+      "groupId": "sensitive-data",
+      "title": {
+        "zh": "识别任务",
+        "en": "Recognition tasks"
+      },
+      "description": {
+        "zh": "执行有界敏感识别并保存匹配证据",
+        "en": "Run bounded recognition and preserve redacted matching evidence"
+      },
+      "path": "/security/recognition-tasks",
+      "reference": [
+        "4.3.2.3识别任务"
+      ],
+      "resourceKind": "recognition_task",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "rule_id",
+          "label": {
+            "zh": "识别规则",
+            "en": "Recognition rule"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "recognition_rule"
+        },
+        {
+          "key": "object_id",
+          "label": {
+            "zh": "数据对象",
+            "en": "Data object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "metadata_object"
+        },
+        {
+          "key": "sample_limit",
+          "label": {
+            "zh": "抽样上限",
+            "en": "Sample limit"
+          },
+          "type": "number",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "withdraw",
+        "execute",
+        "cancel"
+      ],
+      "workspaceType": "workflow"
+    },
+    {
+      "id": "sensitive-discovery",
+      "groupId": "sensitive-data",
+      "title": {
+        "zh": "数据发现",
+        "en": "Sensitive data discovery"
+      },
+      "description": {
+        "zh": "查看识别结果并确认或驳回分类建议",
+        "en": "Review findings and confirm or dismiss suggested classifications"
+      },
+      "path": "/security/discovery",
+      "reference": [
+        "4.3.2.4数据发现"
+      ],
+      "resourceKind": "sensitive_finding",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "task_id",
+          "label": {
+            "zh": "识别任务",
+            "en": "Recognition task"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "recognition_task"
+        },
+        {
+          "key": "column_name",
+          "label": {
+            "zh": "字段名称",
+            "en": "Column name"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "classification_id",
+          "label": {
+            "zh": "数据密级",
+            "en": "Classification"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "data_classification"
+        },
+        {
+          "key": "evidence_summary",
+          "label": {
+            "zh": "识别依据摘要",
+            "en": "Evidence summary"
+          },
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "actions": [
+        "confirm",
+        "dismiss"
+      ],
+      "workspaceType": "review"
+    },
+    {
+      "id": "masking-rules",
+      "groupId": "privacy",
+      "title": {
+        "zh": "脱敏规则",
+        "en": "Masking rules"
+      },
+      "description": {
+        "zh": "定义并在受控查询出口应用字段脱敏策略",
+        "en": "Define column masking policies for controlled data output paths"
+      },
+      "path": "/security/masking-rules",
+      "reference": [
+        "4.3.3.1脱敏规则"
+      ],
+      "resourceKind": "masking_rule",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "object_id",
+          "label": {
+            "zh": "数据对象",
+            "en": "Data object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "metadata_object"
+        },
+        {
+          "key": "column_name",
+          "label": {
+            "zh": "脱敏字段",
+            "en": "Masked column"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "method",
+          "label": {
+            "zh": "脱敏方式",
+            "en": "Masking method"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "redact",
+              "label": {
+                "zh": "遮盖",
+                "en": "Redact"
+              }
+            },
+            {
+              "value": "hash",
+              "label": {
+                "zh": "不可逆摘要",
+                "en": "Hash"
+              }
+            },
+            {
+              "value": "partial",
+              "label": {
+                "zh": "部分保留",
+                "en": "Partial"
+              }
+            }
+          ]
+        },
+        {
+          "key": "parameters",
+          "label": {
+            "zh": "脱敏参数",
+            "en": "Parameters"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "preview",
+        "publish",
+        "withdraw"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "privacy-user-groups",
+      "groupId": "privacy",
+      "title": {
+        "zh": "用户组",
+        "en": "User groups"
+      },
+      "description": {
+        "zh": "维护租户内用户组及脱敏适用范围",
+        "en": "Maintain tenant-local group members and applicable masking policies"
+      },
+      "path": "/security/user-groups",
+      "reference": [
+        "4.3.3.2用户组",
+        "6用户管理"
+      ],
+      "resourceKind": "user_group",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "member_ids",
+          "label": {
+            "zh": "成员用户 ID",
+            "en": "Member user IDs"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "masking_rule_id",
+          "label": {
+            "zh": "脱敏规则",
+            "en": "Masking rule"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "masking_rule"
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "assign_members",
+        "validate",
+        "publish",
+        "withdraw"
+      ],
+      "workspaceType": "table"
+    },
+    {
+      "id": "watermark-tracing",
+      "groupId": "watermark",
+      "title": {
+        "zh": "水印溯源",
+        "en": "Watermark tracing"
+      },
+      "description": {
+        "zh": "根据实际导出水印及文件摘要验证来源",
+        "en": "Verify export origins using actual provenance markers and file digests"
+      },
+      "path": "/security/watermark-tracing",
+      "reference": [
+        "4.3.4.1水印溯源"
+      ],
+      "resourceKind": "watermark_trace",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "policy_id",
+          "label": {
+            "zh": "水印策略",
+            "en": "Watermark policy"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "watermark_policy"
+        },
+        {
+          "key": "artifact_digest",
+          "label": {
+            "zh": "数据文件摘要",
+            "en": "Artifact digest"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "embedded_marker",
+          "label": {
+            "zh": "提取水印",
+            "en": "Extracted marker"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "evidence",
+          "label": {
+            "zh": "溯源证据",
+            "en": "Trace evidence"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "trace",
+        "export"
+      ],
+      "workspaceType": "review"
+    },
+    {
+      "id": "watermark-policies",
+      "groupId": "watermark",
+      "title": {
+        "zh": "水印设置",
+        "en": "Watermark settings"
+      },
+      "description": {
+        "zh": "定义导出来源标记与签名清单策略",
+        "en": "Define visible export provenance and signed-manifest policies"
+      },
+      "path": "/security/watermark-settings",
+      "reference": [
+        "4.3.4.2水印设置"
+      ],
+      "resourceKind": "watermark_policy",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "scope",
+          "label": {
+            "zh": "适用导出范围",
+            "en": "Export scope"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "marker_template",
+          "label": {
+            "zh": "水印模板",
+            "en": "Marker template"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "method",
+          "label": {
+            "zh": "水印方式",
+            "en": "Watermark method"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "manifest",
+              "label": {
+                "zh": "签名清单",
+                "en": "Signed manifest"
+              }
+            },
+            {
+              "value": "visible_column",
+              "label": {
+                "zh": "可见来源列",
+                "en": "Visible provenance column"
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "quality-monitoring",
+      "groupId": "quality",
+      "title": {
+        "zh": "质量监控",
+        "en": "Quality monitoring"
+      },
+      "description": {
+        "zh": "根据已完成校验结果汇总质量趋势和阈值告警",
+        "en": "Summarize completed quality checks and evaluate failure thresholds"
+      },
+      "path": "/quality/monitoring",
+      "reference": [
+        "4.4.1质量监控"
+      ],
+      "resourceKind": "quality_monitor",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "object_id",
+          "label": {
+            "zh": "质量对象",
+            "en": "Quality object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "quality_object"
+        },
+        {
+          "key": "failure_threshold",
+          "label": {
+            "zh": "失败比例阈值",
+            "en": "Failure ratio threshold"
+          },
+          "type": "number",
+          "required": true
+        },
+        {
+          "key": "window_hours",
+          "label": {
+            "zh": "监控窗口小时数",
+            "en": "Window hours"
+          },
+          "type": "number",
+          "required": true
+        },
+        {
+          "key": "recipient_ids",
+          "label": {
+            "zh": "质量提醒接收人",
+            "en": "Quality reminder recipients"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "evaluate"
+      ],
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "quality-objects",
+      "groupId": "quality",
+      "title": {
+        "zh": "质量对象",
+        "en": "Quality objects"
+      },
+      "description": {
+        "zh": "定义待校验表和字段范围",
+        "en": "Select real tables and columns to include in quality checks"
+      },
+      "path": "/quality/objects",
+      "reference": [
+        "4.4.2质量对象"
+      ],
+      "resourceKind": "quality_object",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "metadata_object_id",
+          "label": {
+            "zh": "数据对象",
+            "en": "Data object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "metadata_object"
+        },
+        {
+          "key": "columns",
+          "label": {
+            "zh": "校验字段",
+            "en": "Columns"
+          },
+          "type": "json",
+          "required": false
+        },
+        {
+          "key": "owner_id",
+          "label": {
+            "zh": "负责人",
+            "en": "Owner"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "user"
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "workspaceType": "catalog"
+    },
+    {
+      "id": "quality-rules",
+      "groupId": "quality",
+      "title": {
+        "zh": "质量规则",
+        "en": "Quality rules"
+      },
+      "description": {
+        "zh": "定义可执行校验规则；AI 建议经人工确认后才保存",
+        "en": "Define executable checks; review AI suggestions before saving a rule"
+      },
+      "path": "/quality/rules",
+      "reference": [
+        "4.4.3质量规则",
+        "4.4.3.1新增规则-AI",
+        "4.4.3.2新增规则-手动"
+      ],
+      "resourceKind": "quality_rule",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "object_id",
+          "label": {
+            "zh": "质量对象",
+            "en": "Quality object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "quality_object"
+        },
+        {
+          "key": "rule_type",
+          "label": {
+            "zh": "规则类型",
+            "en": "Rule type"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "not_null",
+              "label": {
+                "zh": "非空",
+                "en": "Not null"
+              }
+            },
+            {
+              "value": "unique",
+              "label": {
+                "zh": "唯一",
+                "en": "Unique"
+              }
+            },
+            {
+              "value": "range",
+              "label": {
+                "zh": "值域",
+                "en": "Range"
+              }
+            },
+            {
+              "value": "expression",
+              "label": {
+                "zh": "表达式",
+                "en": "Expression"
+              }
+            }
+          ]
+        },
+        {
+          "key": "column_name",
+          "label": {
+            "zh": "字段名称",
+            "en": "Column name"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "conditions",
+          "label": {
+            "zh": "规则条件",
+            "en": "Rule conditions"
+          },
+          "type": "json",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "suggest"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "quality-tasks",
+      "groupId": "quality",
+      "title": {
+        "zh": "质量任务",
+        "en": "Quality tasks"
+      },
+      "description": {
+        "zh": "执行质量规则并保存每条规则的真实结果",
+        "en": "Execute quality rules and preserve a real result for each rule"
+      },
+      "path": "/quality/tasks",
+      "reference": [
+        "4.4.4质量任务"
+      ],
+      "resourceKind": "quality_task",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "object_id",
+          "label": {
+            "zh": "质量对象",
+            "en": "Quality object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "quality_object"
+        },
+        {
+          "key": "rule_ids",
+          "label": {
+            "zh": "规则 ID",
+            "en": "Rule IDs"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "schedule",
+          "label": {
+            "zh": "校验计划",
+            "en": "Schedule"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "sample_limit",
+          "label": {
+            "zh": "取样上限",
+            "en": "Sample limit"
+          },
+          "type": "number",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "execute",
+        "cancel"
+      ],
+      "workspaceType": "workflow"
+    },
+    {
+      "id": "quality-results",
+      "groupId": "quality",
+      "title": {
+        "zh": "校验结果",
+        "en": "Quality results"
+      },
+      "description": {
+        "zh": "检索执行产生的结果、失败样本摘要与执行错误",
+        "en": "Inspect executed checks, failed-row summaries and execution errors"
+      },
+      "path": "/quality/results",
+      "reference": [
+        "4.4.5校验结果"
+      ],
+      "resourceKind": "quality_result",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "task_id",
+          "label": {
+            "zh": "质量任务",
+            "en": "Quality task"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "quality_task"
+        },
+        {
+          "key": "rule_id",
+          "label": {
+            "zh": "质量规则",
+            "en": "Quality rule"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "quality_rule"
+        },
+        {
+          "key": "checked_rows",
+          "label": {
+            "zh": "校验行数",
+            "en": "Checked rows"
+          },
+          "type": "number",
+          "required": false
+        },
+        {
+          "key": "failed_rows",
+          "label": {
+            "zh": "失败行数",
+            "en": "Failed rows"
+          },
+          "type": "number",
+          "required": false
+        },
+        {
+          "key": "error",
+          "label": {
+            "zh": "执行错误",
+            "en": "Execution error"
+          },
+          "type": "textarea",
+          "required": false
+        }
+      ],
+      "actions": [
+        "search",
+        "inspect"
+      ],
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "quality-reports",
+      "groupId": "quality",
+      "title": {
+        "zh": "质量报告",
+        "en": "Quality reports"
+      },
+      "description": {
+        "zh": "由实际校验结果生成可追溯质量报告",
+        "en": "Generate traceable quality reports from completed checks"
+      },
+      "path": "/quality/reports",
+      "reference": [
+        "4.4.6质量报告"
+      ],
+      "resourceKind": "quality_report",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "task_id",
+          "label": {
+            "zh": "质量任务",
+            "en": "Quality task"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "quality_task"
+        },
+        {
+          "key": "period_start",
+          "label": {
+            "zh": "开始时间",
+            "en": "Period start"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "period_end",
+          "label": {
+            "zh": "结束时间",
+            "en": "Period end"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "summary",
+          "label": {
+            "zh": "报告内容",
+            "en": "Report summary"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "generate",
+        "export"
+      ],
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "asset-map",
+      "groupId": "assets",
+      "title": {
+        "zh": "资产地图",
+        "en": "Asset map"
+      },
+      "description": {
+        "zh": "按数据域查看资产关系和血缘地图",
+        "en": "Explore actual asset relationships and lineage by business domain"
+      },
+      "path": "/assets/map",
+      "reference": [
+        "5.1资产地图"
+      ],
+      "resourceKind": "asset_map",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "domain_id",
+          "label": {
+            "zh": "数据域",
+            "en": "Data domain"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "warehouse_domain"
+        },
+        {
+          "key": "asset_ids",
+          "label": {
+            "zh": "资产节点 ID",
+            "en": "Asset node IDs"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "layout",
+          "label": {
+            "zh": "地图布局",
+            "en": "Map layout"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "analyze"
+      ],
+      "workspaceType": "workflow"
+    },
+    {
+      "id": "asset-directory",
+      "groupId": "assets",
+      "title": {
+        "zh": "资产目录",
+        "en": "Asset directory"
+      },
+      "description": {
+        "zh": "维护有真实来源引用的表、字段、模型、指标与标准目录",
+        "en": "Register sourced tables, models, metrics and standards in an asset catalog"
+      },
+      "path": "/assets/catalog",
+      "reference": [
+        "5.2资产目录"
+      ],
+      "resourceKind": "asset_entry",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "object_kind",
+          "label": {
+            "zh": "资产类型",
+            "en": "Asset type"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "metadata_object",
+              "label": {
+                "zh": "数据表",
+                "en": "Data table"
+              }
+            },
+            {
+              "value": "data_model",
+              "label": {
+                "zh": "数据模型",
+                "en": "Data model"
+              }
+            },
+            {
+              "value": "atomic_metric",
+              "label": {
+                "zh": "原子指标",
+                "en": "Atomic metric"
+              }
+            },
+            {
+              "value": "derived_metric",
+              "label": {
+                "zh": "派生指标",
+                "en": "Derived metric"
+              }
+            },
+            {
+              "value": "composite_metric",
+              "label": {
+                "zh": "复合指标",
+                "en": "Composite metric"
+              }
+            },
+            {
+              "value": "field_standard",
+              "label": {
+                "zh": "字段标准",
+                "en": "Field standard"
+              }
+            },
+            {
+              "value": "enum_standard",
+              "label": {
+                "zh": "枚举标准",
+                "en": "Enumeration standard"
+              }
+            },
+            {
+              "value": "unit_standard",
+              "label": {
+                "zh": "计量单位",
+                "en": "Measurement unit"
+              }
+            }
+          ]
+        },
+        {
+          "key": "object_id",
+          "label": {
+            "zh": "关联对象 ID",
+            "en": "Related object ID"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "domain_id",
+          "label": {
+            "zh": "数据域",
+            "en": "Data domain"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "warehouse_domain"
+        },
+        {
+          "key": "owner_id",
+          "label": {
+            "zh": "负责人",
+            "en": "Owner"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "user"
+        },
+        {
+          "key": "tags",
+          "label": {
+            "zh": "标签",
+            "en": "Tags"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "register",
+        "publish",
+        "withdraw"
+      ],
+      "workspaceType": "catalog"
+    },
+    {
+      "id": "asset-analysis",
+      "groupId": "assets",
+      "title": {
+        "zh": "资产分析",
+        "en": "Asset analysis"
+      },
+      "description": {
+        "zh": "依据实际访问和引用事件分析资产使用情况",
+        "en": "Analyze recorded asset access and reference activity"
+      },
+      "path": "/assets/analysis",
+      "reference": [
+        "5.3资产分析"
+      ],
+      "resourceKind": "asset_analysis",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "asset_id",
+          "label": {
+            "zh": "资产",
+            "en": "Asset"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "asset_entry"
+        },
+        {
+          "key": "period_start",
+          "label": {
+            "zh": "开始时间",
+            "en": "Period start"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "period_end",
+          "label": {
+            "zh": "结束时间",
+            "en": "Period end"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "metrics",
+          "label": {
+            "zh": "使用统计",
+            "en": "Usage metrics"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "analyze",
+        "export"
+      ],
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "service-apis",
+      "groupId": "services",
+      "title": {
+        "zh": "API 管理",
+        "en": "API management"
+      },
+      "description": {
+        "zh": "将受控查询发布为带版本、鉴权和限额的数据 API",
+        "en": "Publish controlled queries as versioned APIs with authentication and limits"
+      },
+      "path": "/services/apis",
+      "reference": [
+        "服务与辅助管理：API 消费与应用身份（产品意图归纳）"
+      ],
+      "resourceKind": "data_api",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "metadata_object_id",
+          "label": {
+            "zh": "服务数据对象",
+            "en": "Service data object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "metadata_object"
+        },
+        {
+          "key": "sql",
+          "label": {
+            "zh": "SQL 定义",
+            "en": "SQL definition"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "parameters",
+          "label": {
+            "zh": "请求参数",
+            "en": "Request parameters"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "response_schema",
+          "label": {
+            "zh": "返回字段",
+            "en": "Response schema"
+          },
+          "type": "json",
+          "required": false
+        },
+        {
+          "key": "row_limit",
+          "label": {
+            "zh": "返回行数上限",
+            "en": "Row limit"
+          },
+          "type": "number",
+          "required": true
+        },
+        {
+          "key": "rate_limit",
+          "label": {
+            "zh": "租户 API 每分钟调用总额",
+            "en": "Tenant API calls per minute"
+          },
+          "type": "number",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "publish",
+        "withdraw",
+        "execute"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "service-catalog",
+      "groupId": "services",
+      "title": {
+        "zh": "服务目录",
+        "en": "Service catalog"
+      },
+      "description": {
+        "zh": "浏览已发布服务并申请应用调用授权",
+        "en": "Browse published services and request application access"
+      },
+      "path": "/services/catalog",
+      "reference": [
+        "服务与辅助管理：API 消费（产品意图归纳）"
+      ],
+      "resourceKind": "service_subscription",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "api_id",
+          "label": {
+            "zh": "数据 API",
+            "en": "Data API"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "data_api"
+        },
+        {
+          "key": "application_id",
+          "label": {
+            "zh": "调用应用",
+            "en": "Application"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "service_application"
+        },
+        {
+          "key": "purpose",
+          "label": {
+            "zh": "使用目的",
+            "en": "Purpose"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "expires_at",
+          "label": {
+            "zh": "授权到期时间",
+            "en": "Authorization expires at"
+          },
+          "type": "text",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "submit",
+        "approve",
+        "reject",
+        "revoke"
+      ],
+      "workspaceType": "review"
+    },
+    {
+      "id": "service-calls",
+      "groupId": "services",
+      "title": {
+        "zh": "我的调用",
+        "en": "My API calls"
+      },
+      "description": {
+        "zh": "检查实际服务调用的状态、耗时和限额结果",
+        "en": "Inspect real API calls, response status, duration and quota outcomes"
+      },
+      "path": "/services/calls",
+      "reference": [
+        "6.2.2我的调用"
+      ],
+      "resourceKind": "api_call",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "api_id",
+          "label": {
+            "zh": "数据 API",
+            "en": "Data API"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "data_api"
+        },
+        {
+          "key": "application_id",
+          "label": {
+            "zh": "调用应用",
+            "en": "Application"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "service_application"
+        },
+        {
+          "key": "http_status",
+          "label": {
+            "zh": "HTTP 状态",
+            "en": "HTTP status"
+          },
+          "type": "number",
+          "required": false
+        },
+        {
+          "key": "duration_ms",
+          "label": {
+            "zh": "耗时毫秒",
+            "en": "Duration milliseconds"
+          },
+          "type": "number",
+          "required": false
+        },
+        {
+          "key": "rows_returned",
+          "label": {
+            "zh": "返回行数",
+            "en": "Rows returned"
+          },
+          "type": "number",
+          "required": false
+        }
+      ],
+      "actions": [
+        "search",
+        "inspect"
+      ],
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "service-applications",
+      "groupId": "services",
+      "title": {
+        "zh": "应用管理",
+        "en": "Service applications"
+      },
+      "description": {
+        "zh": "维护应用身份、受控凭据签发和调用授权",
+        "en": "Manage application identities, credential issuance and call authorization"
+      },
+      "path": "/services/applications",
+      "reference": [
+        "6.2.3应用管理"
+      ],
+      "resourceKind": "service_application",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "owner_id",
+          "label": {
+            "zh": "负责人",
+            "en": "Owner"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "user"
+        },
+        {
+          "key": "allowed_origins",
+          "label": {
+            "zh": "允许来源",
+            "en": "Allowed origins"
+          },
+          "type": "json",
+          "required": false
+        },
+        {
+          "key": "credential_expires_at",
+          "label": {
+            "zh": "凭据有效期",
+            "en": "Credential expires at"
+          },
+          "type": "text",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "issue_credential",
+        "revoke_credential"
+      ],
+      "workspaceType": "table"
+    },
+    {
+      "id": "personnel-bi",
+      "groupId": "bi",
+      "title": {
+        "zh": "人员 BI 分析",
+        "en": "Personnel BI analysis"
+      },
+      "description": {
+        "zh": "保存人员分析报表，执行真实聚合并按授权共享",
+        "en": "Save personnel reports, execute real aggregates and share with permission checks"
+      },
+      "path": "/bi/personnel",
+      "reference": [
+        "7.1人员BI分析"
+      ],
+      "resourceKind": "bi_report",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "metadata_object_id",
+          "label": {
+            "zh": "分析数据对象",
+            "en": "Analysis data object"
+          },
+          "type": "text",
+          "required": true,
+          "referenceKind": "metadata_object"
+        },
+        {
+          "key": "model_id",
+          "label": {
+            "zh": "分析模型",
+            "en": "Analysis model"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "data_model"
+        },
+        {
+          "key": "dimensions",
+          "label": {
+            "zh": "分析维度",
+            "en": "Dimensions"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "measures",
+          "label": {
+            "zh": "分析度量",
+            "en": "Measures"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "chart_config",
+          "label": {
+            "zh": "图表配置",
+            "en": "Chart configuration"
+          },
+          "type": "json",
+          "required": false
+        },
+        {
+          "key": "row_limit",
+          "label": {
+            "zh": "返回分组上限",
+            "en": "Maximum groups"
+          },
+          "type": "number",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "execute",
+        "publish",
+        "share",
+        "export"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "tags",
+      "groupId": "support",
+      "title": {
+        "zh": "标签管理",
+        "en": "Tags"
+      },
+      "description": {
+        "zh": "维护标签定义并绑定真实业务资产",
+        "en": "Maintain tag definitions and attach them to actual business objects"
+      },
+      "path": "/support/tags",
+      "reference": [
+        "8.1标签管理"
+      ],
+      "resourceKind": "tag",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "color",
+          "label": {
+            "zh": "标签颜色",
+            "en": "Color"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "scope",
+          "label": {
+            "zh": "适用范围",
+            "en": "Scope"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "all",
+              "label": {
+                "zh": "全部业务模块",
+                "en": "All business modules"
+              }
+            },
+            {
+              "value": "integration",
+              "label": {
+                "zh": "数据集成",
+                "en": "Data integration"
+              }
+            },
+            {
+              "value": "warehouse",
+              "label": {
+                "zh": "数仓设计",
+                "en": "Warehouse design"
+              }
+            },
+            {
+              "value": "standards",
+              "label": {
+                "zh": "数据标准",
+                "en": "Data standards"
+              }
+            },
+            {
+              "value": "models",
+              "label": {
+                "zh": "模型设计",
+                "en": "Model design"
+              }
+            },
+            {
+              "value": "metrics",
+              "label": {
+                "zh": "数据指标",
+                "en": "Metrics"
+              }
+            },
+            {
+              "value": "development",
+              "label": {
+                "zh": "数据开发",
+                "en": "Data development"
+              }
+            },
+            {
+              "value": "metadata",
+              "label": {
+                "zh": "元数据",
+                "en": "Metadata"
+              }
+            },
+            {
+              "value": "master-data",
+              "label": {
+                "zh": "主数据",
+                "en": "Master data"
+              }
+            },
+            {
+              "value": "data-security",
+              "label": {
+                "zh": "数据权限",
+                "en": "Data access"
+              }
+            },
+            {
+              "value": "sensitive-data",
+              "label": {
+                "zh": "敏感数据",
+                "en": "Sensitive data"
+              }
+            },
+            {
+              "value": "privacy",
+              "label": {
+                "zh": "数据隐私",
+                "en": "Data privacy"
+              }
+            },
+            {
+              "value": "watermark",
+              "label": {
+                "zh": "数据水印",
+                "en": "Data watermark"
+              }
+            },
+            {
+              "value": "quality",
+              "label": {
+                "zh": "数据质量",
+                "en": "Data quality"
+              }
+            },
+            {
+              "value": "assets",
+              "label": {
+                "zh": "数据资产",
+                "en": "Data assets"
+              }
+            },
+            {
+              "value": "services",
+              "label": {
+                "zh": "数据服务",
+                "en": "Data services"
+              }
+            },
+            {
+              "value": "bi",
+              "label": {
+                "zh": "BI 分析",
+                "en": "BI analytics"
+              }
+            },
+            {
+              "value": "support",
+              "label": {
+                "zh": "辅助管理",
+                "en": "Supporting tools"
+              }
+            },
+            {
+              "value": "access",
+              "label": {
+                "zh": "公共权限与系统",
+                "en": "Access and system"
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "assign",
+        "unassign"
+      ],
+      "workspaceType": "table"
+    },
+    {
+      "id": "alert-settings",
+      "groupId": "support",
+      "title": {
+        "zh": "告警设置",
+        "en": "Alert settings"
+      },
+      "description": {
+        "zh": "将真实运行或质量事件送入告警和消息流程",
+        "en": "Route actual runtime and quality events into alerts and message delivery"
+      },
+      "path": "/support/alerts",
+      "reference": [
+        "8.2告警设置"
+      ],
+      "resourceKind": "alert_policy",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "event_type",
+          "label": {
+            "zh": "事件类型",
+            "en": "Event type"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "task_failure",
+              "label": {
+                "zh": "任务失败",
+                "en": "Task failure"
+              }
+            },
+            {
+              "value": "quality_failure",
+              "label": {
+                "zh": "质量异常",
+                "en": "Quality failure"
+              }
+            },
+            {
+              "value": "system_health",
+              "label": {
+                "zh": "系统健康",
+                "en": "System health"
+              }
+            }
+          ]
+        },
+        {
+          "key": "enabled",
+          "label": {
+            "zh": "启用策略",
+            "en": "Policy enabled"
+          },
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "key": "window_seconds",
+          "label": {
+            "zh": "统计窗口秒数",
+            "en": "Window seconds"
+          },
+          "type": "number",
+          "required": true
+        },
+        {
+          "key": "threshold",
+          "label": {
+            "zh": "告警阈值",
+            "en": "Threshold"
+          },
+          "type": "number",
+          "required": true
+        },
+        {
+          "key": "message_template_id",
+          "label": {
+            "zh": "消息模板",
+            "en": "Message template"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "message_template"
+        },
+        {
+          "key": "recipient_ids",
+          "label": {
+            "zh": "接收用户 ID",
+            "en": "Recipient user IDs"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "cooldown_seconds",
+          "label": {
+            "zh": "抑制间隔秒数",
+            "en": "Cooldown seconds"
+          },
+          "type": "number",
+          "required": true
+        },
+        {
+          "key": "evaluation_interval_seconds",
+          "label": {
+            "zh": "自动评估间隔秒数",
+            "en": "Evaluation interval seconds"
+          },
+          "type": "number",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "evaluate",
+        "test_delivery"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "personal-center",
+      "groupId": "access",
+      "title": {
+        "zh": "个人中心",
+        "en": "Personal center"
+      },
+      "description": {
+        "zh": "维护本人基本信息和安全设置，敏感操作重新验证身份",
+        "en": "Maintain personal information and verify identity before sensitive account changes"
+      },
+      "path": "/account/profile",
+      "reference": [
+        "3个人中心-基本信息"
+      ],
+      "resourceKind": "user_profile",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "display_name",
+          "label": {
+            "zh": "显示名称",
+            "en": "Display name"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "email",
+          "label": {
+            "zh": "电子邮箱",
+            "en": "Email"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "phone",
+          "label": {
+            "zh": "联系电话",
+            "en": "Phone"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "avatar_url",
+          "label": {
+            "zh": "头像地址",
+            "en": "Avatar URL"
+          },
+          "type": "text",
+          "required": false
+        }
+      ],
+      "actions": [
+        "update",
+        "change_password",
+        "revoke_sessions"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "workbench-todos",
+      "groupId": "access",
+      "title": {
+        "zh": "待办事项",
+        "en": "My work items"
+      },
+      "description": {
+        "zh": "查看实际审批和业务流程派生的待办并跟踪处理",
+        "en": "Review and process work items produced by actual approval and business flows"
+      },
+      "path": "/account/work-items",
+      "reference": [
+        "1工作台：待办"
+      ],
+      "resourceKind": "work_item",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "assignee_id",
+          "label": {
+            "zh": "处理人 ID",
+            "en": "Assignee ID"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "related_kind",
+          "label": {
+            "zh": "关联业务类型",
+            "en": "Related kind"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "related_id",
+          "label": {
+            "zh": "关联业务 ID",
+            "en": "Related ID"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "due_at",
+          "label": {
+            "zh": "截止时间",
+            "en": "Due at"
+          },
+          "type": "text",
+          "required": false
+        }
+      ],
+      "actions": [
+        "claim",
+        "complete"
+      ],
+      "workspaceType": "review"
+    },
+    {
+      "id": "system-statistics",
+      "groupId": "access",
+      "title": {
+        "zh": "系统统计",
+        "en": "System statistics"
+      },
+      "description": {
+        "zh": "从平台持久化记录汇总账户、资源和运行数量",
+        "en": "Aggregate account, resource and execution counts from persisted platform records"
+      },
+      "path": "/system/statistics",
+      "reference": [
+        "2.1系统统计"
+      ],
+      "resourceKind": "system_statistics",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "period_start",
+          "label": {
+            "zh": "开始时间",
+            "en": "Period start"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "period_end",
+          "label": {
+            "zh": "结束时间",
+            "en": "Period end"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "metrics",
+          "label": {
+            "zh": "实际统计指标",
+            "en": "Recorded metrics"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "analyze",
+        "export"
+      ],
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "usage-statistics",
+      "groupId": "access",
+      "title": {
+        "zh": "使用统计",
+        "en": "Usage statistics"
+      },
+      "description": {
+        "zh": "根据真实登录、操作、查询和服务调用事件汇总使用情况",
+        "en": "Analyze real login, operation, query and service-call events"
+      },
+      "path": "/system/usage",
+      "reference": [
+        "2.2使用统计"
+      ],
+      "resourceKind": "usage_statistics",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "period_start",
+          "label": {
+            "zh": "开始时间",
+            "en": "Period start"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "period_end",
+          "label": {
+            "zh": "结束时间",
+            "en": "Period end"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "dimension",
+          "label": {
+            "zh": "统计维度",
+            "en": "Dimension"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "metrics",
+          "label": {
+            "zh": "使用统计结果",
+            "en": "Usage metrics"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "analyze",
+        "export"
+      ],
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "tenants",
+      "groupId": "access",
+      "title": {
+        "zh": "租户管理",
+        "en": "Tenant management"
+      },
+      "description": {
+        "zh": "维护租户编码、名称、管理员及状态",
+        "en": "Manage tenant identity, administrators, lifecycle and allocated menu templates"
+      },
+      "path": "/system/tenants",
+      "reference": [
+        "4.1租户管理"
+      ],
+      "permission": "user:manage",
+      "existingPath": "/system",
+      "implementation": "existing",
+      "workspaceType": "table"
+    },
+    {
+      "id": "menu-templates",
+      "groupId": "access",
+      "title": {
+        "zh": "菜单模板",
+        "en": "Menu templates"
+      },
+      "description": {
+        "zh": "维护租户菜单模板并显式分配可用导航",
+        "en": "Maintain versioned menu templates and explicitly allocate tenant navigation"
+      },
+      "path": "/system/menu-templates",
+      "reference": [
+        "4.2菜单模板"
+      ],
+      "resourceKind": "menu_template",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "menu_ids",
+          "label": {
+            "zh": "包含菜单 ID",
+            "en": "Menu IDs"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "validity_days",
+          "label": {
+            "zh": "默认有效天数",
+            "en": "Default validity days"
+          },
+          "type": "number",
+          "required": false
+        },
+        {
+          "key": "edition",
+          "label": {
+            "zh": "模板版本类型",
+            "en": "Edition"
+          },
+          "type": "text",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "assign"
+      ],
+      "workspaceType": "tree"
+    },
+    {
+      "id": "organizations",
+      "groupId": "access",
+      "title": {
+        "zh": "组织管理",
+        "en": "Organizations"
+      },
+      "description": {
+        "zh": "维护无环组织树及当前租户内成员归属",
+        "en": "Maintain acyclic organization hierarchies and tenant-local membership"
+      },
+      "path": "/system/organizations",
+      "reference": [
+        "5组织管理"
+      ],
+      "resourceKind": "organization",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "manager_user_id",
+          "label": {
+            "zh": "当前负责人 ID",
+            "en": "Current manager ID"
+          },
+          "type": "text",
+          "required": false,
+          "readOnly": true
+        },
+        {
+          "key": "sort_order",
+          "label": {
+            "zh": "排序",
+            "en": "Sort order"
+          },
+          "type": "number",
+          "required": false
+        },
+        {
+          "key": "member_count",
+          "label": {
+            "zh": "实际成员数",
+            "en": "Current members"
+          },
+          "type": "number",
+          "required": false,
+          "readOnly": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "workspaceType": "tree"
+    },
+    {
+      "id": "users",
+      "groupId": "access",
+      "title": {
+        "zh": "用户管理",
+        "en": "User management"
+      },
+      "description": {
+        "zh": "管理租户内账号、成员角色、状态和密码重置",
+        "en": "Manage tenant accounts, organization membership, roles, status and password resets"
+      },
+      "path": "/system/users",
+      "reference": [
+        "6用户管理",
+        "9.1用户管理"
+      ],
+      "permission": "user:manage",
+      "existingPath": "/system",
+      "implementation": "existing",
+      "workspaceType": "table"
+    },
+    {
+      "id": "roles",
+      "groupId": "access",
+      "title": {
+        "zh": "角色管理",
+        "en": "Role management"
+      },
+      "description": {
+        "zh": "管理自定义角色与精确权限并保护预置角色",
+        "en": "Manage custom roles and exact permissions while protecting system-defined roles"
+      },
+      "path": "/system/roles",
+      "reference": [
+        "7.1角色管理"
+      ],
+      "permission": "user:manage",
+      "existingPath": "/system",
+      "implementation": "existing",
+      "workspaceType": "table"
+    },
+    {
+      "id": "permissions",
+      "groupId": "access",
+      "title": {
+        "zh": "权限列表",
+        "en": "Permissions"
+      },
+      "description": {
+        "zh": "查看实际后端注册权限及角色绑定关系",
+        "en": "Inspect permissions registered by the backend and actual role assignments"
+      },
+      "path": "/system/permissions",
+      "reference": [
+        "7.2权限列表"
+      ],
+      "permission": "user:manage",
+      "existingPath": "/system",
+      "implementation": "existing",
+      "workspaceType": "table"
+    },
+    {
+      "id": "menus",
+      "groupId": "access",
+      "title": {
+        "zh": "菜单管理",
+        "en": "Menus"
+      },
+      "description": {
+        "zh": "维护合法产品路由组成的菜单树，菜单不替代服务端授权",
+        "en": "Maintain valid product routes and menu hierarchies without replacing backend authorization"
+      },
+      "path": "/system/menus",
+      "reference": [
+        "8菜单管理"
+      ],
+      "resourceKind": "system_menu",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "path",
+          "label": {
+            "zh": "页面路径",
+            "en": "Page path"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "permission",
+          "label": {
+            "zh": "访问权限",
+            "en": "Access permission"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "sort_order",
+          "label": {
+            "zh": "排序",
+            "en": "Sort order"
+          },
+          "type": "number",
+          "required": false
+        },
+        {
+          "key": "icon",
+          "label": {
+            "zh": "菜单图标",
+            "en": "Menu icon"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "visible",
+          "label": {
+            "zh": "导航中显示",
+            "en": "Visible in navigation"
+          },
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "workspaceType": "tree"
+    },
+    {
+      "id": "dictionaries",
+      "groupId": "access",
+      "title": {
+        "zh": "字典管理",
+        "en": "Dictionaries"
+      },
+      "description": {
+        "zh": "维护稳定字典值并保护被引用的字典定义",
+        "en": "Maintain stable dictionary values and protect referenced definitions"
+      },
+      "path": "/system/dictionaries",
+      "reference": [
+        "9字典管理"
+      ],
+      "resourceKind": "system_dictionary",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "enum_values",
+          "label": {
+            "zh": "字典值与显示名称",
+            "en": "Values and display labels"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "scope",
+          "label": {
+            "zh": "适用范围",
+            "en": "Scope"
+          },
+          "type": "text",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "announcements",
+      "groupId": "access",
+      "title": {
+        "zh": "公告管理",
+        "en": "Announcements"
+      },
+      "description": {
+        "zh": "编辑、发布和撤回公告并控制租户内接收范围",
+        "en": "Edit, publish and withdraw announcements with tenant-local audience controls"
+      },
+      "path": "/system/announcements",
+      "reference": [
+        "10公告管理"
+      ],
+      "resourceKind": "announcement",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "content",
+          "label": {
+            "zh": "公告内容",
+            "en": "Content"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "audience",
+          "label": {
+            "zh": "接收范围",
+            "en": "Audience"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "publish_at",
+          "label": {
+            "zh": "发布时间",
+            "en": "Publish at"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "expires_at",
+          "label": {
+            "zh": "有效期截止",
+            "en": "Expires at"
+          },
+          "type": "text",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "publish",
+        "withdraw"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "login-events",
+      "groupId": "access",
+      "title": {
+        "zh": "登录日志",
+        "en": "Login logs"
+      },
+      "description": {
+        "zh": "检索认证入口产生的真实成功与失败事件，不保存密码或令牌",
+        "en": "Inspect actual authentication outcomes without exposing passwords or tokens"
+      },
+      "path": "/system/logs/login",
+      "reference": [
+        "11.1登录日志"
+      ],
+      "resourceKind": "login_event",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "user_id",
+          "label": {
+            "zh": "用户 ID",
+            "en": "User ID"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "username",
+          "label": {
+            "zh": "登录账号",
+            "en": "Username"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "source_ip",
+          "label": {
+            "zh": "来源 IP",
+            "en": "Source IP"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "outcome",
+          "label": {
+            "zh": "登录结果",
+            "en": "Outcome"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "failure_reason",
+          "label": {
+            "zh": "失败原因",
+            "en": "Failure reason"
+          },
+          "type": "text",
+          "required": false
+        }
+      ],
+      "actions": [
+        "search",
+        "export"
+      ],
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "operation-events",
+      "groupId": "access",
+      "title": {
+        "zh": "操作日志",
+        "en": "Operation logs"
+      },
+      "description": {
+        "zh": "查询写操作自动生成的只读审计记录",
+        "en": "Inspect read-only audit records generated by actual write operations"
+      },
+      "path": "/system/logs/operations",
+      "reference": [
+        "11.2操作日志"
+      ],
+      "resourceKind": "operation_event",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "actor_id",
+          "label": {
+            "zh": "操作人 ID",
+            "en": "Actor ID"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "resource_kind",
+          "label": {
+            "zh": "资源类型",
+            "en": "Resource kind"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "resource_id",
+          "label": {
+            "zh": "资源 ID",
+            "en": "Resource ID"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "action",
+          "label": {
+            "zh": "操作动作",
+            "en": "Action"
+          },
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "changes",
+          "label": {
+            "zh": "变更摘要",
+            "en": "Change summary"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "search",
+        "export"
+      ],
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "system-monitoring",
+      "groupId": "access",
+      "title": {
+        "zh": "系统监控",
+        "en": "System monitoring"
+      },
+      "description": {
+        "zh": "检查实际服务健康和运行指标",
+        "en": "Inspect actual platform service health and runtime metrics"
+      },
+      "path": "/system/monitoring",
+      "reference": [
+        "12系统监控"
+      ],
+      "permission": "monitor:read",
+      "existingPath": "/ops",
+      "implementation": "existing",
+      "workspaceType": "monitor"
+    },
+    {
+      "id": "messages",
+      "groupId": "access",
+      "title": {
+        "zh": "消息管理",
+        "en": "Messages"
+      },
+      "description": {
+        "zh": "按真实投递结果管理消息、收件与已读状态",
+        "en": "Manage message delivery, recipient state and retries using actual delivery outcomes"
+      },
+      "path": "/system/messages",
+      "reference": [
+        "13.1消息管理",
+        "1工作台：消息"
+      ],
+      "resourceKind": "system_message",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "recipient_ids",
+          "label": {
+            "zh": "接收用户 ID",
+            "en": "Recipient user IDs"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "template_id",
+          "label": {
+            "zh": "消息模板",
+            "en": "Message template"
+          },
+          "type": "text",
+          "required": false,
+          "referenceKind": "message_template"
+        },
+        {
+          "key": "content",
+          "label": {
+            "zh": "消息内容",
+            "en": "Message content"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "channel",
+          "label": {
+            "zh": "消息渠道",
+            "en": "Channel"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "in_app",
+              "label": {
+                "zh": "站内消息",
+                "en": "In-app"
+              }
+            },
+            {
+              "value": "email",
+              "label": {
+                "zh": "邮件",
+                "en": "Email"
+              }
+            },
+            {
+              "value": "sms",
+              "label": {
+                "zh": "短信",
+                "en": "SMS"
+              }
+            },
+            {
+              "value": "wechat_work",
+              "label": {
+                "zh": "企业微信",
+                "en": "WeCom"
+              }
+            },
+            {
+              "value": "dingtalk",
+              "label": {
+                "zh": "钉钉",
+                "en": "DingTalk"
+              }
+            },
+            {
+              "value": "webhook",
+              "label": {
+                "zh": "Webhook",
+                "en": "Webhook"
+              }
+            }
+          ]
+        },
+        {
+          "key": "parameters",
+          "label": {
+            "zh": "模板参数",
+            "en": "Template parameters"
+          },
+          "type": "json",
+          "required": false
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "send",
+        "mark_read",
+        "retry"
+      ],
+      "workspaceType": "review"
+    },
+    {
+      "id": "message-templates",
+      "groupId": "access",
+      "title": {
+        "zh": "消息模板",
+        "en": "Message templates"
+      },
+      "description": {
+        "zh": "维护参数化渠道模板并校验必填变量",
+        "en": "Define channel templates and validate required substitution variables"
+      },
+      "path": "/system/message-templates",
+      "reference": [
+        "13.2消息模板"
+      ],
+      "resourceKind": "message_template",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "subject",
+          "label": {
+            "zh": "消息标题模板",
+            "en": "Subject template"
+          },
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "body",
+          "label": {
+            "zh": "消息正文模板",
+            "en": "Body template"
+          },
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "variables",
+          "label": {
+            "zh": "模板变量",
+            "en": "Variables"
+          },
+          "type": "json",
+          "required": false
+        },
+        {
+          "key": "channel",
+          "label": {
+            "zh": "消息渠道",
+            "en": "Channel"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "in_app",
+              "label": {
+                "zh": "站内消息",
+                "en": "In-app"
+              }
+            },
+            {
+              "value": "email",
+              "label": {
+                "zh": "邮件",
+                "en": "Email"
+              }
+            },
+            {
+              "value": "sms",
+              "label": {
+                "zh": "短信",
+                "en": "SMS"
+              }
+            },
+            {
+              "value": "wechat_work",
+              "label": {
+                "zh": "企业微信",
+                "en": "WeCom"
+              }
+            },
+            {
+              "value": "dingtalk",
+              "label": {
+                "zh": "钉钉",
+                "en": "DingTalk"
+              }
+            },
+            {
+              "value": "webhook",
+              "label": {
+                "zh": "Webhook",
+                "en": "Webhook"
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "validate",
+        "preview"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "base-settings",
+      "groupId": "access",
+      "title": {
+        "zh": "基础设置",
+        "en": "Base settings"
+      },
+      "description": {
+        "zh": "维护平台基础及安全策略，校验后显式应用",
+        "en": "Validate and explicitly apply platform branding and security policies"
+      },
+      "path": "/system/settings",
+      "reference": [
+        "14.1基础设置"
+      ],
+      "resourceKind": "system_setting",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "scope",
+          "label": {
+            "zh": "配置类型",
+            "en": "Setting scope"
+          },
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "branding",
+              "label": {
+                "zh": "品牌与基础信息",
+                "en": "Branding"
+              }
+            },
+            {
+              "value": "login",
+              "label": {
+                "zh": "登录策略",
+                "en": "Login policy"
+              }
+            },
+            {
+              "value": "password",
+              "label": {
+                "zh": "密码策略",
+                "en": "Password policy"
+              }
+            },
+            {
+              "value": "notification",
+              "label": {
+                "zh": "通知策略",
+                "en": "Notification policy"
+              }
+            }
+          ]
+        },
+        {
+          "key": "values",
+          "label": {
+            "zh": "配置项",
+            "en": "Setting values"
+          },
+          "type": "json",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "validate",
+        "apply"
+      ],
+      "workspaceType": "editor"
+    },
+    {
+      "id": "portals",
+      "groupId": "access",
+      "title": {
+        "zh": "门户设计",
+        "en": "Portal design"
+      },
+      "description": {
+        "zh": "配置受控平台组件组成的门户并按实际角色授权发布",
+        "en": "Design controlled-component portals and publish them with actual role authorization"
+      },
+      "path": "/system/portals",
+      "reference": [
+        "14.2门户设计",
+        "14.2.1新增门户",
+        "14.2.2门户授权"
+      ],
+      "resourceKind": "portal",
+      "implementation": "new",
+      "fields": [
+        {
+          "key": "layout",
+          "label": {
+            "zh": "门户组件布局",
+            "en": "Component layout"
+          },
+          "type": "json",
+          "required": true
+        },
+        {
+          "key": "theme",
+          "label": {
+            "zh": "门户主题配置",
+            "en": "Theme configuration"
+          },
+          "type": "json",
+          "required": false
+        },
+        {
+          "key": "authorized_role_ids",
+          "label": {
+            "zh": "授权角色 ID",
+            "en": "Authorized role IDs"
+          },
+          "type": "json",
+          "required": true
+        }
+      ],
+      "actions": [
+        "create",
+        "update",
+        "delete",
+        "preview",
+        "authorize",
+        "publish",
+        "withdraw"
+      ],
+      "workspaceType": "editor"
+    }
+  ]
+}

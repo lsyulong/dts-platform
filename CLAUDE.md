@@ -112,9 +112,13 @@ DATABASE_BACKEND=sqlite DATABASE_URL="sqlite:./data/dts.db?mode=rwc" cargo run -
 
 ## Current Branch State
 
-Branch: `feat/supabase-postgresql` (multi-backend: SQLite + PostgreSQL)
-Phase 2 complete (engine integration + TaskScheduler + TaskRunRepo).
-Multi-backend architecture active with runtime dispatch.
+Branch: `dev` (active development)
+Phase 1-2 complete. Phase 3 (AI + Analytics) in progress:
+- 3a ✅ DeerFlow AI chat + diagnosis
+- 3b ✅ SwanLake SQL Workbench + NL2SQL
+- 3c 🚧 AI report generation + chart suggestion (75%)
+- 3d ⏳ Production-ready K8s deployment
+Multi-backend architecture active (SQLite/PostgreSQL runtime dispatch).
 Frontend i18n (zh-CN/en-US) + theme system (light/dark) complete.
 
 ## Related Docs

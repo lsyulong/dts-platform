@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 /// 引擎错误类型
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum EngineError {
@@ -44,7 +43,6 @@ pub enum EngineError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pretty_assertions::assert_eq;
 
     #[test]
     fn engine_error_display_internal() {

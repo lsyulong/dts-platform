@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use actix_web::{HttpRequest, HttpResponse, web};
 use serde::Deserialize;
 
 use crate::middleware::auth;
-use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
 use crate::services::alert_svc::AlertService;
 
@@ -37,8 +35,7 @@ pub async fn list(
     alert_svc: web::Data<AlertService>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "alert:read").await?;
 
     let alerts = alert_svc.list_by_tenant(&claims.tenant_id).await?;
 
@@ -51,8 +48,16 @@ pub async fn create(
     req: HttpRequest,
     body: web::Json<CreateAlertRequest>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "alert:write").await?;
+
+    if let Some(task_id) = &body.task_id {
+        let repo = req
+            .app_data::<web::Data<std::sync::Arc<dyn dts_backend::TaskRepo>>>()
+            .ok_or_else(|| AppError::Internal("任务存储未配置".into()))?;
+        repo.find_detail_by_id(task_id, &claims.tenant_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("任务不存在".into()))?;
+    }
 
     let channels = serde_json::to_string(&body.notify_channels.as_ref().unwrap_or(&vec![]))
         .unwrap_or_else(|_| "[]".to_string());
@@ -81,8 +86,7 @@ pub async fn toggle(
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "alert:write").await?;
     let alert_id = path.into_inner();
 
     alert_svc.toggle(&alert_id, &claims.tenant_id).await?;

@@ -12,19 +12,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AuthIdentity {
+    pub sub: String,
+    pub tenant_id: String,
+    pub username: String,
+}
+
 /// 登录请求
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
     pub tenant_slug: String,
 }
 
-/// 创建用户请求
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct UpdateProfileRequest {
+    pub email: String,
+    pub display_name: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChangePasswordRequest {
+    pub current_password: String,
+    pub new_password: String,
+}
+
+impl std::fmt::Debug for ChangePasswordRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ChangePasswordRequest")
+            .field("current_password", &"<REDACTED>")
+            .field("new_password", &"<REDACTED>")
+            .finish()
+    }
+}
+
+/// 创建用户请求
+#[derive(Deserialize)]
 pub struct CreateUserRequest {
     pub username: String,
     pub email: String,
@@ -34,7 +63,7 @@ pub struct CreateUserRequest {
 }
 
 /// 登录响应
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 pub struct LoginResponse {
     pub token: String,
     pub user: UserInfo,
@@ -54,19 +83,64 @@ pub struct UserInfo {
 }
 
 /// 创建租户请求
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct CreateTenantRequest {
     pub name: String,
     pub slug: String,
+    #[serde(default)]
+    pub admin_password: Option<String>,
 }
 
 // ====== 从 dts-backend 重新导出，保持对外 API 兼容 ======
 pub use dts_backend::types::TenantInfo;
 
+impl std::fmt::Debug for LoginRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LoginRequest")
+            .field("username", &self.username)
+            .field("password", &"<REDACTED>")
+            .field("tenant_slug", &self.tenant_slug)
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for CreateUserRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CreateUserRequest")
+            .field("username", &self.username)
+            .field("email", &self.email)
+            .field("password", &"<REDACTED>")
+            .field("display_name", &self.display_name)
+            .field("role_ids", &self.role_ids)
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for LoginResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LoginResponse")
+            .field("token", &"<REDACTED>")
+            .field("user", &self.user)
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for CreateTenantRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CreateTenantRequest")
+            .field("name", &self.name)
+            .field("slug", &self.slug)
+            .field(
+                "admin_password",
+                &self.admin_password.as_ref().map(|_| "<REDACTED>"),
+            )
+            .finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::services::token::Claims;
     use pretty_assertions::assert_eq;
 
     // ========== LoginRequest Tests ==========
@@ -108,24 +182,16 @@ mod tests {
         assert!(result.is_err());
     }
 
-    // ========== Claims Serialization Round-Trip Tests ==========
-
     #[test]
-    fn claims_serialization_round_trip() {
-        let claims = Claims {
+    fn identity_serialization_round_trip() {
+        let identity = AuthIdentity {
             sub: "user-123".into(),
             tenant_id: "tenant-456".into(),
             username: "alice".into(),
-            exp: 1700000000,
-            iat: 1699990000,
         };
-        let json = serde_json::to_string(&claims).unwrap();
-        let parsed: Claims = serde_json::from_str(&json).unwrap();
-        assert_eq!(parsed.sub, claims.sub);
-        assert_eq!(parsed.tenant_id, claims.tenant_id);
-        assert_eq!(parsed.username, claims.username);
-        assert_eq!(parsed.exp, claims.exp);
-        assert_eq!(parsed.iat, claims.iat);
+        let json = serde_json::to_string(&identity).unwrap();
+        let parsed: AuthIdentity = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed, identity);
     }
 
     // ========== CreateUserRequest Tests ==========
@@ -190,7 +256,7 @@ mod tests {
     #[test]
     fn login_response_serializes_correctly() {
         let response = LoginResponse {
-            token: "jwt-token-here".into(),
+            token: "opaque-token-here".into(),
             user: UserInfo {
                 id: "u1".into(),
                 username: "admin".into(),
@@ -203,7 +269,7 @@ mod tests {
             },
         };
         let json = serde_json::to_value(&response).unwrap();
-        assert_eq!(json["token"], "jwt-token-here");
+        assert_eq!(json["token"], "opaque-token-here");
         assert_eq!(json["user"]["username"], "admin");
         assert_eq!(json["user"]["tenant_name"], "Default");
     }

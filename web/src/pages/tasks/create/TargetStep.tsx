@@ -22,13 +22,14 @@ export function TargetStep({ datasources, selectedId, excludeId, onSelect }: Pro
   return (
     <div className="space-y-3">
       <p className="text-sm text-[var(--color-text-secondary)]">{t('tasks.selectTarget')}</p>
+      <p className="text-xs text-[var(--color-text-tertiary)]">{t('tasks.supportedDatasources')}</p>
       {filtered.map((ds) => (
         <button
           key={ds.id}
           onClick={() => onSelect(ds.id)}
-          className={`w-full rounded-xl border p-4 text-left transition-all ${
+          className={`w-full rounded-lg border p-4 text-left transition-all ${
             selectedId === ds.id
-              ? 'border-blue-500 bg-blue-500/10'
+              ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]'
               : 'border-[var(--color-border-hover)] bg-[var(--color-bg-tertiary)]/30 hover:border-[var(--color-border-hover)]'
           }`}
         >
@@ -36,7 +37,9 @@ export function TargetStep({ datasources, selectedId, excludeId, onSelect }: Pro
             <Database size={20} className="text-[var(--color-text-secondary)]" />
             <div>
               <p className="text-sm font-medium text-[var(--color-text-primary)]">{ds.name}</p>
-              <p className="text-xs text-[var(--color-text-tertiary)]">{ds.db_type} @ {ds.host}:{ds.port}</p>
+              <p className="text-xs text-[var(--color-text-tertiary)]">
+                {ds.db_type} @ {ds.host}:{ds.port}
+              </p>
             </div>
           </div>
         </button>

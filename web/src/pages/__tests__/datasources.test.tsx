@@ -1,18 +1,108 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach, beforeEach, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { renderWithProviders } from '../../test/test-utils';
+import { http, HttpResponse } from 'msw';
+import { renderWithProviders, setTestUser } from '../../test/test-utils';
 import { server } from '../../test/mocks/server';
 import DatasourcesPage from '../datasources';
 
 describe('DatasourcesPage', () => {
+  beforeEach(() => setTestUser(['datasource:read', 'datasource:write']));
   beforeAll(() => server.listen());
-  afterEach(() => server.resetHandlers());
+  afterEach(() => {
+    server.resetHandlers();
+    vi.restoreAllMocks();
+  });
   afterAll(() => server.close());
 
   function renderPage() {
     return renderWithProviders(<DatasourcesPage />, { route: '/datasources' });
   }
+
+  it('hides datasource creation for accounts with read permission only', async () => {
+    setTestUser(['datasource:read']);
+    renderPage();
+    expect(await screen.findByText('prod-mysql')).toBeInTheDocument();
+    expect(screen.queryByText('datasources.addDatasource')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /common.delete/ })).not.toBeInTheDocument();
+  });
+
+  it('deletes the selected datasource from its visible table action after confirmation', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const deleted = vi.fn();
+    server.use(
+      http.delete('http://localhost:8080/api/v1/datasources/:id', ({ params }) => {
+        deleted(params.id);
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'common.delete prod-mysql' }));
+    await waitFor(() => expect(deleted).toHaveBeenCalledWith('ds-1'));
+    expect(window.confirm).toHaveBeenCalledWith('datasources.deleteConfirm');
+  });
+
+  it('runs a real connection test from the selected datasource row', async () => {
+    const user = userEvent.setup();
+    const tested = vi.fn();
+    server.use(
+      http.post('http://localhost:8080/api/v1/datasources/:id/test', ({ params }) => {
+        tested(params.id);
+        return HttpResponse.json({
+          id: 'probe-1',
+          datasource_id: params.id,
+          supported: true,
+          status: 'healthy',
+          latency_ms: 8,
+          error_message: null,
+          actor_id: 'user-1',
+          observed_at: '2026-10-12T08:00:00Z',
+        });
+      }),
+    );
+    renderPage();
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'datasources.testConnection prod-mysql',
+      }),
+    );
+
+    await waitFor(() => expect(tested).toHaveBeenCalledWith('ds-1'));
+  });
+
+  it('shows persisted connection test history to read-only users', async () => {
+    const user = userEvent.setup();
+    setTestUser(['datasource:read']);
+    server.use(
+      http.get('http://localhost:8080/api/v1/datasources/:id/probes', ({ params }) =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'probe-1',
+              datasource_id: params.id,
+              supported: false,
+              status: 'unknown',
+              latency_ms: null,
+              error_message: 'unsupported-probe-detail',
+              actor_id: 'user-1',
+              observed_at: '2026-10-12T08:00:00Z',
+            },
+          ],
+        }),
+      ),
+    );
+    renderPage();
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'datasources.probeHistory prod-mysql',
+      }),
+    );
+
+    expect(await screen.findByText('unsupported-probe-detail')).toBeInTheDocument();
+  });
 
   describe('loading state', () => {
     it('shows a spinner while loading', () => {

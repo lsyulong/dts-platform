@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { server } from '../test/mocks/server';
 import { router } from '../router';
@@ -21,7 +21,9 @@ describe('Router configuration', () => {
 
   it('has child routes for all pages', () => {
     const rootRoute = router.routes.find((r: { path?: string }) => r.path === '/');
-    const childPaths = rootRoute?.children?.map((c: { path?: string; index?: boolean }) => c.path || (c.index ? '/' : 'unknown'));
+    const childPaths = rootRoute?.children?.map(
+      (c: { path?: string; index?: boolean }) => c.path || (c.index ? '/' : 'unknown'),
+    );
 
     expect(childPaths).toContain('tasks');
     expect(childPaths).toContain('tasks/create');
@@ -51,7 +53,7 @@ describe('ProtectedRoute', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <AppRouterWrapper />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     // Without a token, it should redirect to /login
@@ -65,7 +67,7 @@ describe('ProtectedRoute', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <AppRouterWrapper />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
   });
 });
@@ -92,7 +94,7 @@ describe('ProtectedRoute logic', () => {
     render(
       <MemoryRouter>
         <AppRouterWrapper />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId('protected-content')).toBeInTheDocument();
@@ -104,7 +106,7 @@ describe('ProtectedRoute logic', () => {
     render(
       <MemoryRouter>
         <AppRouterWrapper />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId('login-redirect')).toBeInTheDocument();

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! DTS Backend — 存储后端核心抽象层
 //!
 //! 定义所有存储后端必须实现的 trait 和公共类型。
@@ -33,6 +32,7 @@ pub use dts_core::*;
 
 pub use error::BackendError;
 pub use pool::{BackendPool, BackendPoolFactory};
+pub use repo::product_resource::*;
 pub use repo::{
     AlertRepo, CreateTaskRunParams, DatasourceRepo, MonitoringRepo, RoleRepo, SeedRepo, TaskRepo,
     TaskRunRepo, TenantRepo, UpdateTaskRunParams, UserRepo,

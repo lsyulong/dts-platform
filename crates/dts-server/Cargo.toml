@@ -2,6 +2,7 @@
 name = "dts-server"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.88"
 license = "Apache-2.0"
 description = "企业级数据同步管理平台 - Web 后端服务"
 
@@ -9,10 +10,12 @@ description = "企业级数据同步管理平台 - Web 后端服务"
 workspace = true
 
 [features]
-default = ["sqlite", "engine-ape"]
+default = ["sqlite", "engine-ape", "engine-swanlake"]
 sqlite = ["dts-backend-sqlite"]
 postgres = ["dts-backend-postgres"]
 engine-ape = ["dts-engine-ape"]
+engine-swanlake = ["dts-engine-swanlake"]
+auth-redis = ["dep:sa-token-storage-redis", "dep:redis"]
 
 [dependencies]
 # 本地 crate
@@ -22,9 +25,21 @@ dts-backend-sqlite = { path = "../dts-backend-sqlite", optional = true }
 dts-backend-postgres = { path = "../dts-backend-postgres", optional = true }
 dts-engine = { path = "../dts-engine" }
 dts-engine-ape = { path = "../dts-engine-ape", optional = true }
+dts-engine-swanlake = { path = "../dts-engine-swanlake", optional = true }
 dts-scheduler-client = { path = "../dts-scheduler-client" }
 dts-deerflow-client = { path = "../dts-deerflow-client" }
-tokio-stream = "0.1"
+tokio-stream = { version = "0.1", features = ["net"] }
+
+# SwanLake / Arrow Flight SQL 客户端
+arrow-flight = { version = "58", features = ["flight-sql"] }
+arrow-array = "58"
+arrow-cast = "58"
+arrow-schema = "58"
+tonic = "0.14"
+prost = "0.14"
+sqlparser = { version = "0.61", features = ["visitor"] }
+regex = "1.12"
+chrono-tz = "0.10"
 
 # Web 框架
 actix-web = "4"
@@ -55,11 +70,19 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-log = "0.2"
 
 # 认证
-jsonwebtoken = "9"
+sa-token-core = "=0.2.0"
+sa-token-adapter = "=0.2.0"
+sa-token-storage-memory = "=0.2.0"
+sa-token-storage-redis = { version = "=0.2.0", optional = true }
+redis = { version = "=1.7.1", optional = true, default-features = false, features = ["tokio-rustls-comp", "tls-rustls-webpki-roots"] }
 argon2 = "0.5"
+ring = "0.17"
+base64 = "0.22"
 futures = "0.3"
 reqwest = { version = "0.12", features = ["json"] }
-sqlx = { version = "0.8", features = ["runtime-tokio", "mysql", "postgres", "tls-rustls"] }
+url = "2"
+lettre = { version = "0.11.23", default-features = false, features = ["builder", "smtp-transport", "tokio1-rustls", "ring", "webpki-roots"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "mysql", "postgres", "sqlite", "tls-rustls"] }
 
 [dev-dependencies]
 actix-rt = "2"
@@ -71,3 +94,4 @@ serial_test = "3"
 tempfile = "3"
 tokio-test = "0.4"
 pretty_assertions = "1"
+prost = "0.14"

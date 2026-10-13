@@ -14,6 +14,8 @@ dts-backend-rdbms = { path = "../dts-backend-rdbms" }
 dts-core = { path = "../dts-core" }
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
 async-trait = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 tracing = "0.1"

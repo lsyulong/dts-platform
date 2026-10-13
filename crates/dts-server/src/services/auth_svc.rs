@@ -12,26 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::sync::Arc;
 
-use crate::models::auth::*;
-use crate::services::token::{self, Claims};
-use anyhow::{Context, anyhow};
+use anyhow::anyhow;
 use argon2::{
     Argon2,
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use dts_backend::repo::{RoleRepo, TenantRepo, UserRepo};
+use dts_backend::types::UserRecord;
+use sa_token_core::{SaTokenError, SaTokenManager, TokenValue};
+use serde::{Deserialize, Serialize};
 
-/// 认证服务 — 处理登录、JWT签发/验证、密码哈希
+use crate::models::auth::*;
+use crate::models::error::AppError;
+use crate::services::sa_auth::LOGIN_TYPE;
+
+#[derive(Serialize, Deserialize)]
+struct SessionMetadata {
+    #[serde(flatten)]
+    identity: AuthIdentity,
+    credential_version: String,
+}
+
 #[derive(Clone)]
 pub struct AuthService {
     pub tenant_repo: Arc<dyn TenantRepo>,
     pub user_repo: Arc<dyn UserRepo>,
     pub role_repo: Arc<dyn RoleRepo>,
-    pub jwt_secret: String,
-    pub jwt_expiry_hours: i64,
+    pub manager: Arc<SaTokenManager>,
 }
 
 impl AuthService {
@@ -39,65 +49,52 @@ impl AuthService {
         tenant_repo: Arc<dyn TenantRepo>,
         user_repo: Arc<dyn UserRepo>,
         role_repo: Arc<dyn RoleRepo>,
-        jwt_secret: String,
-        jwt_expiry_hours: i64,
+        manager: Arc<SaTokenManager>,
     ) -> Self {
         Self {
             tenant_repo,
             user_repo,
             role_repo,
-            jwt_secret,
-            jwt_expiry_hours,
+            manager,
         }
     }
 
-    /// 用户登录
-    pub async fn login(&self, req: &LoginRequest) -> anyhow::Result<LoginResponse> {
-        // 1. 查找租户
+    pub async fn login(&self, req: &LoginRequest) -> Result<LoginResponse, AppError> {
         let tenant = self
             .tenant_repo
             .find_by_slug(&req.tenant_slug)
-            .await?
-            .ok_or_else(|| anyhow!("租户不存在或已停用"))?;
-
-        if tenant.status != "active" {
-            return Err(anyhow!("租户不存在或已停用"));
-        }
-
-        // 2. 查找用户
+            .await
+            .map_err(|_| AppError::Internal("认证数据读取失败".into()))?
+            .filter(|tenant| tenant.status == "active")
+            .ok_or_else(|| AppError::Unauthorized("用户名、密码或租户错误".into()))?;
         let user = self
             .user_repo
             .find_by_tenant_and_username(&tenant.id, &req.username)
-            .await?
-            .ok_or_else(|| anyhow!("用户名或密码错误"))?;
-
-        if user.status != "active" {
-            return Err(anyhow!("账户已被禁用"));
-        }
-
-        // 3. 验证密码
-        let parsed_hash = PasswordHash::new(&user.password_hash)
-            .map_err(|_| anyhow!("内部错误: 密码哈希格式无效"))?;
+            .await
+            .map_err(|_| AppError::Internal("认证数据读取失败".into()))?
+            .filter(|user| user.status == "active")
+            .ok_or_else(|| AppError::Unauthorized("用户名、密码或租户错误".into()))?;
+        let parsed = PasswordHash::new(&user.password_hash)
+            .map_err(|_| AppError::Internal("密码验证失败".into()))?;
         Argon2::default()
-            .verify_password(req.password.as_bytes(), &parsed_hash)
-            .map_err(|_| anyhow!("用户名或密码错误"))?;
-
-        // 4. 获取角色和权限
-        let roles = self.role_repo.find_user_role_names(&user.id).await?;
-        let permissions = self.role_repo.find_user_permissions(&user.id).await?;
-
-        // 5. 生成 JWT
-        let now = chrono::Utc::now();
-        let claims = Claims {
-            sub: user.id.clone(),
-            tenant_id: tenant.id.clone(),
-            username: user.username.clone(),
-            exp: (now + chrono::Duration::hours(self.jwt_expiry_hours)).timestamp() as usize,
-            iat: now.timestamp() as usize,
-        };
-
-        let token = token::create_token(&claims, &self.jwt_secret).context("JWT 签发失败")?;
-
+            .verify_password(req.password.as_bytes(), &parsed)
+            .map_err(|error| match error {
+                argon2::password_hash::Error::Password => {
+                    AppError::Unauthorized("用户名、密码或租户错误".into())
+                },
+                _ => AppError::Internal("密码验证失败".into()),
+            })?;
+        let roles = self
+            .manager
+            .get_roles_with_type(LOGIN_TYPE, &user.id)
+            .await
+            .map_err(|_| AppError::Internal("角色数据读取失败".into()))?;
+        let permissions = self
+            .manager
+            .get_permissions_with_type(LOGIN_TYPE, &user.id)
+            .await
+            .map_err(|_| AppError::Internal("权限数据读取失败".into()))?;
+        let token = self.issue_session(&user).await?;
         Ok(LoginResponse {
             token,
             user: UserInfo {
@@ -113,140 +110,290 @@ impl AuthService {
         })
     }
 
-    /// 验签 JWT，返回 Claims
-    pub fn verify_token(&self, token: &str) -> anyhow::Result<Claims> {
-        token::validate_token(token, &self.jwt_secret).context("Token 验证失败")
+    /// Trusted internal issuer for seeded accounts and server-side flows, never an HTTP endpoint.
+    pub async fn issue_session_for_user(&self, user_id: &str) -> Result<String, AppError> {
+        let user = self.active_user(user_id).await?;
+        self.issue_session(&user).await
     }
 
-    /// 哈希密码 (同步方法，用于初始化种子数据)
+    async fn issue_session(&self, user: &UserRecord) -> Result<String, AppError> {
+        let metadata = SessionMetadata {
+            identity: identity(user),
+            credential_version: credential_version(&user.password_hash),
+        };
+        let metadata = serde_json::to_value(metadata)
+            .map_err(|_| AppError::Internal("会话元数据编码失败".into()))?;
+        self.manager
+            .login_with_options(
+                user.id.clone(),
+                Some(LOGIN_TYPE.into()),
+                None,
+                Some(metadata),
+                None,
+                None,
+            )
+            .await
+            .map(|token| token.as_str().to_owned())
+            .map_err(|_| AppError::Internal("会话创建失败".into()))
+    }
+
+    pub async fn authenticate(&self, token: &str) -> Result<AuthIdentity, AppError> {
+        let info = self
+            .manager
+            .get_token_info(&TokenValue::new(token))
+            .await
+            .map_err(authentication_error)?;
+        if info.login_type.as_ref() != LOGIN_TYPE {
+            return Err(invalid_session());
+        }
+        let metadata: SessionMetadata = info
+            .extra_data
+            .and_then(|value| serde_json::from_value(value).ok())
+            .ok_or_else(invalid_session)?;
+        let user = self.active_user(info.login_id.as_ref()).await?;
+        let current = identity(&user);
+        if metadata.identity != current
+            || metadata.credential_version != credential_version(&user.password_hash)
+        {
+            return Err(invalid_session());
+        }
+        Ok(current)
+    }
+
+    pub(super) async fn active_user(&self, user_id: &str) -> Result<UserRecord, AppError> {
+        let detail = self
+            .user_repo
+            .find_detail_by_id(user_id)
+            .await?
+            .ok_or_else(invalid_session)?;
+        self.tenant_repo
+            .find_by_id(&detail.tenant_id)
+            .await?
+            .filter(|tenant| tenant.status == "active")
+            .ok_or_else(invalid_session)?;
+        self.user_repo
+            .find_by_tenant_and_username(&detail.tenant_id, &detail.username)
+            .await?
+            .filter(|user| {
+                user.id == user_id && user.tenant_id == detail.tenant_id && user.status == "active"
+            })
+            .ok_or_else(invalid_session)
+    }
+
+    pub async fn validate_identity(&self, expected: &AuthIdentity) -> Result<(), AppError> {
+        let user = self.active_user(&expected.sub).await?;
+        if &identity(&user) != expected {
+            return Err(invalid_session());
+        }
+        Ok(())
+    }
+
+    pub async fn authorize(
+        &self,
+        identity: &AuthIdentity,
+        permission: &str,
+    ) -> Result<(), AppError> {
+        self.manager
+            .authz_service()
+            .check_permission(LOGIN_TYPE, &identity.sub, permission)
+            .await
+            .map_err(|error| match error {
+                SaTokenError::PermissionDenied | SaTokenError::PermissionDeniedDetail(_) => {
+                    AppError::Forbidden(format!("缺少权限: {permission}"))
+                },
+                _ => AppError::Internal("权限校验失败".into()),
+            })
+    }
+
+    pub async fn logout(&self, token: &str) -> Result<(), AppError> {
+        self.authenticate(token).await?;
+        self.manager
+            .logout(&TokenValue::new(token))
+            .await
+            .map_err(|_| AppError::Internal("会话退出失败".into()))
+    }
+
+    pub async fn revoke_user(&self, user_id: &str) -> Result<(), AppError> {
+        let tokens = self
+            .manager
+            .get_all_tokens_by_login_id(LOGIN_TYPE, user_id)
+            .await
+            .map_err(|_| AppError::Internal("用户会话读取失败".into()))?;
+        // The upstream bulk logout logs and suppresses individual failures; propagate them here.
+        for token in tokens {
+            self.manager
+                .logout(&token)
+                .await
+                .map_err(|_| AppError::Internal("用户会话撤销失败".into()))?;
+        }
+        Ok(())
+    }
+
+    pub async fn ensure_user_in_tenant(
+        &self,
+        identity: &AuthIdentity,
+        user_id: &str,
+    ) -> Result<(), AppError> {
+        self.user_repo
+            .find_detail_by_id(user_id)
+            .await?
+            .filter(|user| user.tenant_id == identity.tenant_id)
+            .ok_or_else(|| AppError::NotFound("用户不存在".into()))?;
+        Ok(())
+    }
+
+    /// Account changes must not let a delegated administrator take over a more privileged user.
+    pub async fn ensure_manageable_user(
+        &self,
+        identity: &AuthIdentity,
+        user_id: &str,
+    ) -> Result<UserRecord, AppError> {
+        let detail = self
+            .user_repo
+            .find_detail_by_id(user_id)
+            .await?
+            .filter(|user| user.tenant_id == identity.tenant_id)
+            .ok_or_else(|| AppError::NotFound("用户不存在".into()))?;
+        let user = self
+            .user_repo
+            .find_by_tenant_and_username(&detail.tenant_id, &detail.username)
+            .await?
+            .filter(|user| user.id == user_id)
+            .ok_or_else(|| AppError::NotFound("用户不存在".into()))?;
+        let granted = self.permissions(identity).await?;
+        let target = self
+            .manager
+            .get_permissions_with_type(LOGIN_TYPE, user_id)
+            .await
+            .map_err(|_| AppError::Internal("目标用户权限读取失败".into()))?;
+        if target
+            .iter()
+            .any(|permission| !granted.contains(permission))
+        {
+            return Err(AppError::Forbidden("不能修改权限高于自己的用户".into()));
+        }
+        Ok(user)
+    }
+
+    pub async fn tenant_role(
+        &self,
+        identity: &AuthIdentity,
+        role_id: &str,
+    ) -> Result<dts_backend::types::RoleListInfo, AppError> {
+        self.role_repo
+            .list_all(Some(&identity.tenant_id))
+            .await?
+            .into_iter()
+            .find(|role| role.id == role_id)
+            .ok_or_else(|| AppError::NotFound("角色不存在".into()))
+    }
+
+    pub async fn ensure_tenant_roles(
+        &self,
+        identity: &AuthIdentity,
+        role_ids: &[String],
+    ) -> Result<(), AppError> {
+        let roles = self.role_repo.list_all(Some(&identity.tenant_id)).await?;
+        if role_ids
+            .iter()
+            .any(|id| !roles.iter().any(|role| role.id == *id))
+        {
+            return Err(AppError::BadRequest("角色不存在或不属于当前租户".into()));
+        }
+        let granted = self.permissions(identity).await?;
+        if roles
+            .iter()
+            .filter(|role| role_ids.contains(&role.id))
+            .any(|role| {
+                role.permissions
+                    .iter()
+                    .any(|permission| !granted.contains(permission))
+            })
+        {
+            return Err(AppError::Forbidden("不能授予自己未持有的权限".into()));
+        }
+        Ok(())
+    }
+
+    pub async fn ensure_grantable_permissions(
+        &self,
+        identity: &AuthIdentity,
+        permissions: &[String],
+    ) -> Result<(), AppError> {
+        let granted = self.permissions(identity).await?;
+        if permissions
+            .iter()
+            .any(|permission| !granted.contains(permission))
+        {
+            return Err(AppError::Forbidden("不能授予自己未持有的权限".into()));
+        }
+        Ok(())
+    }
+
+    async fn permissions(&self, identity: &AuthIdentity) -> Result<Vec<String>, AppError> {
+        self.manager
+            .get_permissions_with_type(LOGIN_TYPE, &identity.sub)
+            .await
+            .map_err(|_| AppError::Internal("权限数据读取失败".into()))
+    }
+
     pub fn hash_password_sync(password: &str) -> anyhow::Result<String> {
         let salt = SaltString::generate(&mut OsRng);
         let hash = Argon2::default()
             .hash_password(password.as_bytes(), &salt)
-            .map_err(|e| anyhow!("密码哈希失败: {e}"))?;
+            .map_err(|_| anyhow!("密码哈希失败"))?;
         Ok(hash.to_string())
+    }
+}
+
+fn identity(user: &UserRecord) -> AuthIdentity {
+    AuthIdentity {
+        sub: user.id.clone(),
+        tenant_id: user.tenant_id.clone(),
+        username: user.username.clone(),
+    }
+}
+
+fn credential_version(password_hash: &str) -> String {
+    URL_SAFE_NO_PAD
+        .encode(ring::digest::digest(&ring::digest::SHA256, password_hash.as_bytes()).as_ref())
+}
+
+fn invalid_session() -> AppError {
+    AppError::Unauthorized("Token 无效或已过期，账户可能已停用".into())
+}
+
+fn authentication_error(error: SaTokenError) -> AppError {
+    match error {
+        SaTokenError::StorageError(_) | SaTokenError::SerializationError(_) => {
+            AppError::Internal("会话存储读取失败".into())
+        },
+        _ => invalid_session(),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use argon2::PasswordVerifier;
-    use pretty_assertions::assert_eq;
-
-    // ========== hash_password_sync Tests ==========
 
     #[test]
-    fn hash_password_sync_produces_valid_argon2_hash() {
-        let hash = AuthService::hash_password_sync("mypassword").unwrap();
-        assert!(hash.starts_with("$argon2"));
-        assert!(hash.contains("$v="));
-        assert!(hash.contains("$m="));
-    }
-
-    #[test]
-    fn hash_password_sync_produces_different_hashes_for_same_password() {
-        let hash1 = AuthService::hash_password_sync("samepassword").unwrap();
-        let hash2 = AuthService::hash_password_sync("samepassword").unwrap();
-        assert_ne!(hash1, hash2);
-    }
-
-    #[test]
-    fn hash_password_sync_generated_hash_can_be_verified() {
-        let password = "secret123";
+    fn passwords_use_distinct_salts_and_verify_with_argon2() {
+        let password = "密码123!@#";
         let hash = AuthService::hash_password_sync(password).unwrap();
-        let parsed_hash = PasswordHash::new(&hash).unwrap();
-        let result = Argon2::default().verify_password(password.as_bytes(), &parsed_hash);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn hash_password_sync_generated_hash_fails_with_wrong_password() {
-        let hash = AuthService::hash_password_sync("correct_password").unwrap();
-        let parsed_hash = PasswordHash::new(&hash).unwrap();
-        let result = Argon2::default().verify_password("wrong_password".as_bytes(), &parsed_hash);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn hash_password_sync_empty_password_works() {
-        let hash = AuthService::hash_password_sync("").unwrap();
-        assert!(hash.starts_with("$argon2"));
-    }
-
-    #[test]
-    fn hash_password_sync_long_password_works() {
-        let long_pw = "a".repeat(1000);
-        let hash = AuthService::hash_password_sync(&long_pw).unwrap();
-        assert!(hash.starts_with("$argon2"));
-    }
-
-    #[test]
-    fn hash_password_sync_unicode_password_works() {
-        let hash = AuthService::hash_password_sync("密码123!@#").unwrap();
-        assert!(hash.starts_with("$argon2"));
-    }
-
-    // ========== verify_token Tests ==========
-
-    fn generate_token(sub: &str, tenant_id: &str, secret: &str, hours_valid: i64) -> String {
-        let now = chrono::Utc::now();
-        let claims = Claims {
-            sub: sub.into(),
-            tenant_id: tenant_id.into(),
-            username: "testuser".into(),
-            exp: (now + chrono::Duration::hours(hours_valid)).timestamp() as usize,
-            iat: now.timestamp() as usize,
-        };
-        token::create_token(&claims, secret).unwrap()
-    }
-
-    fn generate_expired_token(secret: &str) -> String {
-        let now = chrono::Utc::now();
-        let claims = Claims {
-            sub: "user-1".into(),
-            tenant_id: "tenant-1".into(),
-            username: "testuser".into(),
-            exp: (now - chrono::Duration::hours(1)).timestamp() as usize,
-            iat: (now - chrono::Duration::hours(2)).timestamp() as usize,
-        };
-        token::create_token(&claims, secret).unwrap()
-    }
-
-    #[test]
-    fn verify_token_valid_token_returns_claims() {
-        let secret = "test-secret";
-        let token = generate_token("user-1", "tenant-1", secret, 1);
-        let claims = token::validate_token(&token, secret).unwrap();
-        assert_eq!(claims.sub, "user-1");
-        assert_eq!(claims.tenant_id, "tenant-1");
-        assert_eq!(claims.username, "testuser");
-    }
-
-    #[test]
-    fn verify_token_expired_token_returns_err() {
-        let secret = "test-secret";
-        let token = generate_expired_token(secret);
-        let result = token::validate_token(&token, secret);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn verify_token_wrong_secret_returns_err() {
-        let token = generate_token("user-1", "tenant-1", "correct-secret", 1);
-        let result = token::validate_token(&token, "wrong-secret");
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn verify_token_malformed_token_returns_err() {
-        let result = token::validate_token("not-a-valid-jwt", "secret");
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn verify_token_empty_token_returns_err() {
-        let result = token::validate_token("", "secret");
-        assert!(result.is_err());
+        let second = AuthService::hash_password_sync(password).unwrap();
+        assert_ne!(hash, second);
+        let parsed = PasswordHash::new(&hash).unwrap();
+        assert!(
+            Argon2::default()
+                .verify_password(password.as_bytes(), &parsed)
+                .is_ok()
+        );
+        assert!(
+            Argon2::default()
+                .verify_password(b"wrong", &parsed)
+                .is_err()
+        );
+        assert_ne!(credential_version(&hash), credential_version(&second));
+        assert!(!credential_version(&hash).contains(&hash));
     }
 }

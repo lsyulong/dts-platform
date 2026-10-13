@@ -12,15 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! DTS Engine APE — ape-dts 引擎封装
 //!
-//! 实现 `dts_engine::EngineService` trait，将 ape-dts 库接入 DTS Platform。
+//! 实现 `dts_engine::EngineService` trait，通过 CLI 子进程模式调用 ape-dts。
 //!
-//! 当前为骨架实现：`ApeEngineService` 的 `submit` 通过 tokio::spawn 异步启动
-//! 同步任务，进度通过 channel 回传。实际的 ape-dts 调用标记为 TODO。
+//! `ApeEngineService::submit` 生成 INI 配置文件、启动 `dt-main` 子进程、
+//! 逐行解析 stdout 提取进度信息，并通过 channel 实时回传。
+//! `cancel` 通过 oneshot channel 通知子进程退出（kill + 清理临时文件）。
+//!
+//! 完整的子进程生命周期管理见 [`adapter`] 模块。
 
 mod adapter;
+mod config;
 mod service;
 
 pub use service::ApeEngineService;

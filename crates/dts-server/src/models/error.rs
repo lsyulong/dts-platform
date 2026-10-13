@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use actix_web::{HttpResponse, ResponseError};
 use dts_backend::BackendError;
 use serde::Serialize;
@@ -32,6 +31,8 @@ pub enum AppError {
     Forbidden(String),
     NotFound(String),
     BadRequest(String),
+    Conflict(String),
+    RateLimited { retry_after_secs: u32 },
     Internal(String),
 }
 
@@ -42,27 +43,56 @@ impl fmt::Display for AppError {
             Self::Forbidden(msg) => write!(f, "{msg}"),
             Self::NotFound(msg) => write!(f, "{msg}"),
             Self::BadRequest(msg) => write!(f, "{msg}"),
+            Self::Conflict(msg) => write!(f, "{msg}"),
+            Self::RateLimited { .. } => write!(f, "调用次数超过每分钟上限，请稍后重试"),
             Self::Internal(msg) => write!(f, "{msg}"),
         }
     }
 }
 
+impl std::error::Error for AppError {}
+
 impl ResponseError for AppError {
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        use actix_web::http::StatusCode;
+        match self {
+            Self::Unauthorized(_) => StatusCode::UNAUTHORIZED,
+            Self::Forbidden(_) => StatusCode::FORBIDDEN,
+            Self::NotFound(_) => StatusCode::NOT_FOUND,
+            Self::BadRequest(_) => StatusCode::BAD_REQUEST,
+            Self::Conflict(_) => StatusCode::CONFLICT,
+            Self::RateLimited { .. } => StatusCode::TOO_MANY_REQUESTS,
+            Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
     fn error_response(&self) -> HttpResponse {
         let (status, code) = match self {
             Self::Unauthorized(_) => (actix_web::http::StatusCode::UNAUTHORIZED, "UNAUTHORIZED"),
             Self::Forbidden(_) => (actix_web::http::StatusCode::FORBIDDEN, "FORBIDDEN"),
             Self::NotFound(_) => (actix_web::http::StatusCode::NOT_FOUND, "NOT_FOUND"),
             Self::BadRequest(_) => (actix_web::http::StatusCode::BAD_REQUEST, "BAD_REQUEST"),
+            Self::Conflict(_) => (actix_web::http::StatusCode::CONFLICT, "CONFLICT"),
+            Self::RateLimited { .. } => (
+                actix_web::http::StatusCode::TOO_MANY_REQUESTS,
+                "RATE_LIMITED",
+            ),
             Self::Internal(_) => (
                 actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
                 "INTERNAL_ERROR",
             ),
         };
 
-        HttpResponse::build(status).json(ErrorResponse {
+        let message = match self {
+            Self::Internal(_) => "服务内部错误，请查看服务日志".to_string(),
+            _ => self.to_string(),
+        };
+        let mut response = HttpResponse::build(status);
+        if let Self::RateLimited { retry_after_secs } = self {
+            response.insert_header(("Retry-After", retry_after_secs.max(&1).to_string()));
+        }
+        response.json(ErrorResponse {
             code: code.to_string(),
-            message: self.to_string(),
+            message,
         })
     }
 }
@@ -77,6 +107,11 @@ impl From<BackendError> for AppError {
     fn from(err: BackendError) -> Self {
         match err {
             BackendError::NotFound(msg) => AppError::NotFound(msg),
+            BackendError::Conflict(msg) => AppError::Conflict(msg),
+            BackendError::Forbidden(msg) => AppError::Forbidden(msg),
+            BackendError::RateLimited { retry_after_secs } => {
+                AppError::RateLimited { retry_after_secs }
+            },
             BackendError::AlreadyExists(msg) | BackendError::ConstraintViolation(msg) => {
                 AppError::BadRequest(msg)
             },
@@ -96,6 +131,26 @@ mod tests {
     use super::*;
     use actix_web::http::StatusCode;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn rate_limit_has_429_and_the_actual_retry_after_header() {
+        let error = AppError::from(BackendError::RateLimited {
+            retry_after_secs: 17,
+        });
+        let response = error.error_response();
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(
+            response
+                .headers()
+                .get("Retry-After")
+                .and_then(|value| value.to_str().ok()),
+            Some("17")
+        );
+        assert!(matches!(
+            AppError::from(BackendError::Forbidden("订阅未批准".into())),
+            AppError::Forbidden(_)
+        ));
+    }
 
     // ========== Display Tests ==========
 
@@ -157,6 +212,13 @@ mod tests {
         let err = AppError::BadRequest("参数错误".into());
         let resp = err.error_response();
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn version_conflicts_have_409_in_both_error_paths() {
+        let error = AppError::from(BackendError::Conflict("对象版本冲突".into()));
+        assert_eq!(error.status_code(), StatusCode::CONFLICT);
+        assert_eq!(error.error_response().status(), StatusCode::CONFLICT);
     }
 
     #[test]
@@ -222,7 +284,7 @@ mod tests {
             AppError::Internal(msg) => {
                 assert!(msg.contains("Web 服务器错误"));
             },
-            _ => panic!("Expected AppError::Internal, got {:?}", app_err),
+            _ => panic!("Expected AppError::Internal, got {app_err:?}"),
         }
     }
 }

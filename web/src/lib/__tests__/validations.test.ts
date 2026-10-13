@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  loginSchema,
-  datasourceSchema,
-  taskCreateSchema,
-  getFirstError,
-} from '../validations';
+import { loginSchema, datasourceSchema, taskCreateSchema, getFirstError } from '../validations';
 
 describe('loginSchema', () => {
   it('accepts valid login data', () => {
@@ -46,6 +41,27 @@ describe('loginSchema', () => {
 });
 
 describe('datasourceSchema', () => {
+  it('accepts SQLite paths without a network port', () => {
+    expect(
+      datasourceSchema.safeParse({
+        name: 'local test',
+        db_type: 'SQLite',
+        host: ':memory:',
+        port: 0,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('still requires a positive port for network databases', () => {
+    expect(
+      datasourceSchema.safeParse({
+        name: 'network test',
+        db_type: 'MySQL',
+        host: 'localhost',
+        port: 0,
+      }).success,
+    ).toBe(false);
+  });
   const validInput = {
     name: 'Production DB',
     db_type: 'MySQL' as const,
@@ -59,6 +75,27 @@ describe('datasourceSchema', () => {
   it('accepts valid datasource data', () => {
     const result = datasourceSchema.safeParse(validInput);
     expect(result.success).toBe(true);
+  });
+
+  it('requires a catalog for DuckDB through SwanLake', () => {
+    expect(
+      datasourceSchema.safeParse({
+        name: 'warehouse',
+        db_type: 'DuckDB',
+        host: 'swanlake.internal',
+        port: 4214,
+        database_name: '',
+      }).success,
+    ).toBe(false);
+    expect(
+      datasourceSchema.safeParse({
+        name: 'warehouse',
+        db_type: 'DuckDB',
+        host: 'swanlake.internal',
+        port: 4214,
+        database_name: 'warehouse',
+      }).success,
+    ).toBe(true);
   });
 
   it('accepts minimal valid data (only required fields)', () => {
@@ -122,6 +159,7 @@ describe('taskCreateSchema', () => {
     source_id: 'ds-1',
     target_id: 'ds-2',
     cron_expr: '0 */6 * * *',
+    table_mappings: [{ source_table: 'customers', target_table: 'customers' }],
   };
 
   it('accepts valid task data', () => {
@@ -134,6 +172,7 @@ describe('taskCreateSchema', () => {
       name: 'My Task',
       source_id: 'ds-1',
       target_id: 'ds-2',
+      table_mappings: [{ source_table: 'customers', target_table: 'customers' }],
     });
     expect(result.success).toBe(true);
   });
@@ -157,6 +196,32 @@ describe('taskCreateSchema', () => {
       target_id: '',
     });
     expect(result.success).toBe(false);
+  });
+
+  it('rejects missing mappings, duplicate targets, same datasource and unsupported CDC mode', () => {
+    expect(taskCreateSchema.safeParse({ ...validInput, table_mappings: [] }).success).toBe(false);
+    expect(
+      taskCreateSchema.safeParse({
+        ...validInput,
+        table_mappings: [
+          { source_table: 'customers', target_table: 'customers' },
+          { source_table: 'accounts', target_table: 'customers' },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(taskCreateSchema.safeParse({ ...validInput, target_id: 'ds-1' }).success).toBe(false);
+    expect(taskCreateSchema.safeParse({ ...validInput, sync_mode: 'cdc' }).success).toBe(false);
+  });
+
+  it('rejects whitespace-only identifiers and invalid batch size', () => {
+    expect(
+      taskCreateSchema.safeParse({
+        ...validInput,
+        table_mappings: [{ source_table: ' ', target_table: 'customers' }],
+      }).success,
+    ).toBe(false);
+    expect(taskCreateSchema.safeParse({ ...validInput, batch_size: 0 }).success).toBe(false);
+    expect(taskCreateSchema.safeParse({ ...validInput, batch_size: 1.5 }).success).toBe(false);
   });
 });
 

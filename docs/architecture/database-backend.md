@@ -132,7 +132,7 @@ pub struct BackendContext {
 | `TenantRepo` | 5 | 租户 CRUD + 计数 |
 | `UserRepo` | 4 | 用户 CRUD + 角色分配 |
 | `RoleRepo` | 4 | 角色 + 权限管理 + 默认角色创建 |
-| `DatasourceRepo` | 7 | 数据源 CRUD + 健康统计 |
+| `DatasourceRepo` | 10 | 数据源 CRUD + 健康统计 + 连接探测证据 |
 | `TaskRepo` | 7 | 同步任务 CRUD + 状态更新 + 运行历史 |
 | `AlertRepo` | 3 | 告警规则 CRUD |
 | `MonitoringRepo` | 1 | 仪表盘聚合查询 |
@@ -182,8 +182,10 @@ crates/dts-backend-postgres/migrations/
 |---------|--------|------|
 | `DATABASE_BACKEND` | `sqlite` | 后端类型：`sqlite` \| `postgres` |
 | `DATABASE_URL` | `sqlite://data/dts.db?mode=rwc` | 连接串（SQLite 文件路径或 PG URL） |
-| `JWT_SECRET` | `dev-secret-change-me` | JWT 签名密钥（生产必须修改） |
-| `JWT_EXPIRY_HOURS` | `24` | Token 过期时间（小时） |
+| `AUTH_STORAGE` | `memory` | Sa-Token 会话存储：`memory` 或 `redis` |
+| `AUTH_TOKEN_TIMEOUT_SECS` | `86400` | 登录会话有效秒数 |
+| `AUTH_REDIS_URL` | 未设置 | Redis 模式必填，并需编译 `auth-redis` feature |
+| `BOOTSTRAP_ADMIN_PASSWORD` | 未设置 | 空数据库首次启动必填，至少 12 字节；已有数据库不会重置密码 |
 | `SERVER_HOST` | `0.0.0.0` | 监听地址 |
 | `SERVER_PORT` | `8080` | 监听端口 |
 | `DATA_DIR` | `./data` | 数据目录 |

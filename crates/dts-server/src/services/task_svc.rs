@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::sync::Arc;
 
-use anyhow::anyhow;
+use dts_backend::BackendError;
 use dts_backend::repo::{DatasourceRepo, TaskRepo};
 use dts_backend::types::*;
 use uuid::Uuid;
+
+#[path = "task_svc/config.rs"]
+mod config;
+pub use config::{PipelineConfig, default_batch_size};
 
 /// 同步任务管理服务
 #[derive(Clone)]
@@ -47,18 +50,27 @@ impl TaskService {
         cron_expr: Option<&str>,
         config_json: &str,
         created_by: &str,
-    ) -> anyhow::Result<String> {
-        // 校验源数据源存在
-        let source_exists = self.datasource_repo.exists(source_id, tenant_id).await?;
-        if !source_exists {
-            return Err(anyhow!("源数据源 '{source_id}' 不存在或不属于该租户"));
+    ) -> Result<String, BackendError> {
+        if source_id == target_id {
+            return Err(BackendError::ConstraintViolation(
+                "源端和目标端不能使用同一个数据源".into(),
+            ));
         }
+        let source_type = self.datasource_type(source_id, tenant_id, "源").await?;
+        let target_type = self.datasource_type(target_id, tenant_id, "目标").await?;
+        validate_engine_pair(&source_type, &target_type)?;
 
-        // 校验目标数据源存在
-        let target_exists = self.datasource_repo.exists(target_id, tenant_id).await?;
-        if !target_exists {
-            return Err(anyhow!("目标数据源 '{target_id}' 不存在或不属于该租户"));
+        if name.trim().is_empty() {
+            return Err(BackendError::ConstraintViolation("任务名称不能为空".into()));
         }
+        if cron_expr.is_some_and(|cron| !cron.trim().is_empty()) {
+            return Err(BackendError::ConstraintViolation(
+                "当前 Pipeline 仅支持手动运行；定时调度尚未绑定".into(),
+            ));
+        }
+        let config = PipelineConfig::parse(config_json)?;
+        let config_json = serde_json::to_string(&config)
+            .map_err(|e| BackendError::Internal(format!("序列化任务配置失败: {e}")))?;
 
         let id = Uuid::new_v4().to_string();
 
@@ -70,7 +82,7 @@ impl TaskService {
             source_id: source_id.to_string(),
             target_id: target_id.to_string(),
             cron_expr: cron_expr.map(|s| s.to_string()),
-            config_json: config_json.to_string(),
+            config_json,
             created_by: created_by.to_string(),
         };
 
@@ -82,490 +94,247 @@ impl TaskService {
     }
 
     /// 获取租户下的所有同步任务
-    pub async fn list_by_tenant(&self, tenant_id: &str) -> anyhow::Result<Vec<TaskInfo>> {
-        Ok(self.task_repo.list_by_tenant(tenant_id).await?)
+    pub async fn list_by_tenant(&self, tenant_id: &str) -> Result<Vec<TaskInfo>, BackendError> {
+        self.task_repo.list_by_tenant(tenant_id).await
     }
 
-    /// 更新任务状态 — 校验状态转换合法性
-    ///
-    /// 合法转换:
-    /// - draft → running
-    /// - running → paused
-    /// - running → completed
-    /// - running → failed
-    pub async fn update_status(
+    async fn datasource_type(
         &self,
         id: &str,
         tenant_id: &str,
-        new_status: &str,
-    ) -> anyhow::Result<bool> {
-        let task = self
-            .task_repo
+        role: &str,
+    ) -> Result<String, BackendError> {
+        let datasource = self
+            .datasource_repo
             .find_detail_by_id(id, tenant_id)
             .await?
-            .ok_or_else(|| anyhow!("任务 '{id}' 不存在"))?;
+            .ok_or_else(|| {
+                BackendError::NotFound(format!("{role}数据源 '{id}' 不存在或不属于该租户"))
+            })?;
+        Ok(datasource.db_type.trim().to_ascii_lowercase())
+    }
+}
 
-        let current = task.status.as_str();
-
-        let valid = matches!(
-            (current, new_status),
-            ("draft", "running")
-                | ("running", "paused")
-                | ("running", "completed")
-                | ("running", "failed")
-        );
-
-        if !valid {
-            return Err(anyhow!("无效的状态转换: {current} → {new_status}"));
-        }
-
-        Ok(self
-            .task_repo
-            .update_status(id, tenant_id, new_status)
-            .await?)
+fn validate_engine_pair(source: &str, target: &str) -> Result<(), BackendError> {
+    let relational = |kind: &str| matches!(kind, "mysql" | "postgresql" | "postgres" | "pg");
+    let analytical = |kind: &str| matches!(kind, "duckdb" | "swanlake");
+    if (relational(source) && relational(target))
+        || ((relational(source) || analytical(source)) && analytical(target))
+    {
+        Ok(())
+    } else {
+        Err(BackendError::ConstraintViolation(format!(
+            "当前没有可执行 {source} 到 {target} 的同步引擎"
+        )))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-
     use async_trait::async_trait;
-    use dts_backend::BackendError;
+    use std::{collections::HashMap, sync::Mutex};
 
-    // ============================================================
-    // Mock TaskRepo
-    // ============================================================
-
+    #[derive(Default)]
     struct MockTaskRepo {
-        last_create_params: Mutex<Option<CreateTaskParams>>,
-        list_result: Mutex<Vec<TaskInfo>>,
-        find_detail_result: Mutex<Option<TaskDetail>>,
-        update_status_calls: Mutex<Vec<(String, String, String)>>,
-        update_status_result: Mutex<bool>,
+        created: Mutex<Vec<CreateTaskParams>>,
     }
-
-    impl MockTaskRepo {
-        fn new() -> Self {
-            Self {
-                last_create_params: Mutex::new(None),
-                list_result: Mutex::new(vec![]),
-                find_detail_result: Mutex::new(None),
-                update_status_calls: Mutex::new(vec![]),
-                update_status_result: Mutex::new(true),
-            }
-        }
-
-        fn set_list_result(&self, tasks: Vec<TaskInfo>) {
-            *self.list_result.lock().expect("Mutex poisoned") = tasks;
-        }
-
-        fn set_find_detail_result(&self, detail: Option<TaskDetail>) {
-            *self.find_detail_result.lock().expect("Mutex poisoned") = detail;
-        }
-
-        fn last_create_params(&self) -> Option<CreateTaskParams> {
-            self.last_create_params.lock().expect("Mutex poisoned").clone()
-        }
-
-        fn update_status_calls(&self) -> Vec<(String, String, String)> {
-            self.update_status_calls.lock().expect("Mutex poisoned").clone()
-        }
-    }
-
     #[async_trait]
     impl TaskRepo for MockTaskRepo {
         async fn create(&self, params: &CreateTaskParams) -> Result<String, BackendError> {
-            *self.last_create_params.lock().expect("Mutex poisoned") = Some(params.clone());
+            self.created.lock().unwrap().push(params.clone());
             Ok(params.id.clone())
         }
-
-        async fn list_by_tenant(&self, _tenant_id: &str) -> Result<Vec<TaskInfo>, BackendError> {
-            Ok(self.list_result.lock().expect("Mutex poisoned").clone())
+        async fn list_by_tenant(&self, _: &str) -> Result<Vec<TaskInfo>, BackendError> {
+            Ok(vec![])
         }
-
         async fn find_detail_by_id(
             &self,
-            _id: &str,
-            _tenant_id: &str,
+            _: &str,
+            _: &str,
         ) -> Result<Option<TaskDetail>, BackendError> {
-            Ok(self.find_detail_result.lock().expect("Mutex poisoned").clone())
+            Ok(None)
         }
-
-        async fn update_status(
-            &self,
-            id: &str,
-            tenant_id: &str,
-            status: &str,
-        ) -> Result<bool, BackendError> {
-            self.update_status_calls.lock().expect("Mutex poisoned").push((
-                id.to_string(),
-                tenant_id.to_string(),
-                status.to_string(),
-            ));
-            Ok(*self.update_status_result.lock().expect("Mutex poisoned"))
+        async fn update_status(&self, _: &str, _: &str, _: &str) -> Result<bool, BackendError> {
+            Ok(true)
         }
-
-        async fn count_by_tenant(&self, _tenant_id: &str) -> Result<i64, BackendError> {
+        async fn count_by_tenant(&self, _: &str) -> Result<i64, BackendError> {
             Ok(0)
         }
-
-        async fn count_by_status(
-            &self,
-            _tenant_id: &str,
-            _status: &str,
-        ) -> Result<i64, BackendError> {
+        async fn count_by_status(&self, _: &str, _: &str) -> Result<i64, BackendError> {
             Ok(0)
         }
-
         async fn find_recent_runs(
             &self,
-            _task_id: &str,
-            _limit: i64,
+            _: &str,
+            _: i64,
         ) -> Result<Vec<TaskRunInfo>, BackendError> {
             Ok(vec![])
         }
     }
 
-    // ============================================================
-    // Mock DatasourceRepo (for TaskService tests)
-    // ============================================================
-
+    #[derive(Default)]
     struct MockDatasourceRepo {
-        existing_ids: Mutex<Vec<String>>,
+        types: HashMap<String, String>,
     }
-
-    impl MockDatasourceRepo {
-        fn new() -> Self {
-            Self {
-                existing_ids: Mutex::new(vec![]),
-            }
-        }
-
-        fn add_existing(&self, id: &str) {
-            self.existing_ids.lock().expect("Mutex poisoned").push(id.to_string());
-        }
-    }
-
     #[async_trait]
     impl DatasourceRepo for MockDatasourceRepo {
-        async fn create(&self, _params: &CreateDatasourceParams) -> Result<String, BackendError> {
-            Ok("ignored".to_string())
+        async fn create(&self, _: &CreateDatasourceParams) -> Result<String, BackendError> {
+            Ok("unused".into())
         }
-
-        async fn list_by_tenant(
-            &self,
-            _tenant_id: &str,
-        ) -> Result<Vec<DatasourceInfo>, BackendError> {
+        async fn list_by_tenant(&self, _: &str) -> Result<Vec<DatasourceInfo>, BackendError> {
             Ok(vec![])
         }
-
         async fn find_detail_by_id(
             &self,
-            _id: &str,
-            _tenant_id: &str,
+            id: &str,
+            _: &str,
         ) -> Result<Option<DatasourceDetail>, BackendError> {
-            Ok(None)
+            Ok(self.types.get(id).map(|kind| DatasourceDetail {
+                id: id.into(),
+                name: id.into(),
+                db_type: kind.clone(),
+                host: "localhost".into(),
+                port: 5432,
+                username: Some("user".into()),
+                password_masked: None,
+                database_name: Some("db".into()),
+                extra_params: None,
+                health_status: "unknown".into(),
+                last_test_at: None,
+                created_at: "".into(),
+                updated_at: "".into(),
+            }))
         }
-
-        async fn delete(&self, _id: &str, _tenant_id: &str) -> Result<bool, BackendError> {
-            Ok(true)
-        }
-
-        async fn count_by_tenant(&self, _tenant_id: &str) -> Result<i64, BackendError> {
-            Ok(0)
-        }
-
-        async fn count_healthy_by_tenant(&self, _tenant_id: &str) -> Result<i64, BackendError> {
-            Ok(0)
-        }
-
         async fn get_connection_info(
             &self,
-            _id: &str,
-            _tenant_id: &str,
+            _: &str,
+            _: &str,
         ) -> Result<Option<dts_backend::repo::RawConnectionInfo>, BackendError> {
             Ok(None)
         }
-
-        async fn exists(&self, id: &str, _tenant_id: &str) -> Result<bool, BackendError> {
-            Ok(self.existing_ids.lock().expect("Mutex poisoned").contains(&id.to_string()))
+        async fn delete(&self, _: &str, _: &str) -> Result<bool, BackendError> {
+            Ok(true)
+        }
+        async fn count_by_tenant(&self, _: &str) -> Result<i64, BackendError> {
+            Ok(0)
+        }
+        async fn count_healthy_by_tenant(&self, _: &str) -> Result<i64, BackendError> {
+            Ok(0)
+        }
+        async fn exists(&self, id: &str, _: &str) -> Result<bool, BackendError> {
+            Ok(self.types.contains_key(id))
         }
     }
 
-    // ============================================================
-    // Helpers
-    // ============================================================
+    fn harness(
+        source_type: Option<&str>,
+        target_type: Option<&str>,
+    ) -> (TaskService, Arc<MockTaskRepo>) {
+        let tasks = Arc::new(MockTaskRepo::default());
+        let mut types = HashMap::new();
+        if let Some(kind) = source_type {
+            types.insert("source".into(), kind.into());
+        }
+        if let Some(kind) = target_type {
+            types.insert("target".into(), kind.into());
+        }
+        (
+            TaskService::new(tasks.clone(), Arc::new(MockDatasourceRepo { types })),
+            tasks,
+        )
+    }
+    const VALID_CONFIG: &str = r#"{"table_mappings":[{"source_table":"orders","target_table":"fact_orders","target_schema":"mart"}],"sync_mode":"full","batch_size":500}"#;
 
-    fn make_task_detail(id: &str, status: &str) -> TaskDetail {
-        TaskDetail {
-            id: id.to_string(),
-            name: "Test Task".to_string(),
-            description: None,
-            source_id: "source-1".to_string(),
-            target_id: "target-1".to_string(),
-            source_name: "Source DB".to_string(),
-            source_type: "mysql".to_string(),
-            target_name: "Target DB".to_string(),
-            target_type: "postgresql".to_string(),
-            cron_expr: None,
-            status: status.to_string(),
-            config_json: "{}".to_string(),
-            created_by: "admin".to_string(),
-            created_at: "2024-01-01T00:00:00Z".to_string(),
-            updated_at: "2024-01-01T00:00:00Z".to_string(),
-            recent_runs: vec![],
+    #[tokio::test]
+    async fn create_rejects_missing_or_unsupported_datasource_without_persisting() {
+        for (source, target) in [
+            (None, Some("pg")),
+            (Some("mysql"), None),
+            (Some("sqlite"), Some("pg")),
+            (Some("duckdb"), Some("pg")),
+        ] {
+            let (service, tasks) = harness(source, target);
+            let result = service
+                .create(
+                    "tenant",
+                    "Pipeline",
+                    None,
+                    "source",
+                    "target",
+                    None,
+                    VALID_CONFIG,
+                    "admin",
+                )
+                .await;
+            assert!(result.is_err());
+            assert!(tasks.created.lock().unwrap().is_empty());
         }
     }
 
-    // ============================================================
-    // create 测试
-    // ============================================================
-
-    /// 源数据源不存在时拒绝创建
     #[tokio::test]
-    async fn create_rejects_when_source_does_not_exist() {
-        let task_repo = Arc::new(MockTaskRepo::new());
-        let ds_repo = Arc::new(MockDatasourceRepo::new());
-        // 只添加 target 为存在，source 不存在
-        ds_repo.add_existing("target-1");
-
-        let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc
+    async fn create_accepts_relational_source_into_duckdb() {
+        let (service, tasks) = harness(Some("mysql"), Some("duckdb"));
+        let result = service
             .create(
-                "tenant-1",
-                "sync-task",
+                "tenant",
+                "Warehouse load",
                 None,
-                "source-1",
-                "target-1",
+                "source",
+                "target",
                 None,
-                "{}",
+                VALID_CONFIG,
                 "admin",
             )
             .await;
-
-        assert!(result.is_err());
-        let err = result.unwrap_err().to_string();
-        assert!(
-            err.contains("源数据源"),
-            "expected error about source datasource, got: {err}"
-        );
+        assert!(result.is_ok());
+        assert_eq!(tasks.created.lock().unwrap().len(), 1);
     }
 
-    /// 目标数据源不存在时拒绝创建
     #[tokio::test]
-    async fn create_rejects_when_target_does_not_exist() {
-        let task_repo = Arc::new(MockTaskRepo::new());
-        let ds_repo = Arc::new(MockDatasourceRepo::new());
-        ds_repo.add_existing("source-1");
-        // target-1 未添加
-
-        let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc
+    async fn create_persists_validated_config_without_losing_schema_or_batch_size() {
+        let (service, tasks) = harness(Some("mysql"), Some("postgresql"));
+        let id = service
             .create(
-                "tenant-1",
-                "sync-task",
+                "tenant",
+                "Pipeline",
+                Some("description"),
+                "source",
+                "target",
                 None,
-                "source-1",
-                "target-1",
-                None,
-                "{}",
+                VALID_CONFIG,
                 "admin",
             )
-            .await;
-
-        assert!(result.is_err());
-        let err = result.unwrap_err().to_string();
-        assert!(
-            err.contains("目标数据源"),
-            "expected error about target datasource, got: {err}"
-        );
-    }
-
-    /// 源和目标数据源都存在时创建成功
-    #[tokio::test]
-    async fn create_succeeds_when_both_datasources_exist() {
-        let task_repo = Arc::new(MockTaskRepo::new());
-        let ds_repo = Arc::new(MockDatasourceRepo::new());
-        ds_repo.add_existing("source-1");
-        ds_repo.add_existing("target-1");
-
-        let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc
-            .create(
-                "tenant-1",
-                "sync-task",
-                Some("a sync task"),
-                "source-1",
-                "target-1",
-                Some("0 */6 * * *"),
-                r#"{"mode":"full"}"#,
-                "admin",
-            )
-            .await;
-
-        assert!(result.is_ok());
-        let id = result.unwrap();
-        assert_eq!(id.len(), 36);
-
-        let params = task_repo
-            .last_create_params()
-            .expect("create should have been called");
-        assert_eq!(params.tenant_id, "tenant-1");
-        assert_eq!(params.name, "sync-task");
-        assert_eq!(params.description.as_deref(), Some("a sync task"));
-        assert_eq!(params.source_id, "source-1");
-        assert_eq!(params.target_id, "target-1");
-        assert_eq!(params.cron_expr.as_deref(), Some("0 */6 * * *"));
-        assert_eq!(params.config_json, r#"{"mode":"full"}"#);
-        assert_eq!(params.created_by, "admin");
-    }
-
-    // ============================================================
-    // list_by_tenant 测试
-    // ============================================================
-
-    #[tokio::test]
-    async fn list_by_tenant_delegates_to_repo() {
-        let task_repo = Arc::new(MockTaskRepo::new());
-        let ds_repo = Arc::new(MockDatasourceRepo::new());
-
-        task_repo.set_list_result(vec![]);
-
-        let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc.list_by_tenant("tenant-1").await;
-
-        assert!(result.is_ok());
-        assert!(result.unwrap().is_empty());
-    }
-
-    // ============================================================
-    // update_status 测试
-    // ============================================================
-
-    #[tokio::test]
-    async fn update_status_accepts_draft_to_running() {
-        let task_repo = Arc::new(MockTaskRepo::new());
-        let ds_repo = Arc::new(MockDatasourceRepo::new());
-
-        task_repo.set_find_detail_result(Some(make_task_detail("task-1", "draft")));
-
-        let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc.update_status("task-1", "tenant-1", "running").await;
-
-        assert!(result.is_ok());
-        let calls = task_repo.update_status_calls();
-        assert_eq!(calls.len(), 1);
+            .await
+            .unwrap();
+        let created = tasks.created.lock().unwrap();
+        assert_eq!(created[0].id, id);
+        assert_eq!(created[0].tenant_id, "tenant");
+        let config = PipelineConfig::parse(&created[0].config_json).unwrap();
+        assert_eq!(config.batch_size, 500);
         assert_eq!(
-            calls[0],
-            (
-                "task-1".to_string(),
-                "tenant-1".to_string(),
-                "running".to_string()
-            )
+            config.table_mappings[0].target_schema.as_deref(),
+            Some("mart")
         );
     }
 
     #[tokio::test]
-    async fn update_status_accepts_running_to_paused() {
-        let task_repo = Arc::new(MockTaskRepo::new());
-        let ds_repo = Arc::new(MockDatasourceRepo::new());
-
-        task_repo.set_find_detail_result(Some(make_task_detail("task-1", "running")));
-
-        let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc.update_status("task-1", "tenant-1", "paused").await;
-
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn update_status_accepts_running_to_completed() {
-        let task_repo = Arc::new(MockTaskRepo::new());
-        let ds_repo = Arc::new(MockDatasourceRepo::new());
-
-        task_repo.set_find_detail_result(Some(make_task_detail("task-1", "running")));
-
-        let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc.update_status("task-1", "tenant-1", "completed").await;
-
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn update_status_accepts_running_to_failed() {
-        let task_repo = Arc::new(MockTaskRepo::new());
-        let ds_repo = Arc::new(MockDatasourceRepo::new());
-
-        task_repo.set_find_detail_result(Some(make_task_detail("task-1", "running")));
-
-        let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc.update_status("task-1", "tenant-1", "failed").await;
-
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn update_status_rejects_completed_to_draft() {
-        let task_repo = Arc::new(MockTaskRepo::new());
-        let ds_repo = Arc::new(MockDatasourceRepo::new());
-
-        task_repo.set_find_detail_result(Some(make_task_detail("task-1", "completed")));
-
-        let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc.update_status("task-1", "tenant-1", "draft").await;
-
-        assert!(result.is_err());
-        let err = result.unwrap_err().to_string();
-        assert!(
-            err.contains("无效的状态转换"),
-            "expected invalid transition error, got: {err}"
-        );
-    }
-
-    #[tokio::test]
-    async fn update_status_rejects_failed_to_running() {
-        let task_repo = Arc::new(MockTaskRepo::new());
-        let ds_repo = Arc::new(MockDatasourceRepo::new());
-
-        task_repo.set_find_detail_result(Some(make_task_detail("task-1", "failed")));
-
-        let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc.update_status("task-1", "tenant-1", "running").await;
-
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn update_status_rejects_paused_to_running() {
-        let task_repo = Arc::new(MockTaskRepo::new());
-        let ds_repo = Arc::new(MockDatasourceRepo::new());
-
-        task_repo.set_find_detail_result(Some(make_task_detail("task-1", "paused")));
-
-        let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc.update_status("task-1", "tenant-1", "running").await;
-
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn update_status_rejects_when_task_not_found() {
-        let task_repo = Arc::new(MockTaskRepo::new());
-        let ds_repo = Arc::new(MockDatasourceRepo::new());
-        // find_detail_result 默认为 None
-
-        let svc = TaskService::new(task_repo.clone(), ds_repo.clone());
-        let result = svc
-            .update_status("nonexistent", "tenant-1", "running")
-            .await;
-
-        assert!(result.is_err());
-        let err = result.unwrap_err().to_string();
-        assert!(
-            err.contains("不存在"),
-            "expected 'task not found' error, got: {err}"
-        );
+    async fn invalid_config_and_empty_name_never_create_pipeline() {
+        let (service, tasks) = harness(Some("mysql"), Some("pg"));
+        for (name, config) in [
+            ("Pipeline", "{}"),
+            ("Pipeline", "not json"),
+            ("  ", VALID_CONFIG),
+        ] {
+            assert!(
+                service
+                    .create(
+                        "tenant", name, None, "source", "target", None, config, "admin"
+                    )
+                    .await
+                    .is_err()
+            );
+        }
+        assert!(tasks.created.lock().unwrap().is_empty());
     }
 }

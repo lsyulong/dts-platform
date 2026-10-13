@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! DTS Backend SQLite — SQLite 协议存储后端
 //!
 //! 基于 sqlx 实现，用于本地开发和测试。
@@ -25,7 +24,23 @@ mod migrate;
 
 pub use migrate::SqliteMigrationRunner;
 pub use pool::{SqliteBackendPool, create_pool};
+pub use repo::SqliteAlertPolicyRepo;
+pub use repo::SqliteDataAccessRepo;
+pub use repo::SqliteMasterDataRepo;
+pub use repo::SqliteMessageDeliveryRepo;
+pub use repo::SqliteMetadataCatalogRepo;
+pub use repo::SqliteNotificationConnectionRepo;
+pub use repo::SqliteProductJobRepo;
+pub use repo::SqliteProductResourceRepo;
+pub use repo::SqliteQualityAlertRepo;
+pub use repo::SqliteRuntimeConfigurationRepo;
+pub use repo::SqliteTagAssignmentRepo;
+pub use repo::SqliteTaskLogRepo;
 pub use repo::{
     SqliteAlertRepo, SqliteDatasourceRepo, SqliteMonitoringRepo, SqliteRoleRepo, SqliteSeedRepo,
     SqliteTaskRepo, SqliteTaskRunRepo, SqliteTenantRepo, SqliteUserRepo,
 };
+pub use repo::{SqliteBiShareRepo, SqliteServiceAccessRepo};
+pub use repo::{SqliteDevelopmentRevisionRepo, SqliteStandardGovernanceRepo};
+pub use repo::{SqliteNavigationRepo, SqliteSensitiveFindingRepo};
+pub use repo::{SqliteOrganizationMembersRepo, SqlitePlatformProjectionRepo};

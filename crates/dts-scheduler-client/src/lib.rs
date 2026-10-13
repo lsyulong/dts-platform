@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! DTS Scheduler Client — jiascheduler REST API 客户端
 //!
 //! 提供 DTS Platform 与 jiascheduler 之间的集成能力：
@@ -25,6 +24,7 @@
 //! - 任务同步 (自动同步 DTS 任务到 jiascheduler)
 
 pub mod client;
+mod cron;
 pub mod models;
 pub mod sync;
 

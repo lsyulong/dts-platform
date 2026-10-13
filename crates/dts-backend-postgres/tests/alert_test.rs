@@ -38,7 +38,9 @@ async fn setup() -> Option<(PgAlertRepo, String)> {
 
 #[tokio::test]
 async fn create_and_list_alerts() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     let id = uuid::Uuid::new_v4().to_string();
     let params = CreateAlertParams {
         id: id.clone(),
@@ -52,16 +54,15 @@ async fn create_and_list_alerts() {
     };
     repo.create(&params).await.expect("create failed");
 
-    let alerts = repo
-        .list_by_tenant(&tenant_id)
-        .await
-        .expect("list failed");
+    let alerts = repo.list_by_tenant(&tenant_id).await.expect("list failed");
     assert!(!alerts.is_empty());
 }
 
 #[tokio::test]
 async fn toggle_alert_enabled() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     let id = uuid::Uuid::new_v4().to_string();
     repo.create(&CreateAlertParams {
         id: id.clone(),

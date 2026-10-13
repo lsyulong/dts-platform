@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::sync::Arc;
 
 use actix_web::{HttpRequest, HttpResponse, web};
 use serde::{Deserialize, Serialize};
 
 use crate::middleware::auth;
-use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
 use crate::services::datasource_svc::DatasourceService;
 use dts_backend::repo::DatasourceRepo;
@@ -47,7 +45,18 @@ pub struct DatasourceResponse {
     pub username: Option<String>,
     pub database_name: Option<String>,
     pub health_status: String,
+    pub last_test_at: Option<chrono::DateTime<chrono::Utc>>,
     pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ProbeHistoryQuery {
+    #[serde(default = "default_probe_limit")]
+    pub limit: u32,
+}
+
+fn default_probe_limit() -> u32 {
+    20
 }
 
 /// GET /api/v1/datasources
@@ -55,8 +64,7 @@ pub async fn list(
     datasource_svc: web::Data<DatasourceService>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "datasource:read").await?;
 
     let datasources = datasource_svc.list_by_tenant(&claims.tenant_id).await?;
 
@@ -71,8 +79,7 @@ pub async fn create(
     req: HttpRequest,
     body: web::Json<CreateDatasourceRequest>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "datasource:write").await?;
 
     let id = datasource_svc
         .create(
@@ -101,8 +108,7 @@ pub async fn get(
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "datasource:read").await?;
     let ds_id = path.into_inner();
 
     let ds = ds_repo
@@ -119,8 +125,7 @@ pub async fn delete(
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "datasource:write").await?;
     let ds_id = path.into_inner();
 
     let deleted = ds_repo.delete(&ds_id, &claims.tenant_id).await?;
@@ -132,6 +137,46 @@ pub async fn delete(
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "数据源已删除"
     })))
+}
+
+/// POST /api/v1/datasources/{id}/test
+pub async fn test_connection(
+    datasource_svc: web::Data<DatasourceService>,
+    req: HttpRequest,
+    path: web::Path<String>,
+) -> Result<HttpResponse, AppError> {
+    let claims = auth::require_permission(&req, "datasource:write").await?;
+    let result = datasource_svc
+        .probe(&claims.tenant_id, &path.into_inner(), &claims.sub)
+        .await?;
+    Ok(HttpResponse::Ok().json(result))
+}
+
+/// GET /api/v1/datasources/{id}/probes
+pub async fn probe_history(
+    datasource_svc: web::Data<DatasourceService>,
+    req: HttpRequest,
+    path: web::Path<String>,
+    query: web::Query<ProbeHistoryQuery>,
+) -> Result<HttpResponse, AppError> {
+    let claims = auth::require_permission(&req, "datasource:read").await?;
+    let data = datasource_svc
+        .probe_history(&claims.tenant_id, &path.into_inner(), query.limit)
+        .await?;
+    Ok(HttpResponse::Ok().json(serde_json::json!({ "data": data })))
+}
+
+/// GET /api/v1/datasources/{id}/tables
+pub async fn tables(
+    datasource_svc: web::Data<DatasourceService>,
+    req: HttpRequest,
+    path: web::Path<String>,
+) -> Result<HttpResponse, AppError> {
+    let claims = auth::require_permission(&req, "datasource:read").await?;
+    let data = datasource_svc
+        .discover_tables(&claims.tenant_id, &path.into_inner())
+        .await?;
+    Ok(HttpResponse::Ok().json(serde_json::json!({ "data": data })))
 }
 
 #[cfg(test)]
@@ -205,6 +250,7 @@ mod tests {
             username: Some("admin".into()),
             database_name: Some("mydb".into()),
             health_status: "healthy".into(),
+            last_test_at: None,
             created_at: chrono::Utc::now(),
         };
         let json = serde_json::to_value(&ds).unwrap();

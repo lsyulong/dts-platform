@@ -1,46 +1,48 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
+import SessionBoundary from './components/SessionBoundary';
 import DashboardLayout from './layouts/DashboardLayout';
-import LoginPage from './pages/login';
-import DashboardPage from './pages/dashboard';
-import TaskListPage from './pages/tasks/index';
-import TaskCreatePage from './pages/tasks/create';
-import TaskDetailPage from './pages/tasks/detail';
-import DatasourcesPage from './pages/datasources';
-import MonitoringPage from './pages/monitoring';
-import OpsCenterPage from './pages/ops';
-import SystemSettingsPage from './pages/system';
-import QueryPage from './pages/query';
-import AnalysisPage from './pages/analysis';
-
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const token = localStorage.getItem('token');
-  if (!token) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-}
+import { productModules } from './product/catalog';
+import ProductRoute from './product/ProductRoute';
+const legacyRoutes = new Set([
+  '/',
+  '/tasks',
+  '/datasources',
+  '/monitoring',
+  '/ops',
+  '/system',
+  '/query',
+  '/analysis',
+]);
 
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <LoginPage />,
+    lazy: async () => ({ Component: (await import('./pages/login')).default }),
   },
   {
     path: '/',
     element: (
-      <ProtectedRoute>
+      <SessionBoundary>
         <DashboardLayout />
-      </ProtectedRoute>
+      </SessionBoundary>
     ),
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: 'tasks', element: <TaskListPage /> },
-      { path: 'tasks/create', element: <TaskCreatePage /> },
-      { path: 'tasks/:id', element: <TaskDetailPage /> },
-      { path: 'datasources', element: <DatasourcesPage /> },
-      { path: 'monitoring', element: <MonitoringPage /> },
-      { path: 'ops', element: <OpsCenterPage /> },
-      { path: 'system', element: <SystemSettingsPage /> },
-      { path: 'query', element: <QueryPage /> },
-      { path: 'analysis', element: <AnalysisPage /> },
+      { index: true, lazy: async () => ({ Component: (await import('./pages/dashboard')).default }) },
+      { path: 'tasks', lazy: async () => ({ Component: (await import('./pages/tasks/index')).default }) },
+      { path: 'tasks/create', lazy: async () => ({ Component: (await import('./pages/tasks/create')).default }) },
+      { path: 'tasks/:id', lazy: async () => ({ Component: (await import('./pages/tasks/detail')).default }) },
+      { path: 'datasources', lazy: async () => ({ Component: (await import('./pages/datasources')).default }) },
+      { path: 'monitoring', lazy: async () => ({ Component: (await import('./pages/monitoring')).default }) },
+      { path: 'ops', lazy: async () => ({ Component: (await import('./pages/ops')).default }) },
+      { path: 'system', lazy: async () => ({ Component: (await import('./pages/system')).default }) },
+      { path: 'query', lazy: async () => ({ Component: (await import('./pages/query')).default }) },
+      { path: 'analysis', lazy: async () => ({ Component: (await import('./pages/analysis')).default }) },
+      ...productModules
+        .filter((module) => !legacyRoutes.has(module.path))
+        .map((module) => ({
+          path: module.path.slice(1),
+          element: <ProductRoute module={module} />,
+        })),
     ],
   },
 ]);

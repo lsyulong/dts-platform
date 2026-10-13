@@ -12,45 +12,91 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Integration utilities: isolated SQLite and a shared real Sa-Token manager.
 
-//! Integration test shared utilities
-//!
-//! Provides backend initialization, HTTP test client helpers, and JWT token generation.
+use std::ops::Deref;
+use std::time::Duration;
 
 use dts_server::config::AppConfig;
 use dts_server::db::{self, BackendContext};
-use dts_server::services::token::Claims;
+use dts_server::services::{auth_svc::AuthService, sa_auth};
+use sa_token_core::TokenValue;
 
-/// Create a test backend using SQLite in-memory (includes migrations + seed data).
-pub async fn setup_test_backend() -> anyhow::Result<BackendContext> {
-    // SQLite in-memory: each call creates a fresh database since
-    // `init_backend` creates a new pool each time.
-    // Use shared cache so the pool's connections see the same data.
-    db::init_backend("sqlite::memory:?cache=shared", "sqlite").await
+pub struct TestBackend {
+    pub ctx: BackendContext,
+    pub auth: AuthService,
 }
 
-/// Create a test AppConfig (SQLite memory).
+impl Deref for TestBackend {
+    type Target = BackendContext;
+
+    fn deref(&self) -> &Self::Target {
+        &self.ctx
+    }
+}
+
+/// Every fixture owns its manager; App and token helpers clone this same instance.
+pub async fn setup_test_backend() -> anyhow::Result<TestBackend> {
+    let ctx = db::init_backend("sqlite::memory:?cache=shared", "sqlite").await?;
+    let manager = sa_auth::test_manager(ctx.role_repo.clone());
+    let auth = AuthService::new(
+        ctx.tenant_repo.clone(),
+        ctx.user_repo.clone(),
+        ctx.role_repo.clone(),
+        manager,
+    );
+    Ok(TestBackend { ctx, auth })
+}
+
 #[allow(dead_code)]
 pub fn test_config() -> AppConfig {
     AppConfig::for_test()
 }
 
-/// The JWT secret used by `get_jwt_secret(None)` fallback in handlers
-/// that don't have access to AppConfig.
-pub const DEFAULT_JWT_SECRET: &str = "dev-secret-change-me";
-
-/// Generate a test JWT token (used by test files).
 #[allow(dead_code)]
-pub fn generate_test_token(secret: &str, user_id: &str, tenant_id: &str, username: &str) -> String {
-    let now = chrono::Utc::now();
-    let claims = Claims {
-        sub: user_id.to_string(),
-        tenant_id: tenant_id.to_string(),
-        username: username.to_string(),
-        exp: (now + chrono::Duration::hours(24)).timestamp() as usize,
-        iat: now.timestamp() as usize,
-    };
+pub fn test_auth_service(ctx: &TestBackend) -> AuthService {
+    ctx.auth.clone()
+}
 
-    dts_server::services::token::create_token(&claims, secret)
-        .expect("Test token generation failed")
+/// Issue a server-side session for an existing account using production metadata.
+#[allow(dead_code)]
+pub async fn test_token(ctx: &TestBackend, user_id: &str) -> String {
+    ctx.auth
+        .issue_session_for_user(user_id)
+        .await
+        .expect("Sa-Token fixture session")
+}
+
+#[allow(dead_code)]
+pub async fn admin_token(ctx: &TestBackend) -> String {
+    let tenant = ctx
+        .tenant_repo
+        .find_by_slug("default")
+        .await
+        .unwrap()
+        .unwrap();
+    let user = ctx
+        .user_repo
+        .find_by_tenant_and_username(&tenant.id, "admin")
+        .await
+        .unwrap()
+        .unwrap();
+    test_token(ctx, &user.id).await
+}
+
+/// Exercise actual storage expiry, after proving the same token initially works.
+#[allow(dead_code)]
+pub async fn expired_admin_token(ctx: &TestBackend) -> String {
+    let token = admin_token(ctx).await;
+    ctx.auth
+        .manager
+        .renew_timeout(&TokenValue::new(token.clone()), 1)
+        .await
+        .expect("Set real Sa-Token expiry");
+    assert!(
+        ctx.auth.authenticate(&token).await.is_ok(),
+        "Expiry fixture must start as a valid session"
+    );
+    tokio::time::sleep(Duration::from_millis(1200)).await;
+    token
 }

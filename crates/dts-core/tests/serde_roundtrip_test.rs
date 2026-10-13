@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! Serde round-trip tests for shared types in dts-core
 //!
 //! Verifies that all serializable types can be serialized to JSON
@@ -20,7 +19,6 @@
 
 use dts_core::*;
 use pretty_assertions::assert_eq;
-use serde_json;
 
 // ========== TenantInfo ==========
 
@@ -77,6 +75,7 @@ fn datasource_info_roundtrip() {
         username: Some("root".into()),
         database_name: Some("mydb".into()),
         health_status: "healthy".into(),
+        last_test_at: Some(chrono::Utc::now()),
         created_at: chrono::Utc::now(),
     };
     let json = serde_json::to_string(&input).unwrap();
@@ -103,6 +102,7 @@ fn datasource_info_with_none_fields() {
         username: None,
         database_name: None,
         health_status: "unknown".into(),
+        last_test_at: None,
         created_at: chrono::Utc::now(),
     };
     let json = serde_json::to_value(&input).unwrap();

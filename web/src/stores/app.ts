@@ -9,7 +9,7 @@ function getInitialTheme(): Theme {
   } catch {
     // localStorage may not be available (SSR / test env)
   }
-  return 'dark';
+  return 'light';
 }
 
 function applyTheme(theme: Theme) {
