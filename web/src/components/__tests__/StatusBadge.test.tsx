@@ -13,6 +13,18 @@ describe('StatusBadge', () => {
     expect(screen.getByText('In Progress')).toBeInTheDocument();
   });
 
+  it.each(['active', 'disabled'])('renders the account status label for %s', (status) => {
+    render(<StatusBadge status={status} />);
+    expect(screen.getByText(`system.statusLabels.${status}`)).toBeInTheDocument();
+    expect(screen.queryByText(`tasks.status.${status}`)).not.toBeInTheDocument();
+  });
+
+  it.each(['active', 'disabled'])('keeps an explicit label for account status %s', (status) => {
+    render(<StatusBadge status={status} label="Custom account label" />);
+    expect(screen.getByText('Custom account label')).toBeInTheDocument();
+    expect(screen.queryByText(`system.statusLabels.${status}`)).not.toBeInTheDocument();
+  });
+
   it('applies correct color for draft status', () => {
     const { container } = render(<StatusBadge status="draft" />);
     const badge = container.querySelector('span');
@@ -23,41 +35,41 @@ describe('StatusBadge', () => {
   it('applies correct color for running status', () => {
     const { container } = render(<StatusBadge status="running" />);
     const badge = container.querySelector('span');
-    expect(badge?.className).toContain('bg-blue-500/10');
-    expect(badge?.className).toContain('text-blue-400');
+    expect(badge?.className).toContain('bg-[var(--color-accent-subtle)]');
+    expect(badge?.className).toContain('text-[var(--color-accent)]');
   });
 
   it('applies correct color for completed status', () => {
     const { container } = render(<StatusBadge status="completed" />);
     const badge = container.querySelector('span');
     expect(badge?.className).toContain('bg-emerald-500/10');
-    expect(badge?.className).toContain('text-emerald-400');
+    expect(badge?.className).toContain('text-[var(--color-success)]');
   });
 
   it('applies correct color for failed status', () => {
     const { container } = render(<StatusBadge status="failed" />);
     const badge = container.querySelector('span');
     expect(badge?.className).toContain('bg-rose-500/10');
-    expect(badge?.className).toContain('text-rose-400');
+    expect(badge?.className).toContain('text-[var(--color-error)]');
   });
 
   it('applies correct color for paused status', () => {
     const { container } = render(<StatusBadge status="paused" />);
     const badge = container.querySelector('span');
     expect(badge?.className).toContain('bg-amber-500/10');
-    expect(badge?.className).toContain('text-amber-400');
+    expect(badge?.className).toContain('text-[var(--color-warning)]');
   });
 
   it('applies correct color for healthy status', () => {
     const { container } = render(<StatusBadge status="healthy" />);
     const badge = container.querySelector('span');
-    expect(badge?.className).toContain('text-emerald-400');
+    expect(badge?.className).toContain('text-[var(--color-success)]');
   });
 
   it('applies correct color for unhealthy status', () => {
     const { container } = render(<StatusBadge status="unhealthy" />);
     const badge = container.querySelector('span');
-    expect(badge?.className).toContain('text-rose-400');
+    expect(badge?.className).toContain('text-[var(--color-error)]');
   });
 
   it('falls back to default color for unknown status', () => {

@@ -20,7 +20,8 @@
     "close": "Close",
     "retry": "Retry",
     "copy": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "platformLabel": "Data Platform"
   },
   "nav": {
     "toggleMenu": "Toggle Menu",
@@ -37,9 +38,12 @@
       "development": "Data Development",
       "consumption": "Data Consumption",
       "governance": "Data Governance"
-    }
+    },
+    "breadcrumb": "Breadcrumb"
   },
   "auth": {
+    "logoutFailed": "The server session could not be revoked. Please retry.",
+    "restoreFailed": "Unable to verify the session. Your local session has been kept; retry when connected",
     "login": "Login",
     "loggingIn": "Logging in...",
     "logout": "Log Out",
@@ -48,15 +52,61 @@
     "password": "Password",
     "loginFailed": "Login failed",
     "welcomeBack": "Welcome back",
-    "defaultCreds": "Default account: admin / admin123 (tenant: default)",
+    "defaultCreds": "Sign in with the tenant identifier, account and password provided by your administrator.",
     "tenantNotFound": "Tenant not found or disabled",
     "wrongPassword": "Invalid username or password",
     "accountDisabled": "Account is disabled",
+    "console": "PLATFORM WORKSPACE",
+    "signInDescription": "Sign in to your tenant and enter your data workspace.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "brandHeadline": "Bring order to your data work.",
+    "brandDescription": "A lightweight workspace designed around integration, development, governance and data consumption.",
+    "workspaceLabel": "DATA WORKFLOW",
+    "workflowLabel": "Product workflow illustration: data sources, data development and data consumption, supported by tenants, organizations and permissions.",
+    "workflowFoundation": "Tenants · Organizations · Permissions",
+    "productAreasLabel": "Product areas",
+    "brandFooter": "A data workspace for your team",
+    "workspaceFooter": "Your data work starts here.",
+    "workflow": {
+      "sources": {
+        "title": "Integration",
+        "description": "Connect · Sync"
+      },
+      "workspace": {
+        "title": "Development",
+        "description": "Model · Process"
+      },
+      "consumption": {
+        "title": "Consumption",
+        "description": "Serve · Analyze"
+      }
+    },
+    "productAreas": {
+      "integration": "Integration",
+      "development": "Development",
+      "governance": "Governance",
+      "assets": "Data assets",
+      "services": "Data services",
+      "identity": "Access control"
+    },
     "loginFeatures": {
-      "integration": { "title": "Multi-Source", "desc": "10+ databases and data sources" },
-      "analysis": { "title": "Fast Analytics", "desc": "DuckDB-powered, TB-scale on a single machine" },
-      "ai": { "title": "AI-Powered", "desc": "Natural language queries, auto-generated reports" },
-      "deploy": { "title": "Lightweight", "desc": "Single 4C8G box runs the entire stack" }
+      "integration": {
+        "title": "Multi-Source",
+        "desc": "MySQL / PostgreSQL full synchronization"
+      },
+      "analysis": {
+        "title": "Data Query",
+        "desc": "Query business data through SwanLake"
+      },
+      "ai": {
+        "title": "AI-Powered",
+        "desc": "Connect DeerFlow services when needed"
+      },
+      "deploy": {
+        "title": "Lightweight",
+        "desc": "Single-node deployment with optional engines"
+      }
     }
   },
   "dashboard": {
@@ -66,7 +116,7 @@
     "runningCount": "{{count}} running",
     "todaySyncData": "Today's Sync Data",
     "rowsCount": "{{count}} rows",
-    "successRate": "Success Rate",
+    "successRate": "Non-failed task share",
     "failedCount": "{{count}} failed",
     "healthyDatasources": "Healthy Data Sources",
     "connectionHealthy": "Connection healthy",
@@ -77,13 +127,15 @@
     "dataFlowPlaceholder": "Real-time data flow topology",
     "dataFlowHint": "Enabled after integrating ape-dts engine",
     "systemLog": "System Log",
-    "logStarted": "DTS Platform started",
-    "logDbConnected": "Database connected: SQLite",
     "globalLog": "Global Log",
     "realtimeLog": "Real-time Log",
-    "waitingForLogs": "Waiting for log output...",
+    "waitingForLogs": "No logs available",
     "syncVolumeChart": "📊 Sync Volume",
-    "taskDistribution": "🍩 Task Distribution"
+    "taskDistribution": "🍩 Task Distribution",
+    "noData": "No data available",
+    "connectionUnconfirmed": "Some connections have not been confirmed healthy",
+    "noSyncVolume": "No synchronization runs available",
+    "noTaskDistribution": "No task status data available"
   },
   "datasources": {
     "title": "Data Source Management",
@@ -103,14 +155,35 @@
     "deleteConfirm": "Confirm delete this data source?",
     "deleteSuccess": "Data source deleted",
     "createSuccess": "Data source created",
+    "testConnection": "Test connection",
+    "probeSuccess": "Connection healthy in {{latency}} ms",
+    "probeFailed": "Connection test failed",
+    "probeUnsupported": "Live connection tests are not supported for this data source type yet",
+    "probeHistory": "Connection test history",
+    "history": "History",
+    "lastTested": "Last tested: {{time}}",
+    "sqlitePath": "SQLite file path (or :memory:)",
+    "swanlakeHost": "SwanLake Flight SQL host",
+    "duckdbCatalog": "DuckDB / DuckLake catalog name",
+    "noProbeHistory": "No connection tests yet",
+    "observedAt": "Tested at",
+    "latency": "Latency",
+    "probeDetail": "Result",
+    "probePassed": "SELECT 1 passed",
     "noDatasources": "No data sources",
-    "createFirst": "Create first data source"
+    "createFirst": "Create first data source",
+    "healthStatus": "Connection status",
+    "healthStatuses": {
+      "healthy": "Healthy",
+      "unhealthy": "Unhealthy",
+      "unknown": "Not checked"
+    }
   },
   "tasks": {
     "title": "Task Management",
     "subtitle": "Manage all data sync tasks",
     "createTask": "Create Task",
-    "searchPlaceholder": "Search task name or description... (Ctrl+K)",
+    "searchPlaceholder": "Search tasks by name or description...",
     "noTasks": "No sync tasks",
     "createFirst": "Create your first task",
     "status": {
@@ -129,7 +202,7 @@
       "basic": "Basic",
       "source": "Source",
       "target": "Target",
-      "mapping": "Mapping",
+      "mapping": "Table Mapping",
       "schedule": "Schedule",
       "confirm": "Confirm"
     },
@@ -137,8 +210,38 @@
     "descPlaceholder": "Briefly describe the purpose of this task...",
     "selectSource": "Select source connection",
     "selectTarget": "Select target connection",
-    "mappingConfig": "Field Mapping Configuration",
-    "mappingHint": "Auto-mapping and Lua transforms supported after ape-dts integration",
+    "supportedDatasources": "Supports MySQL/PostgreSQL transfers and MySQL/PostgreSQL/DuckDB loads into DuckDB.",
+    "mappingConfig": "Table Mapping Configuration",
+    "mappingHint": "Choose tables from the live source catalog to create mappings, or enter them manually. Existing target tables must have compatible columns.",
+    "mapping": {
+      "row": "Table mapping",
+      "sourceSchema": "Source schema (optional)",
+      "targetSchema": "Target schema (optional)",
+      "sourceTable": "Source table",
+      "targetTable": "Target table",
+      "schemaPlaceholder": "Use the datasource default schema",
+      "discoveredTable": "Add from source catalog",
+      "discovering": "Reading table catalog…",
+      "noDiscoveredTables": "No base tables discovered",
+      "selectDiscoveredTable": "Select a source table",
+      "add": "Add table mapping",
+      "remove": "Remove table mapping",
+      "duplicateTarget": "Each target table can have only one mapping.",
+      "syncMode": "Sync mode",
+      "full": "Full sync",
+      "fullHint": "Full sync is supported. Incremental and CDC integration is still being developed.",
+      "appendHint": "DuckDB targets use a source snapshot and replace rows inside one transaction; failed or cancelled runs roll back their target writes.",
+      "batchSize": "Rows per batch (optional)",
+      "batchHint": "Leave blank for 1000 rows; enter an integer from 1 to 100000.",
+      "batchInvalid": "Batch size must be an integer from 1 to 100000."
+    },
+    "validation": {
+      "required": "Provide a task name, datasources and at least one complete table mapping.",
+      "too_long": "Input exceeds the maximum length.",
+      "duplicate_target": "Each target table can have only one mapping.",
+      "same_datasource": "Choose different source and target datasources."
+    },
+    "cronLabel": "Cron expression (optional)",
     "cronPlaceholder": "e.g. 0 */6 * * * (every 6 hours)",
     "cronHint": "Leave empty for manual trigger only",
     "confirmTitle": "Confirm Task Configuration",
@@ -147,6 +250,7 @@
     "target": "Target",
     "schedule": "Schedule",
     "manualTrigger": "Manual Trigger",
+    "manualRunHint": "Run the pipeline manually after creation. Connect a scheduler to configure periodic runs on its detail page.",
     "confirmCreate": "Confirm Create",
     "creating": "Creating...",
     "prevStep": "Previous",
@@ -155,6 +259,8 @@
     "detail": {
       "title": "Task Detail",
       "realTimeProgress": "Real-time Progress",
+      "metricsUnavailable": "Reliable sync counters are unavailable for this run. Check its logs and final result.",
+      "logsAccessDenied": "Access to task logs is no longer available. Refresh the page to update your permissions.",
       "source": "Source",
       "target": "Target",
       "status": "Status",
@@ -163,10 +269,20 @@
       "noExecutionRecords": "No execution records",
       "pause": "Pause",
       "start": "Start",
+      "cancelRun": "Cancel run",
+      "cancelling": "Waiting for cancellation",
+      "rerun": "Run again",
+      "loadError": "Failed to load task details. Please retry.",
+      "scheduleError": "Failed to load the schedule. Its current status is unknown.",
+      "schedulerUnavailable": "The scheduler is not configured. This pipeline can be run manually.",
+      "scheduleUpdateError": "Failed to update the schedule. Check the expression and retry.",
+      "bytes": "Bytes synced",
+      "table": "Current table",
       "rowsSynced": "Synced {{count}} rows"
     }
   },
   "monitoring": {
+    "notCollected": "Not collected",
     "title": "Monitoring & Alerts",
     "subtitle": "System health monitoring and alert configuration",
     "cpuUsage": "CPU Usage",
@@ -197,6 +313,7 @@
     "row_count": "Row Count"
   },
   "errors": {
+    "forbidden": "Your account does not have permission for this operation.",
     "somethingWentWrong": "Something went wrong",
     "tryAgainLater": "Please try again later",
     "networkError": "Network connection failed",
@@ -215,6 +332,12 @@
     "dark": "Dark Mode"
   },
   "ai": {
+    "reportTitle": "AI Analysis Report",
+    "generateReport": "Generate AI report",
+    "generatingReport": "AI is generating the report...",
+    "reportFailed": "Report generation failed",
+    "regenerateReport": "Regenerate",
+    "disabled": "AI service is disabled. Configure it before generating a report.",
     "openPanel": "Open AI Assistant",
     "closePanel": "Close AI Assistant",
     "send": "Send",
@@ -224,6 +347,17 @@
     "welcomeSub": "I can help you analyze data, write SQL, and check task status"
   },
   "ops": {
+    "dispatchHistory": "Schedule command dispatch records",
+    "dispatchHistoryHint": "These records track timer start and stop commands. Results of each sync appear in the execution history.",
+    "cronUtc": "Cron expression (UTC timezone)",
+    "scheduleStates": {
+      "active": "Active",
+      "pending": "Waiting for worker",
+      "offline": "Worker offline",
+      "stopped": "Stopped",
+      "inactive": "Timer template saved"
+    },
+    "dispatched": "Dispatched",
     "subtitle": "Schedule Management, Execution Logs & Agent Monitoring",
     "instances": "Periodic Instances",
     "dispatch": "Backfill",
@@ -256,6 +390,10 @@
     "users": "Users",
     "tenants": "Tenants",
     "roles": "Roles",
+    "roleIds": "Role IDs (comma separated)",
+    "rolesLoadError": "Unable to load tenant roles. Retry before saving.",
+    "roleMappingError": "The user's role names cannot be matched to unique roles in this tenant. Check the role assignments before saving.",
+    "roleIdsInvalid": "Every role ID must belong to the current tenant.",
     "permissionMatrix": "Permission Matrix",
     "permissionMatrixHint": "Read-only view of role-to-permission mapping",
     "permissions": "Permissions",
@@ -299,12 +437,26 @@
     "permissionHint": "All available permission codes in the system",
     "permissionCode": "Code",
     "permissionGroup": "Group",
-    "permissionDesc": "Description"
+    "permissionDesc": "Description",
+    "roleCount": "{{count}} roles",
+    "permissionCount": "{{count}} permissions",
+    "statusLabels": {
+      "active": "Enabled",
+      "disabled": "Disabled"
+    }
   },
   "query": {
+    "subtitle": "Query connected analytics tables. Use LIMIT to bound large results.",
+    "schemaError": "Failed to load analytics tables. Please retry.",
+    "suggestedChart": "Suggested chart",
+    "charts": {
+      "bar": "Bar",
+      "line": "Line",
+      "pie": "Pie"
+    },
     "execute": "Execute",
     "schemas": "Schemas",
-    "noSchemas": "No data sources (ATTACH first)",
+    "noSchemas": "No analytics tables connected",
     "history": "History",
     "clearHistory": "Clear History",
     "error": "Query Error",
@@ -313,9 +465,11 @@
     "columns": "columns",
     "ready": "Enter SQL in the editor and press Ctrl+Enter to execute",
     "toExecute": "to execute",
-    "truncated": "Showing first {{shown}} of {{total}} rows"
+    "truncated": "Showing first {{shown}} of {{total}} rows",
+    "toggleCatalog": "Catalog & history"
   },
   "analysis": {
+    "disabled": "AI service is disabled. Configure it before generating SQL.",
     "ask": "Ask",
     "askQuestion": "Describe your data analysis needs in natural language",
     "questionPlaceholder": "e.g. Calculate total order amount per customer, sorted by amount",

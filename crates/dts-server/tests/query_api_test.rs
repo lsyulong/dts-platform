@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! Query API integration tests
 //!
 //! Tests for SwanLake query endpoints (POST /api/v1/query/execute, GET /api/v1/query/schemas).
@@ -40,7 +39,7 @@ async fn query_execute_without_token_returns_401() {
 
     let req = test::TestRequest::post()
         .uri("/api/v1/query/execute")
-        .set_json(&serde_json::json!({"sql": "SELECT 1"}))
+        .set_json(serde_json::json!({"sql": "SELECT 1"}))
         .to_request();
     let resp = test::call_service(&app, req).await;
 
@@ -104,6 +103,7 @@ async fn swanlake_config_uri_conversion() {
         enabled: true,
         host: "swanlake".to_string(),
         port: 4214,
+        ..SwanLakeConfig::default()
     };
     assert_eq!(config.uri(), "grpc://swanlake:4214");
 }

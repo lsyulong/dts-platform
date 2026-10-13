@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::sync::Arc;
 
 use anyhow::anyhow;
@@ -128,7 +127,10 @@ mod tests {
         }
 
         fn last_create_params(&self) -> Option<CreateAlertParams> {
-            self.last_create_params.lock().expect("Mutex poisoned").clone()
+            self.last_create_params
+                .lock()
+                .expect("Mutex poisoned")
+                .clone()
         }
 
         fn toggle_calls(&self) -> Vec<(String, String)> {

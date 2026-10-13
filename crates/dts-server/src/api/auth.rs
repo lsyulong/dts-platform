@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::sync::Arc;
 
 use actix_web::{HttpRequest, HttpResponse, web};
@@ -26,24 +25,73 @@ use dts_backend::repo::{RoleRepo, UserRepo};
 
 /// POST /api/v1/auth/login
 pub async fn login(
+    req: HttpRequest,
     auth_svc: web::Data<AuthService>,
     body: web::Json<LoginRequest>,
 ) -> Result<HttpResponse, AppError> {
+    if body.username.is_empty()
+        || body.username.len() > 256
+        || body.tenant_slug.len() > 128
+        || body.password.len() > 4096
+    {
+        return Err(AppError::BadRequest("登录字段长度无效".into()));
+    }
     info!("用户登录: {} @ {}", body.username, body.tenant_slug);
-    let response = auth_svc
-        .login(&body)
-        .await
-        .map_err(|e| AppError::Unauthorized(e.to_string()))?;
-    Ok(HttpResponse::Ok().json(response))
+    let result = auth_svc.login(&body).await;
+    if let Some(events) = req.app_data::<web::Data<crate::services::product::ProductService>>() {
+        let tenant = match &result {
+            Ok(response) => Some(response.user.tenant_id.clone()),
+            Err(_) => auth_svc
+                .tenant_repo
+                .find_by_slug(&body.tenant_slug)
+                .await?
+                .map(|tenant| tenant.id),
+        };
+        if let Some(tenant_id) = tenant {
+            let user_id = result
+                .as_ref()
+                .ok()
+                .map(|response| response.user.id.as_str());
+            let source_ip = req
+                .peer_addr()
+                .map(|addr| addr.ip().to_string())
+                .unwrap_or_default();
+            if let Err(error) = events
+                .record_login(
+                    &tenant_id,
+                    user_id,
+                    &body.username,
+                    &source_ip,
+                    result.is_ok(),
+                )
+                .await
+            {
+                tracing::error!("登录审计持久化失败");
+                if let Ok(response) = &result {
+                    let _ = auth_svc.logout(&response.token).await;
+                    return Err(error);
+                }
+            }
+        }
+    }
+    Ok(HttpResponse::Ok().json(result?))
+}
+
+/// POST /api/v1/auth/logout
+pub async fn logout(
+    req: HttpRequest,
+    auth_svc: web::Data<AuthService>,
+) -> Result<HttpResponse, AppError> {
+    auth_svc.logout(auth::bearer_token(&req)?).await?;
+    Ok(HttpResponse::NoContent().finish())
 }
 
 /// GET /api/v1/auth/me
 pub async fn me(
     req: HttpRequest,
-    auth_svc: web::Data<AuthService>,
     user_repo: web::Data<Arc<dyn UserRepo>>,
 ) -> Result<HttpResponse, AppError> {
-    let claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::authenticate_request(&req).await?;
 
     let user_detail = user_repo
         .find_detail_by_id(&claims.sub)
@@ -67,16 +115,35 @@ pub async fn me(
 /// GET /api/v1/auth/permissions
 pub async fn my_permissions(
     req: HttpRequest,
-    auth_svc: web::Data<AuthService>,
     role_repo: web::Data<Arc<dyn RoleRepo>>,
 ) -> Result<HttpResponse, AppError> {
-    let claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::authenticate_request(&req).await?;
 
     let permissions = role_repo.find_user_permissions(&claims.sub).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "permissions": permissions,
     })))
+}
+
+pub async fn update_profile(
+    req: HttpRequest,
+    auth_svc: web::Data<AuthService>,
+    body: web::Json<UpdateProfileRequest>,
+) -> Result<HttpResponse, AppError> {
+    let identity = auth::authenticate_request(&req).await?;
+    let user = auth_svc.update_self_profile(&identity, &body).await?;
+    Ok(HttpResponse::Ok().json(user))
+}
+
+pub async fn change_password(
+    req: HttpRequest,
+    auth_svc: web::Data<AuthService>,
+    body: web::Json<ChangePasswordRequest>,
+) -> Result<HttpResponse, AppError> {
+    let identity = auth::authenticate_request(&req).await?;
+    auth_svc.change_self_password(&identity, &body).await?;
+    Ok(HttpResponse::NoContent().finish())
 }
 
 #[cfg(test)]

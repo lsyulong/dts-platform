@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use async_trait::async_trait;
 
 use crate::error::BackendError;
@@ -45,6 +44,18 @@ pub trait UserRepo: Send + Sync {
         status: Option<&str>,
     ) -> Result<Vec<UserListInfo>, BackendError>;
 
+    async fn list_references(
+        &self,
+        _tenant_id: &str,
+        _search: &str,
+        _limit: u32,
+        _offset: u32,
+    ) -> Result<UserReferencePage, BackendError> {
+        Err(BackendError::Configuration(
+            "当前仓储未实现分页用户目录".into(),
+        ))
+    }
+
     /// 更新用户基本信息
     async fn update(&self, user_id: &str, params: &UpdateUserParams) -> Result<(), BackendError>;
 
@@ -53,6 +64,30 @@ pub trait UserRepo: Send + Sync {
 
     /// 重置用户密码
     async fn reset_password(&self, user_id: &str, password_hash: &str) -> Result<(), BackendError>;
+
+    async fn update_self_profile(
+        &self,
+        _user_id: &str,
+        _tenant_id: &str,
+        _email: &str,
+        _display_name: &str,
+    ) -> Result<bool, BackendError> {
+        Err(BackendError::Configuration(
+            "当前仓储未实现本人资料更新".into(),
+        ))
+    }
+
+    async fn compare_exchange_password(
+        &self,
+        _user_id: &str,
+        _tenant_id: &str,
+        _expected_hash: &str,
+        _new_hash: &str,
+    ) -> Result<bool, BackendError> {
+        Err(BackendError::Configuration(
+            "当前仓储未实现原子密码变更".into(),
+        ))
+    }
 
     /// 移除用户的所有角色
     async fn remove_roles(&self, user_id: &str) -> Result<(), BackendError>;
@@ -69,4 +104,18 @@ pub struct UserDetail {
     pub tenant_name: String,
     pub roles: Vec<String>,
     pub permissions: Vec<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct UserReferenceItem {
+    pub id: String,
+    pub tenant_id: String,
+    pub username: String,
+    pub display_name: Option<String>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct UserReferencePage {
+    pub data: Vec<UserReferenceItem>,
+    pub total: i64,
 }

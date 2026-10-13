@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/dts-server", "crates/dts-backend", "crates/dts-backend-rdbms", "crates/dts-backend-postgres", "crates/dts-backend-sqlite", "crates/dts-core", "crates/dts-engine", "crates/dts-engine-ape", "crates/dts-scheduler-client", "crates/dts-deerflow-client"]
+members = ["crates/dts-server", "crates/dts-backend", "crates/dts-backend-rdbms", "crates/dts-backend-postgres", "crates/dts-backend-sqlite", "crates/dts-core", "crates/dts-engine", "crates/dts-engine-ape", "crates/dts-engine-swanlake", "crates/dts-scheduler-client", "crates/dts-deerflow-client"]
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }

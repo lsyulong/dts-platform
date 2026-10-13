@@ -12,21 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+use crate::models::auth::AuthIdentity;
 use crate::models::error::AppError;
-use crate::services::token::Claims;
 
 /// 验证请求者是否属于目标租户
-/// super_admin 暂时不做跨租户特殊处理，后续 Phase 2 实现
-pub fn verify_tenant_access(claims: &Claims, target_tenant_id: &str) -> Result<(), AppError> {
-    if claims.tenant_id == target_tenant_id {
+pub fn verify_tenant_access(claims: &AuthIdentity, target_tenant_id: &str) -> Result<(), AppError> {
+    if !claims.tenant_id.is_empty() && claims.tenant_id == target_tenant_id {
         return Ok(());
     }
     Err(AppError::Forbidden("跨租户访问被拒绝".into()))
 }
 
-/// 从 Claims 中提取租户 ID
-pub fn tenant_id_from_claims(claims: &Claims) -> String {
+/// 从已认证身份中提取租户 ID
+pub fn tenant_id_from_identity(claims: &AuthIdentity) -> String {
     claims.tenant_id.clone()
 }
 
@@ -35,13 +33,11 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
 
-    fn make_claims(tenant_id: &str) -> Claims {
-        Claims {
+    fn make_identity(tenant_id: &str) -> AuthIdentity {
+        AuthIdentity {
             sub: "user-1".into(),
             tenant_id: tenant_id.into(),
             username: "testuser".into(),
-            exp: 1700000000,
-            iat: 1699990000,
         }
     }
 
@@ -49,14 +45,14 @@ mod tests {
 
     #[test]
     fn verify_tenant_access_matching_tenant_id_passes() {
-        let claims = make_claims("tenant-123");
+        let claims = make_identity("tenant-123");
         let result = verify_tenant_access(&claims, "tenant-123");
         assert!(result.is_ok());
     }
 
     #[test]
     fn verify_tenant_access_mismatched_tenant_id_returns_forbidden() {
-        let claims = make_claims("tenant-123");
+        let claims = make_identity("tenant-123");
         let result = verify_tenant_access(&claims, "tenant-456");
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -69,31 +65,31 @@ mod tests {
 
     #[test]
     fn verify_tenant_access_empty_tenant_id() {
-        let claims = make_claims("");
+        let claims = make_identity("");
         let result = verify_tenant_access(&claims, "");
-        assert!(result.is_ok());
+        assert!(result.is_err());
     }
 
     #[test]
     fn verify_tenant_access_different_case_tenant_ids() {
-        let claims = make_claims("Tenant-A");
+        let claims = make_identity("Tenant-A");
         let result = verify_tenant_access(&claims, "Tenant-a");
         assert!(result.is_err());
     }
 
-    // ========== tenant_id_from_claims Tests ==========
+    // ========== tenant_id_from_identity Tests ==========
 
     #[test]
-    fn tenant_id_from_claims_returns_tenant_id() {
-        let claims = make_claims("my-tenant");
-        let tenant_id = tenant_id_from_claims(&claims);
+    fn tenant_id_from_identity_returns_tenant_id() {
+        let claims = make_identity("my-tenant");
+        let tenant_id = tenant_id_from_identity(&claims);
         assert_eq!(tenant_id, "my-tenant");
     }
 
     #[test]
-    fn tenant_id_from_claims_with_uuid_tenant_id() {
-        let claims = make_claims("550e8400-e29b-41d4-a716-446655440000");
-        let tenant_id = tenant_id_from_claims(&claims);
+    fn tenant_id_from_identity_with_uuid_tenant_id() {
+        let claims = make_identity("550e8400-e29b-41d4-a716-446655440000");
+        let tenant_id = tenant_id_from_identity(&claims);
         assert_eq!(tenant_id, "550e8400-e29b-41d4-a716-446655440000");
     }
 }

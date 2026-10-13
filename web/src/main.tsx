@@ -5,9 +5,9 @@ import { queryClient } from './lib/queryClient';
 import App from './App';
 import './i18n';
 import './index.css';
+import { useAppStore } from './stores/app';
 
-// Initialize theme from localStorage/dark mode
-const savedTheme = localStorage.getItem('theme') || 'dark';
+const savedTheme = useAppStore.getState().theme;
 document.documentElement.classList.toggle('dark', savedTheme === 'dark');
 // Prevent flash of transitions on initial load
 document.documentElement.classList.add('no-transitions');
@@ -20,5 +20,5 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
-  </StrictMode>
+  </StrictMode>,
 );

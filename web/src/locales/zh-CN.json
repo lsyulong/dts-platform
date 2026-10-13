@@ -20,7 +20,8 @@
     "close": "关闭",
     "retry": "重试",
     "copy": "复制",
-    "copied": "已复制"
+    "copied": "已复制",
+    "platformLabel": "数据中台"
   },
   "nav": {
     "toggleMenu": "切换菜单",
@@ -37,9 +38,12 @@
       "development": "数据开发",
       "consumption": "数据消费",
       "governance": "数据治理"
-    }
+    },
+    "breadcrumb": "当前位置"
   },
   "auth": {
+    "logoutFailed": "服务器会话未能撤销，请重试。",
+    "restoreFailed": "暂时无法验证会话，已保留本地会话，请恢复连接后重试",
     "login": "登录",
     "loggingIn": "登录中...",
     "logout": "退出",
@@ -48,15 +52,61 @@
     "password": "密码",
     "loginFailed": "登录失败",
     "welcomeBack": "欢迎回来",
-    "defaultCreds": "默认账户: admin / admin123 (租户: default)",
+    "defaultCreds": "请使用管理员提供的租户标识、账号和密码登录。",
     "tenantNotFound": "租户不存在或已停用",
     "wrongPassword": "用户名或密码错误",
     "accountDisabled": "账户已被禁用",
+    "console": "平台工作台",
+    "signInDescription": "登录你的租户，进入数据工作空间。",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码",
+    "brandHeadline": "让数据工作，井然有序。",
+    "brandDescription": "围绕数据接入、开发、治理与消费，规划统一的轻量数据工作空间。",
+    "workspaceLabel": "数据工作流程",
+    "workflowLabel": "产品工作流程示意：从数据源接入，经数据开发，进入数据消费；以租户、组织和权限为基础。",
+    "workflowFoundation": "租户 · 组织 · 权限",
+    "productAreasLabel": "产品功能领域",
+    "brandFooter": "面向团队的数据工作空间",
+    "workspaceFooter": "数据工作，从这里开始。",
+    "workflow": {
+      "sources": {
+        "title": "数据接入",
+        "description": "连接 · 同步"
+      },
+      "workspace": {
+        "title": "数据开发",
+        "description": "建模 · 加工"
+      },
+      "consumption": {
+        "title": "数据消费",
+        "description": "服务 · 分析"
+      }
+    },
+    "productAreas": {
+      "integration": "数据集成",
+      "development": "数据开发",
+      "governance": "数据治理",
+      "assets": "数据资产",
+      "services": "数据服务",
+      "identity": "权限管理"
+    },
     "loginFeatures": {
-      "integration": { "title": "多源接入", "desc": "支持 10+ 主流数据库与数据源" },
-      "analysis": { "title": "极速分析", "desc": "DuckDB 内核，单机处理 TB 级数据" },
-      "ai": { "title": "AI 驱动", "desc": "自然语言查数据，智能生成报告" },
-      "deploy": { "title": "轻量部署", "desc": "单台 4C8G 机器即可运行全部组件" }
+      "integration": {
+        "title": "多源接入",
+        "desc": "MySQL / PostgreSQL 全量同步"
+      },
+      "analysis": {
+        "title": "数据查询",
+        "desc": "通过 SwanLake 查询业务数据"
+      },
+      "ai": {
+        "title": "AI 驱动",
+        "desc": "按需接入 DeerFlow 智能服务"
+      },
+      "deploy": {
+        "title": "轻量部署",
+        "desc": "单机部署，按需接入引擎组件"
+      }
     }
   },
   "dashboard": {
@@ -66,7 +116,7 @@
     "runningCount": "{{count}} 个运行中",
     "todaySyncData": "今日处理数据",
     "rowsCount": "{{count}} 行",
-    "successRate": "成功率",
+    "successRate": "非失败任务比例",
     "failedCount": "{{count}} 个失败任务",
     "healthyDatasources": "健康数据源",
     "connectionHealthy": "连接正常",
@@ -77,13 +127,15 @@
     "dataFlowPlaceholder": "实时数据流拓扑图",
     "dataFlowHint": "集成 ape-dts 引擎后启用",
     "systemLog": "系统日志",
-    "logStarted": "DTS Platform 已启动",
-    "logDbConnected": "数据库连接成功: SQLite",
     "globalLog": "全局日志",
     "realtimeLog": "实时日志",
-    "waitingForLogs": "等待日志输出...",
+    "waitingForLogs": "暂无日志",
     "syncVolumeChart": "📊 同步数据量",
-    "taskDistribution": "🍩 任务状态分布"
+    "taskDistribution": "🍩 任务状态分布",
+    "noData": "暂无数据",
+    "connectionUnconfirmed": "部分连接尚未确认正常",
+    "noSyncVolume": "暂无同步执行记录",
+    "noTaskDistribution": "暂无任务状态数据"
   },
   "datasources": {
     "title": "数据源管理",
@@ -103,14 +155,35 @@
     "deleteConfirm": "确认删除此数据源？",
     "deleteSuccess": "数据源已删除",
     "createSuccess": "数据源已创建",
+    "testConnection": "检测连接",
+    "probeSuccess": "连接正常，耗时 {{latency}} ms",
+    "probeFailed": "连接检测失败",
+    "probeUnsupported": "该数据源类型暂不支持真实连接检测",
+    "probeHistory": "连接检测历史",
+    "history": "历史",
+    "lastTested": "最近检测：{{time}}",
+    "sqlitePath": "SQLite 文件路径（可填写 :memory:）",
+    "swanlakeHost": "SwanLake Flight SQL 主机",
+    "duckdbCatalog": "DuckDB / DuckLake catalog 名称",
+    "noProbeHistory": "暂无连接检测记录",
+    "observedAt": "检测时间",
+    "latency": "耗时",
+    "probeDetail": "检测结果",
+    "probePassed": "SELECT 1 校验通过",
     "noDatasources": "暂无数据源",
-    "createFirst": "创建第一个数据源"
+    "createFirst": "创建第一个数据源",
+    "healthStatus": "连接状态",
+    "healthStatuses": {
+      "healthy": "正常",
+      "unhealthy": "异常",
+      "unknown": "未检测"
+    }
   },
   "tasks": {
     "title": "任务管理",
     "subtitle": "管理所有数据同步任务",
     "createTask": "创建任务",
-    "searchPlaceholder": "搜索任务名称或描述... (Ctrl+K)",
+    "searchPlaceholder": "搜索任务名称或描述...",
     "noTasks": "暂无同步任务",
     "createFirst": "创建第一个任务",
     "status": {
@@ -129,7 +202,7 @@
       "basic": "基本信息",
       "source": "源端配置",
       "target": "目标端配置",
-      "mapping": "字段映射",
+      "mapping": "表映射",
       "schedule": "调度配置",
       "confirm": "确认提交"
     },
@@ -137,8 +210,38 @@
     "descPlaceholder": "简要描述此同步任务的用途...",
     "selectSource": "选择数据源端连接",
     "selectTarget": "选择目标端连接",
-    "mappingConfig": "字段映射配置",
-    "mappingHint": "集成 ape-dts 引擎后支持自动映射和 Lua 转换",
+    "supportedDatasources": "支持 MySQL/PostgreSQL 互传，以及 MySQL/PostgreSQL/DuckDB 写入 DuckDB。",
+    "mappingConfig": "表映射配置",
+    "mappingHint": "可从真实数据源目录选择表并自动生成映射，也可手工填写；已有目标表必须保持字段兼容。",
+    "mapping": {
+      "row": "表映射",
+      "sourceSchema": "源 Schema（可选）",
+      "targetSchema": "目标 Schema（可选）",
+      "sourceTable": "源表",
+      "targetTable": "目标表",
+      "schemaPlaceholder": "使用数据源的默认 Schema",
+      "discoveredTable": "从源端目录添加表",
+      "discovering": "正在读取表目录…",
+      "noDiscoveredTables": "未发现可用基础表",
+      "selectDiscoveredTable": "选择一个源表",
+      "add": "添加表映射",
+      "remove": "删除表映射",
+      "duplicateTarget": "每个目标表只能配置一条映射。",
+      "syncMode": "同步模式",
+      "full": "全量同步",
+      "fullHint": "当前支持全量任务。增量和 CDC 接入仍在开发中。",
+      "appendHint": "DuckDB 目标采用源端临时快照和事务内全量替换；任务失败或取消会回滚本次目标写入。",
+      "batchSize": "批次行数（可选）",
+      "batchHint": "留空使用 1000 行；可填写 1 至 100000 的整数。",
+      "batchInvalid": "批次行数必须是 1 至 100000 的整数。"
+    },
+    "validation": {
+      "required": "请填写任务名称、数据源和至少一条完整的表映射。",
+      "too_long": "输入内容超出长度限制。",
+      "duplicate_target": "每个目标表只能配置一条映射。",
+      "same_datasource": "请选择不同的源端和目标端。"
+    },
+    "cronLabel": "Cron 表达式（可选）",
     "cronPlaceholder": "例如: 0 */6 * * * (每6小时执行)",
     "cronHint": "留空则仅支持手动触发",
     "confirmTitle": "确认任务配置",
@@ -147,6 +250,7 @@
     "target": "目标端",
     "schedule": "调度",
     "manualTrigger": "手动触发",
+    "manualRunHint": "任务创建后可手动执行。连接调度服务后，可到任务详情页配置定时执行。",
     "confirmCreate": "确认创建",
     "creating": "创建中...",
     "prevStep": "上一步",
@@ -155,6 +259,8 @@
     "detail": {
       "title": "任务详情",
       "realTimeProgress": "实时进度",
+      "metricsUnavailable": "当前引擎未提供可靠的同步计数，请查看运行日志和最终结果。",
+      "logsAccessDenied": "任务日志访问已失效。请刷新页面以更新权限。",
       "source": "源端",
       "target": "目标端",
       "status": "状态",
@@ -163,10 +269,20 @@
       "noExecutionRecords": "暂无执行记录",
       "pause": "暂停",
       "start": "启动",
+      "cancelRun": "取消运行",
+      "cancelling": "等待取消确认",
+      "rerun": "重新运行",
+      "loadError": "加载任务详情失败，请重试。",
+      "scheduleError": "加载调度信息失败，当前调度状态未知。",
+      "schedulerUnavailable": "调度服务未配置，当前任务可手动执行。",
+      "scheduleUpdateError": "更新调度失败，请检查表达式并重试。",
+      "bytes": "已同步字节",
+      "table": "当前表",
       "rowsSynced": "已同步 {{count}} 行"
     }
   },
   "monitoring": {
+    "notCollected": "未采集",
     "title": "监控告警",
     "subtitle": "系统运行状态监控与告警配置",
     "cpuUsage": "CPU 使用率",
@@ -197,6 +313,7 @@
     "row_count": "行数"
   },
   "errors": {
+    "forbidden": "当前账号没有执行此操作的权限。",
     "somethingWentWrong": "出了点问题",
     "tryAgainLater": "请稍后重试",
     "networkError": "网络连接失败",
@@ -215,6 +332,12 @@
     "dark": "深色模式"
   },
   "ai": {
+    "reportTitle": "AI 分析报告",
+    "generateReport": "生成 AI 分析报告",
+    "generatingReport": "AI 正在生成分析报告...",
+    "reportFailed": "生成报告失败",
+    "regenerateReport": "重新生成",
+    "disabled": "AI 服务未启用，请先完成服务配置。",
     "openPanel": "打开 AI 助手",
     "closePanel": "关闭 AI 助手",
     "send": "发送",
@@ -224,6 +347,17 @@
     "welcomeSub": "我可以帮你分析数据、编写 SQL、查看任务状态"
   },
   "ops": {
+    "dispatchHistory": "调度下发记录",
+    "dispatchHistoryHint": "这里记录定时启停命令的下发；每次同步的结果见执行记录。",
+    "cronUtc": "Cron 表达式（UTC 时区）",
+    "scheduleStates": {
+      "active": "定时运行中",
+      "pending": "等待工作节点",
+      "offline": "工作节点离线",
+      "stopped": "已停止",
+      "inactive": "已保存定时模板"
+    },
+    "dispatched": "已下发",
     "subtitle": "调度管理、执行日志与 Agent 监控",
     "instances": "周期实例",
     "dispatch": "补数据",
@@ -256,6 +390,10 @@
     "users": "用户管理",
     "tenants": "租户管理",
     "roles": "角色管理",
+    "roleIds": "角色 ID（逗号分隔）",
+    "rolesLoadError": "加载租户角色失败，请重试后再保存。",
+    "roleMappingError": "当前用户的角色名称无法对应到本租户的唯一角色，请核对角色分配后再保存。",
+    "roleIdsInvalid": "所有角色 ID 都必须属于当前租户。",
     "permissionMatrix": "权限矩阵",
     "permissionMatrixHint": "角色与权限的映射关系（只读）",
     "permissions": "权限",
@@ -299,12 +437,26 @@
     "permissionHint": "列出系统中所有可用的权限代码及其说明",
     "permissionCode": "权限代码",
     "permissionGroup": "分组",
-    "permissionDesc": "说明"
+    "permissionDesc": "说明",
+    "roleCount": "共 {{count}} 个角色",
+    "permissionCount": "{{count}} 项权限",
+    "statusLabels": {
+      "active": "已启用",
+      "disabled": "已停用"
+    }
   },
   "query": {
+    "subtitle": "查询已接入的分析表，大结果请使用 LIMIT 限制行数。",
+    "schemaError": "加载分析表失败，请重试。",
+    "suggestedChart": "推荐图表",
+    "charts": {
+      "bar": "柱状图",
+      "line": "折线图",
+      "pie": "饼图"
+    },
     "execute": "执行",
     "schemas": "数据源",
-    "noSchemas": "暂无数据源（请先 ATTACH）",
+    "noSchemas": "暂无已接入的分析表",
     "history": "历史",
     "clearHistory": "清空历史",
     "error": "查询错误",
@@ -313,9 +465,11 @@
     "columns": "列",
     "ready": "在编辑器中输入 SQL，按 Ctrl+Enter 执行",
     "toExecute": "执行",
-    "truncated": "仅显示前 {{shown}} 行，共 {{total}} 行"
+    "truncated": "仅显示前 {{shown}} 行，共 {{total}} 行",
+    "toggleCatalog": "目录与历史"
   },
   "analysis": {
+    "disabled": "AI 服务未启用，请配置后再生成 SQL。",
     "ask": "提问",
     "askQuestion": "用自然语言描述你的数据分析需求",
     "questionPlaceholder": "例如: 统计每个客户的订单总额，按金额降序排列",

@@ -12,91 +12,250 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::{sync::Arc, time::Duration};
 
-use std::sync::Arc;
-
-use anyhow::{Context, Result};
+use anyhow::Result;
 use reqwest::{Client as HttpClient, cookie::Jar};
-use serde::de::DeserializeOwned;
-use tracing::{debug, info};
+use serde::{Deserialize, de::DeserializeOwned};
+use tracing::info;
 
 use crate::models::*;
 
-/// jiascheduler REST API 客户端
-///
-/// 使用示例：
-/// ```ignore
-/// let client = JiaSchedulerClient::login("http://localhost:9090", "admin", "password").await?;
-/// let timers = client.query_timer(QueryTimerParams { name: None, job_type: None, page: 1, page_size: 100 }).await?;
-/// ```
 #[derive(Clone)]
 pub struct JiaSchedulerClient {
     base_url: String,
     http_client: HttpClient,
 }
 
-impl JiaSchedulerClient {
-    /// 登录 jiascheduler 并创建客户端实例
-    pub async fn login(base_url: &str, username: &str, password: &str) -> Result<Self> {
-        // session 通过 cookie 管理
-        let jar = Arc::new(Jar::default());
-        let http_client = HttpClient::builder().cookie_provider(jar).build()?;
+#[derive(Deserialize)]
+struct Envelope {
+    code: i32,
+    data: Option<serde_json::Value>,
+}
 
+impl JiaSchedulerClient {
+    pub async fn login(base_url: &str, username: &str, password: &str) -> Result<Self> {
+        let url =
+            reqwest::Url::parse(base_url).map_err(|_| anyhow::anyhow!("invalid scheduler URL"))?;
+        if !["http", "https"].contains(&url.scheme())
+            || !url.username().is_empty()
+            || url.password().is_some()
+        {
+            anyhow::bail!("scheduler URL must use HTTP(S) without embedded credentials");
+        }
+        let http_client = HttpClient::builder()
+            .cookie_provider(Arc::new(Jar::default()))
+            .connect_timeout(Duration::from_secs(5))
+            .timeout(Duration::from_secs(15))
+            .redirect(reqwest::redirect::Policy::none())
+            .build()?;
         let client = Self {
-            base_url: base_url.trim_end_matches('/').to_string(),
+            base_url: base_url.trim_end_matches('/').to_owned(),
             http_client,
         };
-
-        // 发送登录请求，获取 session cookie
-        let resp = client
-            .http_client
-            .post(format!("{}/api/user/login", client.base_url))
-            .json(&serde_json::json!({
-                "username": username,
-                "password": password,
-            }))
-            .send()
+        let _: serde_json::Value = client
+            .post(
+                "/api/user/login",
+                &serde_json::json!({
+                    "username": username, "password": password,
+                }),
+            )
             .await?;
-
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("jiascheduler 登录失败 (HTTP {status}): {body}");
-        }
-
-        info!(base_url = %client.base_url, "jiascheduler 登录成功");
+        info!("jiascheduler session established");
         Ok(client)
     }
 
-    /// 创建或更新作业定义
     pub async fn save_job(&self, req: &SaveJobReq) -> Result<SaveJobResp> {
         self.post("/api/job/save", req).await
     }
 
-    /// 创建或更新定时器
-    pub async fn save_timer(&self, req: &SaveTimerReq) -> Result<SaveTimerResp> {
-        self.post("/api/job/timer", req).await
+    pub async fn query_job(
+        &self,
+        name: Option<&str>,
+        id: Option<u64>,
+        page: u64,
+    ) -> Result<QueryJobResp> {
+        let mut params = serde_json::json!({"job_type": "default", "page": page, "page_size": 100});
+        if let Some(name) = name {
+            params["name"] = name.into();
+        }
+        if let Some(id) = id {
+            params["default_id"] = id.into();
+        }
+        self.get("/api/job/list", &params).await
     }
 
-    /// 删除定时器
+    pub async fn find_job(&self, name: &str) -> Result<Option<JobRecord>> {
+        let mut found = None;
+        for page in 1..=100 {
+            let response = self.query_job(Some(name), None, page).await?;
+            for job in response.list {
+                if job.name == name {
+                    if found.is_some() {
+                        anyhow::bail!("duplicate scheduler job name");
+                    }
+                    found = Some(job);
+                }
+            }
+            if page * 100 >= response.total {
+                return Ok(found);
+            }
+        }
+        anyhow::bail!("scheduler job lookup exceeded pagination limit")
+    }
+
+    pub async fn job_by_id(&self, id: u64) -> Result<JobRecord> {
+        let mut matches = self
+            .query_job(None, Some(id), 1)
+            .await?
+            .list
+            .into_iter()
+            .filter(|job| job.id == id);
+        let job = matches
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("saved scheduler job was not returned"))?;
+        if matches.next().is_some() || job.eid.is_empty() {
+            anyhow::bail!("saved scheduler job has an invalid identity");
+        }
+        Ok(job)
+    }
+
+    pub async fn save_timer(&self, req: &SaveTimerReq) -> Result<SaveTimerResp> {
+        req.timer_expr.validate()?;
+        self.post("/api/job/save-timer", req).await
+    }
+
     pub async fn delete_timer(&self, id: u64) -> Result<()> {
-        let _resp: serde_json::Value = self
-            .post("/api/job/timer/delete", &DeleteTimerReq { id })
+        let response: DeleteTimerResp = self
+            .post("/api/job/delete-timer", &DeleteTimerReq { id })
             .await?;
+        if response.result == 0 {
+            anyhow::bail!("scheduler timer was not deleted");
+        }
         Ok(())
     }
 
-    /// 立即下发作业执行
     pub async fn dispatch(&self, req: &DispatchJobReq) -> Result<DispatchJobResp> {
+        if let Some(timer) = &req.timer_expr {
+            timer.validate()?;
+        }
         self.post("/api/job/dispatch", req).await
     }
 
-    /// 查询定时器列表
-    pub async fn query_timer(&self, params: &QueryTimerParams) -> Result<QueryJobTimerResp> {
-        self.get("/api/job/timer/list", params).await
+    pub async fn save_schedule(&self, req: &SaveScheduleReq) -> Result<SaveJobResp> {
+        req.timer_expr.validate()?;
+        self.post("/api/job/save-schedule", req).await
     }
 
-    /// 查询执行历史
+    pub async fn schedule_action(&self, id: u64, action: &str) -> Result<DispatchJobResp> {
+        self.post(
+            "/api/job/schedule",
+            &ScheduleJobReq {
+                schedule_pid: id,
+                action: action.to_owned(),
+            },
+        )
+        .await
+    }
+
+    pub async fn find_schedule(&self, eid: &str, name: &str) -> Result<Option<ScheduleRecord>> {
+        let mut found = None;
+        for page in 1..=100 {
+            let response: QueryScheduleResp = self.get("/api/job/schedule-list", &serde_json::json!({
+                "name": name, "job_type": "default", "schedule_type": "timer", "page": page, "page_size": 100,
+            })).await?;
+            for schedule in response.list {
+                if schedule.name == name
+                    && schedule.eid == eid
+                    && schedule.job_type == "default"
+                    && schedule.schedule_type == "timer"
+                {
+                    if found.is_some() {
+                        anyhow::bail!("duplicate runtime schedule for task");
+                    }
+                    found = Some(schedule);
+                }
+            }
+            if page * 100 >= response.total {
+                return Ok(found);
+            }
+        }
+        anyhow::bail!("runtime schedule lookup exceeded pagination limit")
+    }
+
+    pub async fn running_status(&self, eid: &str, name: &str) -> Result<Vec<RunningStatusRecord>> {
+        let mut found = Vec::new();
+        for page in 1..=100 {
+            let response: QueryRunningStatusResp = self.get("/api/job/running-status-list", &serde_json::json!({
+                "schedule_name": name, "job_type": "default", "schedule_type": "timer", "page": page, "page_size": 100,
+            })).await?;
+            found.extend(
+                response
+                    .list
+                    .into_iter()
+                    .filter(|run| run.eid == eid && run.schedule_name.as_deref() == Some(name)),
+            );
+            if page * 100 >= response.total {
+                return Ok(found);
+            }
+        }
+        anyhow::bail!("runtime status lookup exceeded pagination limit")
+    }
+
+    pub async fn require_online_instance(&self, instance_id: &str) -> Result<()> {
+        for page in 1..=100 {
+            let response: QueryInstanceResp = self
+                .get(
+                    "/api/instance/list",
+                    &serde_json::json!({
+                        "status": 1, "page": page, "page_size": 100,
+                    }),
+                )
+                .await?;
+            if response
+                .list
+                .iter()
+                .any(|instance| instance.instance_id == instance_id && instance.status == 1)
+            {
+                return Ok(());
+            }
+            if page * 100 >= response.total {
+                anyhow::bail!("configured JIA_INSTANCE_ID is not online");
+            }
+        }
+        anyhow::bail!("scheduler instance lookup exceeded pagination limit")
+    }
+
+    pub async fn query_timer(&self, params: &QueryTimerParams) -> Result<QueryJobTimerResp> {
+        self.get("/api/job/timer-list", params).await
+    }
+
+    pub async fn find_timer(&self, name: &str) -> Result<Option<JobTimerRecord>> {
+        let mut found = None;
+        for page in 1..=100 {
+            let response = self
+                .query_timer(&QueryTimerParams {
+                    name: Some(name.to_owned()),
+                    job_type: Some("default".into()),
+                    page,
+                    page_size: 100,
+                })
+                .await?;
+            for timer in response.list {
+                if timer.name == name && timer.job_type == "default" {
+                    if found.is_some() {
+                        anyhow::bail!("duplicate scheduler timer name");
+                    }
+                    found = Some(timer);
+                }
+            }
+            if page * 100 >= response.total {
+                return Ok(found);
+            }
+        }
+        anyhow::bail!("scheduler timer lookup exceeded pagination limit")
+    }
+
     pub async fn query_exec_history(
         &self,
         eid: &str,
@@ -104,99 +263,98 @@ impl JiaSchedulerClient {
         page_size: u64,
     ) -> Result<QueryExecHistoryResp> {
         self.get(
-            "/api/job/exec/query",
+            "/api/job/exec-list",
             &serde_json::json!({
-                "eid": eid,
-                "page": page,
-                "page_size": page_size,
+                "eid": eid, "job_type": "default", "page": page, "page_size": page_size,
             }),
         )
         .await
     }
 
-    /// 查询调度历史
-    pub async fn query_schedule_history(&self, eid: &str) -> Result<QueryScheduleHistoryResp> {
-        self.get(
-            "/api/job/schedule/history",
-            &serde_json::json!({
-                "eid": eid,
-                "page": 1,
-                "page_size": 50,
-            }),
-        )
-        .await
+    /// JIA has no EID history filter; apply an exact identity filter to its named result page.
+    pub async fn query_schedule_history(
+        &self,
+        eid: &str,
+        timer_name: &str,
+    ) -> Result<QueryScheduleHistoryResp> {
+        let mut response: QueryScheduleHistoryResp = self.get("/api/job/schedule-history-list", &serde_json::json!({
+            "name": timer_name, "job_type": "default", "schedule_type": "timer", "page": 1, "page_size": 50,
+        })).await?;
+        response.list.retain(|record| {
+            record.eid == eid && record.name == timer_name && record.schedule_type == "timer"
+        });
+        response.total = response.list.len() as u64;
+        Ok(response)
     }
 
-    /// 查询执行器列表（用于获取默认 executor id）
     pub async fn query_executor(&self) -> Result<QueryExecutorResp> {
         self.get(
-            "/api/executor/query",
+            "/api/executor/list",
             &serde_json::json!({
-                "page": 1,
-                "page_size": 10,
+                "name": "dts-shell", "page": 1, "page_size": 100,
             }),
         )
         .await
     }
 
-    /// 创建执行器（如果不存在）
-    pub async fn save_executor(&self, name: &str, executor_type: &str) -> Result<SaveExecutorResp> {
+    pub async fn save_executor(&self, name: &str, command: &str) -> Result<SaveExecutorResp> {
         self.post(
             "/api/executor/save",
             &SaveExecutorReq {
-                name: name.to_string(),
-                executor_type: executor_type.to_string(),
-                info: "DTS Platform 自动创建的 Shell 执行器".to_string(),
+                name: name.to_owned(),
+                command: command.to_owned(),
+                platform: "linux".into(),
+                info: "DTS Platform scheduled HTTP trigger".into(),
+                read_code_from_stdin: false,
             },
         )
         .await
     }
 
-    /// 获取仪表盘统计
     pub async fn get_dashboard(&self) -> Result<DashboardStats> {
-        self.get("/api/job/dashboard", &serde_json::json!({})).await
+        self.post(
+            "/api/job/dashboard",
+            &serde_json::json!({
+                "job_type": "default", "filter_schedule_history": [],
+            }),
+        )
+        .await
     }
 
-    /// 确保 DTS 执行器存在，返回 executor_id
     pub async fn ensure_dts_executor(&self) -> Result<u64> {
         let executors = self.query_executor().await?;
-        for e in &executors.data {
-            if e.name == "dts-shell" {
-                debug!("DTS shell executor 已存在: id={}", e.id);
-                return Ok(e.id);
-            }
+        if executors.total > 100 {
+            anyhow::bail!("scheduler executor lookup exceeded page size");
         }
-        let resp = self.save_executor("dts-shell", "shell").await?;
-        info!(executor_id = resp.result, "创建 DTS shell executor");
-        Ok(resp.result)
+        let mut matches = executors
+            .list
+            .into_iter()
+            .filter(|executor| executor.name == "dts-shell");
+        if let Some(executor) = matches.next() {
+            if matches.next().is_some()
+                || executor.command != "bash -c"
+                || executor.platform != "linux"
+            {
+                anyhow::bail!("dts-shell executor conflicts with the required Linux bash executor");
+            }
+            return Ok(executor.id);
+        }
+        Ok(self.save_executor("dts-shell", "bash -c").await?.result)
     }
-
-    // ── 内部方法 ──────────────────────────────────────────────────
 
     async fn post<Req: serde::Serialize, Resp: DeserializeOwned>(
         &self,
         path: &str,
         body: &Req,
     ) -> Result<Resp> {
-        let url = format!("{}{}", self.base_url, path);
-        debug!(url = %url, "POST jiascheduler");
-
-        let resp = self
+        let response = self
             .http_client
-            .post(&url)
+            .post(format!("{}{path}", self.base_url))
             .json(body)
             .send()
             .await
-            .with_context(|| format!("jiascheduler POST 请求失败: {url}"))?;
-
-        let status = resp.status();
-        let text = resp.text().await?;
-
-        if !status.is_success() {
-            anyhow::bail!("jiascheduler API 错误 (HTTP {status}): {url} {text}");
-        }
-
-        serde_json::from_str(&text).with_context(|| format!("jiascheduler 响应解析失败: {text}"))
+            .map_err(|_| anyhow::anyhow!("scheduler POST transport failure at {path}"))?;
+        decode_response(response, path).await
     }
 
     async fn get<Params: serde::Serialize, Resp: DeserializeOwned>(
@@ -204,24 +362,35 @@ impl JiaSchedulerClient {
         path: &str,
         params: &Params,
     ) -> Result<Resp> {
-        let url = format!("{}{}", self.base_url, path);
-        debug!(url = %url, "GET jiascheduler");
-
-        let resp = self
+        let response = self
             .http_client
-            .get(&url)
+            .get(format!("{}{path}", self.base_url))
             .query(params)
             .send()
             .await
-            .with_context(|| format!("jiascheduler GET 请求失败: {url}"))?;
-
-        let status = resp.status();
-        let text = resp.text().await?;
-
-        if !status.is_success() {
-            anyhow::bail!("jiascheduler API 错误 (HTTP {status}): {url} {text}");
-        }
-
-        serde_json::from_str(&text).with_context(|| format!("jiascheduler 响应解析失败: {text}"))
+            .map_err(|_| anyhow::anyhow!("scheduler GET transport failure at {path}"))?;
+        decode_response(response, path).await
     }
+}
+
+async fn decode_response<T: DeserializeOwned>(
+    response: reqwest::Response,
+    path: &str,
+) -> Result<T> {
+    let status = response.status();
+    if !status.is_success() {
+        anyhow::bail!("scheduler HTTP failure at {path}: {status}");
+    }
+    let envelope: Envelope = response
+        .json()
+        .await
+        .map_err(|_| anyhow::anyhow!("invalid scheduler response envelope at {path}"))?;
+    if envelope.code != 20000 {
+        anyhow::bail!("scheduler API failure at {path}: code {}", envelope.code);
+    }
+    let data = envelope
+        .data
+        .ok_or_else(|| anyhow::anyhow!("scheduler response omitted data at {path}"))?;
+    serde_json::from_value(data)
+        .map_err(|_| anyhow::anyhow!("invalid scheduler response data at {path}"))
 }

@@ -12,9 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use async_trait::async_trait;
-use dts_backend::{BackendError, repo::DatasourceRepo, types::*};
+use chrono::{DateTime, Utc};
+use dts_backend::{
+    BackendError,
+    repo::{DatasourceProbe, DatasourceRepo, RecordDatasourceProbeParams},
+    types::*,
+};
 use dts_backend_rdbms::map_sqlx_error;
 use sqlx::Row;
 use sqlx::SqlitePool;
@@ -31,7 +35,8 @@ impl SqliteDatasourceRepo {
     }
 
     fn row_to_info(r: &sqlx::sqlite::SqliteRow) -> DatasourceInfo {
-        let created_at_str: String = r.get(8);
+        let last_test_at: Option<String> = r.get(8);
+        let created_at_str: String = r.get(9);
         DatasourceInfo {
             id: r.get(0),
             name: r.get(1),
@@ -41,8 +46,25 @@ impl SqliteDatasourceRepo {
             username: r.get(5),
             database_name: r.get(6),
             health_status: r.get(7),
+            last_test_at: last_test_at.as_deref().map(parse_timestamp),
             created_at: parse_timestamp(&created_at_str),
         }
+    }
+
+    fn row_to_probe(r: &sqlx::sqlite::SqliteRow) -> Result<DatasourceProbe, BackendError> {
+        let observed_at: String = r.try_get("observed_at").map_err(map_sqlx_error)?;
+        Ok(DatasourceProbe {
+            id: r.try_get("id").map_err(map_sqlx_error)?,
+            datasource_id: r.try_get("datasource_id").map_err(map_sqlx_error)?,
+            supported: r.try_get::<i64, _>("supported").map_err(map_sqlx_error)? != 0,
+            status: r.try_get("status").map_err(map_sqlx_error)?,
+            latency_ms: r.try_get("latency_ms").map_err(map_sqlx_error)?,
+            error_message: r.try_get("error_message").map_err(map_sqlx_error)?,
+            actor_id: r.try_get("actor_id").map_err(map_sqlx_error)?,
+            observed_at: DateTime::parse_from_rfc3339(&observed_at)
+                .map(|value| value.with_timezone(&Utc))
+                .map_err(|error| BackendError::Internal(format!("数据源探测时间无效: {error}")))?,
+        })
     }
 }
 
@@ -73,7 +95,7 @@ impl DatasourceRepo for SqliteDatasourceRepo {
     async fn list_by_tenant(&self, tenant_id: &str) -> Result<Vec<DatasourceInfo>, BackendError> {
         let rows = sqlx::query(
             "SELECT id, name, db_type, host, port, username, database_name,
-             health_status, created_at
+             health_status, last_test_at, created_at
              FROM datasource WHERE tenant_id = ?1
              ORDER BY created_at DESC",
         )
@@ -134,7 +156,7 @@ impl DatasourceRepo for SqliteDatasourceRepo {
             .bind(tenant_id)
             .execute(&self.pool)
             .await
-            .map_err(map_sqlx_error)?;
+            .map_err(super::product_resource::map_reference_error)?;
         Ok(result.rows_affected() > 0)
     }
 
@@ -165,6 +187,81 @@ impl DatasourceRepo for SqliteDatasourceRepo {
                 .await
                 .map_err(map_sqlx_error)?;
         Ok(count > 0)
+    }
+
+    async fn record_probe(
+        &self,
+        params: &RecordDatasourceProbeParams,
+    ) -> Result<DatasourceProbe, BackendError> {
+        let observed_at = params.observed_at.to_rfc3339();
+        let mut transaction = self.pool.begin().await.map_err(map_sqlx_error)?;
+        let updated = sqlx::query(
+            "UPDATE datasource SET health_status=?1,last_test_at=?2,updated_at=?2
+             WHERE id=?3 AND tenant_id=?4",
+        )
+        .bind(&params.status)
+        .bind(&observed_at)
+        .bind(&params.datasource_id)
+        .bind(&params.tenant_id)
+        .execute(&mut *transaction)
+        .await
+        .map_err(map_sqlx_error)?;
+        if updated.rows_affected() == 0 {
+            return Err(BackendError::NotFound("数据源不存在".into()));
+        }
+        sqlx::query(
+            "INSERT INTO datasource_probe
+             (id,tenant_id,datasource_id,supported,status,latency_ms,error_message,actor_id,observed_at)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+        )
+        .bind(&params.id)
+        .bind(&params.tenant_id)
+        .bind(&params.datasource_id)
+        .bind(i64::from(params.supported))
+        .bind(&params.status)
+        .bind(params.latency_ms)
+        .bind(&params.error_message)
+        .bind(&params.actor_id)
+        .bind(&observed_at)
+        .execute(&mut *transaction)
+        .await
+        .map_err(map_sqlx_error)?;
+        transaction.commit().await.map_err(map_sqlx_error)?;
+        Ok(DatasourceProbe {
+            id: params.id.clone(),
+            datasource_id: params.datasource_id.clone(),
+            supported: params.supported,
+            status: params.status.clone(),
+            latency_ms: params.latency_ms,
+            error_message: params.error_message.clone(),
+            actor_id: params.actor_id.clone(),
+            observed_at: params.observed_at,
+        })
+    }
+
+    async fn list_probes(
+        &self,
+        tenant_id: &str,
+        datasource_id: &str,
+        limit: u32,
+    ) -> Result<Vec<DatasourceProbe>, BackendError> {
+        if !(1..=100).contains(&limit) {
+            return Err(BackendError::ConstraintViolation(
+                "探测历史每页数量必须在 1 到 100 之间".into(),
+            ));
+        }
+        let rows = sqlx::query(
+            "SELECT id,datasource_id,supported,status,latency_ms,error_message,actor_id,observed_at
+             FROM datasource_probe WHERE tenant_id=?1 AND datasource_id=?2
+             ORDER BY observed_at DESC,id DESC LIMIT ?3",
+        )
+        .bind(tenant_id)
+        .bind(datasource_id)
+        .bind(i64::from(limit))
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_error)?;
+        rows.iter().map(Self::row_to_probe).collect()
     }
 
     async fn get_connection_info(

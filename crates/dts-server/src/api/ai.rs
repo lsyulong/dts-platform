@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::sync::Arc;
 
 use actix_web::{HttpRequest, HttpResponse, web};
-use dts_backend::repo::{DatasourceRepo, TaskRepo};
 use dts_backend::repo::task_run::TaskRunRepo;
+use dts_backend::repo::{DatasourceRepo, TaskRepo};
 use serde::Deserialize;
 use tokio_stream::StreamExt;
 
@@ -43,8 +42,7 @@ pub async fn chat(
     req: HttpRequest,
     query: web::Query<AiChatQuery>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = auth::get_jwt_secret(None);
-    let _claims = auth::extract_claims(&req, &jwt_secret)?;
+    let _claims = auth::require_permission(&req, "task:execute").await?;
 
     let route = query.route.clone().unwrap_or_default();
     let rx = ai_svc
@@ -63,8 +61,7 @@ pub async fn diagnose(
     req: HttpRequest,
     query: web::Query<AiDiagnoseQuery>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = auth::get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "task:read").await?;
 
     // 1. 获取任务详情
     let task = task_repo
@@ -101,8 +98,12 @@ pub async fn diagnose(
     let ctx = DiagnosisContext {
         task_name: task.name.clone(),
         task_description: task.description.clone(),
-        source_db_type: source.map(|s| s.db_type).unwrap_or_else(|| "unknown".into()),
-        target_db_type: target.map(|t| t.db_type).unwrap_or_else(|| "unknown".into()),
+        source_db_type: source
+            .map(|s| s.db_type)
+            .unwrap_or_else(|| "unknown".into()),
+        target_db_type: target
+            .map(|t| t.db_type)
+            .unwrap_or_else(|| "unknown".into()),
         run_status: latest_run
             .map(|r| r.status.clone())
             .unwrap_or_else(|| "unknown".into()),
@@ -132,8 +133,7 @@ pub async fn report(
     req: HttpRequest,
     query: web::Query<AiDiagnoseQuery>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = auth::get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "task:read").await?;
 
     let task = task_repo
         .find_detail_by_id(&query.task_id, &claims.tenant_id)
@@ -157,7 +157,10 @@ pub async fn report(
 
     // 计算统计指标
     let total_runs = recent_runs.len();
-    let success_count = recent_runs.iter().filter(|r| r.status == "completed").count();
+    let success_count = recent_runs
+        .iter()
+        .filter(|r| r.status == "completed")
+        .count();
     let success_rate = if total_runs > 0 {
         success_count as f64 / total_runs as f64
     } else {

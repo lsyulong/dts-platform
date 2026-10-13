@@ -1,36 +1,31 @@
 // Copyright 2026 DTS Platform Contributors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 
+use std::collections::BTreeMap;
+use std::ops::ControlFlow;
+use std::time::Duration;
 
-use arrow_array::RecordBatch;
+use arrow_flight::flight_service_client::FlightServiceClient;
 use arrow_flight::sql::client::FlightSqlServiceClient;
 use arrow_schema::SchemaRef;
 use futures::StreamExt;
 use serde::Serialize;
+use sqlparser::ast::{Expr, Query, SetExpr, Statement, TableFactor, Visit, Visitor};
+use sqlparser::dialect::DuckDbDialect;
+use sqlparser::parser::Parser;
 use tonic::transport::{Channel, Endpoint};
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::config::SwanLakeConfig;
 use crate::models::error::AppError;
 
-/// 查询结果 — JSON 行格式
+mod arrow_json;
+
 #[derive(Debug, Serialize)]
 pub struct QueryResult {
     pub columns: Vec<ColumnMeta>,
     pub rows: Vec<serde_json::Value>,
     pub row_count: usize,
-    /// 图表推荐（基于列类型自动推断，可选）
     pub suggested_chart: Option<ChartSuggestion>,
 }
 
@@ -38,24 +33,17 @@ pub struct QueryResult {
 pub struct ColumnMeta {
     pub name: String,
     pub data_type: String,
-    /// 是否为数值列
     pub is_numeric: bool,
 }
 
-/// 图表推荐
 #[derive(Debug, Serialize)]
 pub struct ChartSuggestion {
-    /// 推荐图表类型: "bar" | "line" | "pie"
     pub chart_type: String,
-    /// X 轴候选列名（category/time）
     pub x_column: Option<String>,
-    /// Y 轴候选列名（numeric）
     pub y_column: Option<String>,
-    /// 推荐理由
     pub reason: String,
 }
 
-/// Schema/表信息
 #[derive(Debug, Serialize)]
 pub struct SchemaInfo {
     pub catalog: Option<String>,
@@ -68,14 +56,31 @@ pub struct TableInfo {
     pub name: String,
 }
 
-/// SwanLake 查询服务
-///
-/// 通过 Arrow Flight SQL 协议连接 SwanLake (DuckDB) 执行分析查询。
+#[derive(Clone, Copy)]
+struct QueryLimits {
+    max_rows: usize,
+    max_json_bytes: usize,
+    max_batch_bytes: usize,
+    timeout: Duration,
+}
+
+impl Default for QueryLimits {
+    fn default() -> Self {
+        Self {
+            max_rows: 10_000,
+            max_json_bytes: 8 * 1024 * 1024,
+            max_batch_bytes: 32 * 1024 * 1024,
+            timeout: Duration::from_secs(60),
+        }
+    }
+}
+
+/// Executes bounded read-only queries against the tenant's SwanLake endpoint.
 #[derive(Clone)]
 pub struct QueryService {
-    /// gRPC endpoint (http://host:port — tonic 格式)
     endpoint: String,
     enabled: bool,
+    limits: QueryLimits,
 }
 
 impl QueryService {
@@ -83,158 +88,121 @@ impl QueryService {
         Self {
             endpoint: grpc_to_http_endpoint(&config.uri()),
             enabled: config.enabled,
+            limits: QueryLimits::default(),
         }
     }
 
-    /// 建立 Flight SQL 连接
-    async fn connect(&self) -> Result<FlightSqlServiceClient<Channel>, AppError> {
+    pub(crate) async fn connect(&self) -> Result<FlightSqlServiceClient<Channel>, AppError> {
         let channel = Endpoint::from_shared(self.endpoint.clone())
-            .map_err(|e| {
-                AppError::Internal(format!("无效的 SwanLake 地址 '{}': {e}", self.endpoint))
-            })?
+            .map_err(|_| AppError::Internal("SwanLake 地址配置无效".into()))?
+            .connect_timeout(Duration::from_secs(5))
             .connect()
             .await
-            .map_err(|e| AppError::Internal(format!("SwanLake 连接失败: {e}")))?;
+            .map_err(|_| AppError::Internal("SwanLake 连接失败，请检查分析引擎状态".into()))?;
 
-        Ok(FlightSqlServiceClient::new(channel))
+        let flight = FlightServiceClient::new(channel).max_decoding_message_size(16 * 1024 * 1024);
+        Ok(FlightSqlServiceClient::new_from_inner(flight))
     }
 
-    /// 执行 SQL 查询并返回 JSON 结果
     pub async fn execute(&self, sql: &str) -> Result<QueryResult, AppError> {
         if !self.enabled {
             return Err(AppError::BadRequest("SwanLake 分析引擎未启用".into()));
         }
+        validate_read_only_sql(sql)?;
+        tokio::time::timeout(self.limits.timeout, self.execute_inner(sql))
+            .await
+            .map_err(|_| AppError::BadRequest("查询超时，请缩小查询范围或减少结果行数".into()))?
+    }
 
+    async fn execute_inner(&self, sql: &str) -> Result<QueryResult, AppError> {
         let mut client = self.connect().await?;
-        info!(sql = %sql, "执行 SwanLake 查询");
-
         let flight_info = client
             .execute(sql.to_string(), None)
             .await
-            .map_err(|e| AppError::BadRequest(format!("查询执行失败: {e}")))?;
-
-        let mut columns: Vec<ColumnMeta> = Vec::new();
-        let mut all_rows: Vec<serde_json::Value> = Vec::new();
-
-        for endpoint in &flight_info.endpoint {
-            if let Some(ref ticket) = endpoint.ticket {
-                let mut stream = client
-                    .do_get(ticket.clone())
-                    .await
-                    .map_err(|e| AppError::Internal(format!("获取查询结果失败: {e}")))?;
-
-                // do_get 直接返回 RecordBatch 流
-                while let Some(batch_result) = stream.next().await {
-                    let batch = batch_result.map_err(|e| {
-                        AppError::Internal(format!("读取数据流失败: {e}"))
-                    })?;
-
-                    // 从第一个 batch 提取列元数据
-                    if columns.is_empty() {
-                        columns = columns_from_schema(batch.schema());
-                    }
-
-                    let json_rows = record_batch_to_json_rows(&batch)?;
-                    all_rows.extend(json_rows);
+            .map_err(|error| {
+                if let arrow_flight::error::FlightError::Tonic(status) = &error {
+                    warn!(code = ?status.code(), "SwanLake 查询请求失败");
+                } else {
+                    warn!("SwanLake 查询请求协议错误");
                 }
+                AppError::BadRequest("查询执行失败，请检查 SQL 与分析引擎状态".into())
+            })?;
+        let schema: SchemaRef = std::sync::Arc::new(
+            flight_info
+                .clone()
+                .try_decode_schema()
+                .map_err(|_| AppError::Internal("分析引擎返回了无效的结果结构".into()))?,
+        );
+        let mut collector = arrow_json::ResultCollector::new(schema, self.limits)?;
+
+        for endpoint in flight_info.endpoint {
+            // SwanLake serves its result tickets on the established connection.
+            // Refuse redirects to arbitrary Flight servers.
+            if !endpoint.location.is_empty() {
+                return Err(AppError::Internal("分析引擎返回了不支持的结果端点".into()));
+            }
+            let ticket = endpoint
+                .ticket
+                .ok_or_else(|| AppError::Internal("分析引擎返回的结果缺少凭证".into()))?;
+            let mut stream = client
+                .do_get(ticket)
+                .await
+                .map_err(|_| AppError::Internal("获取查询结果失败，请检查分析引擎状态".into()))?;
+            while let Some(batch_result) = stream.next().await {
+                let batch = batch_result
+                    .map_err(|_| AppError::Internal("查询结果数据流读取失败".into()))?;
+                collector.append(&batch)?;
+                tokio::task::yield_now().await;
             }
         }
 
-        let row_count = all_rows.len();
+        let (columns, rows) = collector.into_parts();
+        let row_count = rows.len();
         let suggested_chart = suggest_chart(&columns);
-        info!(row_count = row_count, columns = columns.len(), "SwanLake 查询完成");
-
+        info!(row_count, columns = columns.len(), "SwanLake 查询完成");
         Ok(QueryResult {
             columns,
-            rows: all_rows,
+            rows,
             row_count,
             suggested_chart,
         })
     }
 
-    /// 列出所有 schema 及其表
     pub async fn list_schemas(&self) -> Result<Vec<SchemaInfo>, AppError> {
-        if !self.enabled {
-            return Err(AppError::BadRequest("SwanLake 分析引擎未启用".into()));
-        }
-
-        let mut client = self.connect().await?;
-        info!("获取 SwanLake schema 列表");
-
-        // 使用 DuckDB information_schema 查询
-        let sql = concat!(
-            "SELECT table_schema, table_name ",
-            "FROM information_schema.tables ",
-            "ORDER BY table_schema, table_name"
-        );
-        let (_columns, rows) = self.execute_query_rows(&mut client, sql).await?;
-
-        // 按 schema 分组
-        let mut schema_map: std::collections::BTreeMap<String, Vec<TableInfo>> =
-            std::collections::BTreeMap::new();
-
-        for row in &rows {
-            let schema = row["table_schema"].as_str().unwrap_or("unknown").to_string();
-            let table = row["table_name"].as_str().unwrap_or("unknown").to_string();
-            schema_map
-                .entry(schema)
+        let result = self
+            .execute(concat!(
+                "SELECT table_catalog, table_schema, table_name ",
+                "FROM information_schema.tables ",
+                "ORDER BY table_catalog, table_schema, table_name"
+            ))
+            .await?;
+        let mut schemas: BTreeMap<(String, String), Vec<TableInfo>> = BTreeMap::new();
+        for row in result.rows {
+            let field = |name: &str| {
+                row.get(name)
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_owned)
+                    .ok_or_else(|| AppError::Internal("分析引擎返回了无效的表目录".into()))
+            };
+            let catalog = field("table_catalog")?;
+            let schema = field("table_schema")?;
+            let table = field("table_name")?;
+            schemas
+                .entry((catalog, schema))
                 .or_default()
                 .push(TableInfo { name: table });
         }
-
-        let schemas: Vec<SchemaInfo> = schema_map
+        Ok(schemas
             .into_iter()
-            .map(|(name, tables)| SchemaInfo {
-                catalog: None,
-                schema: name,
+            .map(|((catalog, schema), tables)| SchemaInfo {
+                catalog: Some(catalog),
+                schema,
                 tables,
             })
-            .collect();
-
-        Ok(schemas)
-    }
-
-    /// 底层查询 — 返回 JSON 行
-    async fn execute_query_rows(
-        &self,
-        client: &mut FlightSqlServiceClient<Channel>,
-        sql: &str,
-    ) -> Result<(Vec<ColumnMeta>, Vec<serde_json::Value>), AppError> {
-        let flight_info = client
-            .execute(sql.to_string(), None)
-            .await
-            .map_err(|e| AppError::BadRequest(format!("查询执行失败: {e}")))?;
-
-        let mut columns: Vec<ColumnMeta> = Vec::new();
-        let mut all_rows: Vec<serde_json::Value> = Vec::new();
-
-        for endpoint in &flight_info.endpoint {
-            if let Some(ref ticket) = endpoint.ticket {
-                let mut stream = client
-                    .do_get(ticket.clone())
-                    .await
-                    .map_err(|e| AppError::Internal(format!("获取查询结果失败: {e}")))?;
-
-                while let Some(batch_result) = stream.next().await {
-                    let batch = batch_result.map_err(|e| {
-                        AppError::Internal(format!("读取数据流失败: {e}"))
-                    })?;
-
-                    if columns.is_empty() {
-                        columns = columns_from_schema(batch.schema());
-                    }
-
-                    let json_rows = record_batch_to_json_rows(&batch)?;
-                    all_rows.extend(json_rows);
-                }
-            }
-        }
-
-        Ok((columns, all_rows))
+            .collect())
     }
 }
 
-/// 将 grpc:// URI 转为 tonic 需要的 http:// URI
 fn grpc_to_http_endpoint(uri: &str) -> String {
     if let Some(rest) = uri.strip_prefix("grpc://") {
         format!("http://{rest}")
@@ -245,134 +213,136 @@ fn grpc_to_http_endpoint(uri: &str) -> String {
     }
 }
 
-/// 从 Arrow Schema 提取列元数据
-fn columns_from_schema(schema: SchemaRef) -> Vec<ColumnMeta> {
-    schema
-        .fields()
-        .iter()
-        .map(|f| {
-            let dt = format!("{:?}", f.data_type());
-            let is_numeric = dt.contains("Int") || dt.contains("Float") || dt.contains("Decimal");
-            ColumnMeta {
-                name: f.name().to_string(),
-                data_type: dt,
-                is_numeric,
-            }
-        })
-        .collect()
+pub(crate) fn validate_read_only_sql(sql: &str) -> Result<(), AppError> {
+    if sql.len() > 64 * 1024 {
+        return Err(AppError::BadRequest("SQL 长度超过 64 KiB 限制".into()));
+    }
+    let statements = Parser::parse_sql(&DuckDbDialect {}, sql)
+        .map_err(|_| AppError::BadRequest("SQL 语法无法识别，请提交单条只读查询".into()))?;
+    if statements.len() != 1 {
+        return Err(AppError::BadRequest("仅支持单条只读查询".into()));
+    }
+    match statements.visit(&mut ReadOnlyQuery) {
+        ControlFlow::Continue(()) => Ok(()),
+        ControlFlow::Break(reason) => Err(AppError::BadRequest(reason.into())),
+    }
 }
 
-/// 基于列元数据推荐图表类型
+// This narrows the SQL surface; server filesystem/network isolation and tenant
+// endpoint ownership remain necessary. It cannot sandbox custom SQL functions.
+struct ReadOnlyQuery;
+
+impl Visitor for ReadOnlyQuery {
+    type Break = &'static str;
+
+    fn pre_visit_statement(&mut self, statement: &Statement) -> ControlFlow<Self::Break> {
+        if matches!(statement, Statement::Query(_)) {
+            ControlFlow::Continue(())
+        } else {
+            ControlFlow::Break("查询入口仅支持只读 SELECT 或 VALUES")
+        }
+    }
+
+    fn pre_visit_query(&mut self, query: &Query) -> ControlFlow<Self::Break> {
+        if !query.locks.is_empty() || query.settings.is_some() || !query.pipe_operators.is_empty() {
+            return ControlFlow::Break("查询入口不支持锁、设置或管道操作");
+        }
+        validate_query_body(&query.body)
+    }
+
+    fn pre_visit_table_factor(&mut self, factor: &TableFactor) -> ControlFlow<Self::Break> {
+        match factor {
+            TableFactor::Table {
+                name, args: None, ..
+            } => {
+                let display_name = name.to_string();
+                if display_name.contains(['/', '\\'])
+                    || display_name.contains("://")
+                    || name.0.iter().any(|part| {
+                        part.as_ident()
+                            .is_none_or(|ident| ident.value.contains('.'))
+                    })
+                {
+                    ControlFlow::Break("查询入口不支持直接读取外部文件")
+                } else {
+                    ControlFlow::Continue(())
+                }
+            },
+            TableFactor::Derived { .. }
+            | TableFactor::NestedJoin { .. }
+            | TableFactor::UNNEST { .. } => ControlFlow::Continue(()),
+            _ => ControlFlow::Break("查询入口不支持外部表函数，请先将数据接入分析表"),
+        }
+    }
+
+    fn pre_visit_expr(&mut self, expr: &Expr) -> ControlFlow<Self::Break> {
+        if let Expr::Function(function) = expr {
+            let name = function
+                .name
+                .to_string()
+                .to_ascii_lowercase()
+                .replace('"', "");
+            let name = name.rsplit('.').next().unwrap_or(&name);
+            if name.starts_with("read_")
+                || name.starts_with("write_")
+                || name.ends_with("_scan")
+                || matches!(
+                    name,
+                    "query"
+                        | "query_table"
+                        | "getenv"
+                        | "nextval"
+                        | "setval"
+                        | "load_extension"
+                        | "http_get"
+                        | "http_post"
+                )
+            {
+                return ControlFlow::Break("查询入口不支持读取外部资源或有副作用的函数");
+            }
+        }
+        ControlFlow::Continue(())
+    }
+}
+
+fn validate_query_body(body: &SetExpr) -> ControlFlow<&'static str> {
+    match body {
+        SetExpr::Select(select) if select.into.is_none() => ControlFlow::Continue(()),
+        SetExpr::Query(_) | SetExpr::Values(_) => ControlFlow::Continue(()),
+        SetExpr::SetOperation { left, right, .. } => {
+            validate_query_body(left)?;
+            validate_query_body(right)
+        },
+        _ => ControlFlow::Break("查询入口不支持写入或 SELECT INTO"),
+    }
+}
+
 fn suggest_chart(columns: &[ColumnMeta]) -> Option<ChartSuggestion> {
-    if columns.is_empty() {
-        return None;
-    }
-
-    let numeric_cols: Vec<&ColumnMeta> = columns.iter().filter(|c| c.is_numeric).collect();
-    let string_cols: Vec<&ColumnMeta> = columns
-        .iter()
-        .filter(|c| !c.is_numeric && c.data_type.contains("Utf8"))
-        .collect();
-
-    if numeric_cols.is_empty() {
-        return None; // 没有可度量的数值列
-    }
-
-    // 规则 1: 一个 category + 一个 numeric → bar chart
-    if !string_cols.is_empty() && !numeric_cols.is_empty() {
-        return Some(ChartSuggestion {
-            chart_type: "bar".into(),
-            x_column: Some(string_cols[0].name.clone()),
-            y_column: Some(numeric_cols[0].name.clone()),
-            reason: format!(
-                "类别列 '{}' 与数值列 '{}' 适合柱状图对比",
-                string_cols[0].name, numeric_cols[0].name
-            ),
-        });
-    }
-
-    // 规则 2: 多个 numeric → line chart (趋势)
-    if numeric_cols.len() >= 2 {
+    let numeric = columns.iter().find(|column| column.is_numeric)?;
+    let time = columns.iter().find(|column| {
+        column.data_type.starts_with("Date") || column.data_type.starts_with("Timestamp")
+    });
+    if let Some(time) = time {
         return Some(ChartSuggestion {
             chart_type: "line".into(),
-            x_column: None, // 用行索引
-            y_column: Some(numeric_cols[0].name.clone()),
+            x_column: Some(time.name.clone()),
+            y_column: Some(numeric.name.clone()),
             reason: format!(
-                "多个数值列适合折线图趋势对比: {}",
-                numeric_cols.iter().map(|c| c.name.as_str()).collect::<Vec<_>>().join(", ")
+                "时间列 '{}' 与数值列 '{}' 适合展示趋势",
+                time.name, numeric.name
             ),
         });
     }
-
-    // 规则 3: 单个 numeric → bar chart (分布)
+    let category = columns
+        .iter()
+        .find(|column| column.data_type.contains("Utf8"));
     Some(ChartSuggestion {
         chart_type: "bar".into(),
-        x_column: None,
-        y_column: Some(numeric_cols[0].name.clone()),
-        reason: format!("数值列 '{}' 适合柱状图查看分布", numeric_cols[0].name),
+        x_column: category.map(|column| column.name.clone()),
+        y_column: Some(numeric.name.clone()),
+        reason: format!("数值列 '{}' 适合柱状图对比", numeric.name),
     })
 }
 
-/// 将 Arrow RecordBatch 转为 JSON 行向量
-fn record_batch_to_json_rows(
-    batch: &RecordBatch,
-) -> Result<Vec<serde_json::Value>, AppError> {
-    let schema = batch.schema();
-    let num_rows = batch.num_rows();
-    let num_cols = batch.num_columns();
-    let mut rows: Vec<serde_json::Value> = Vec::with_capacity(num_rows);
-
-    for row_idx in 0..num_rows {
-        let mut map = serde_json::Map::with_capacity(num_cols);
-        for col_idx in 0..num_cols {
-            let col_name = schema.field(col_idx).name().to_string();
-            let value = arrow_value_to_json(batch.column(col_idx), row_idx);
-            map.insert(col_name, value);
-        }
-        rows.push(serde_json::Value::Object(map));
-    }
-
-    Ok(rows)
-}
-
-/// 将 Arrow 数组中的单个值转为 serde_json::Value
-fn arrow_value_to_json(array: &dyn arrow_array::Array, idx: usize) -> serde_json::Value {
-    use arrow_array::*;
-
-    if array.is_null(idx) {
-        return serde_json::Value::Null;
-    }
-
-    // 按常见类型逐一尝试 downcast
-    macro_rules! downcast_num {
-        ($arr:expr, $idx:expr, $t:ty) => {{
-            if let Some(a) = $arr.as_any().downcast_ref::<$t>() {
-                return serde_json::json!(a.value($idx));
-            }
-        }};
-    }
-
-    downcast_num!(array, idx, Int64Array);
-    downcast_num!(array, idx, Int32Array);
-    downcast_num!(array, idx, Int16Array);
-    downcast_num!(array, idx, Int8Array);
-    downcast_num!(array, idx, UInt64Array);
-    downcast_num!(array, idx, UInt32Array);
-    downcast_num!(array, idx, UInt16Array);
-    downcast_num!(array, idx, UInt8Array);
-    downcast_num!(array, idx, Float64Array);
-    downcast_num!(array, idx, Float32Array);
-
-    if let Some(arr) = array.as_any().downcast_ref::<StringArray>() {
-        return serde_json::Value::String(arr.value(idx).to_string());
-    }
-    if let Some(arr) = array.as_any().downcast_ref::<LargeStringArray>() {
-        return serde_json::Value::String(arr.value(idx).to_string());
-    }
-    if let Some(arr) = array.as_any().downcast_ref::<BooleanArray>() {
-        return serde_json::Value::Bool(arr.value(idx));
-    }
-
-    // Fallback: 返回 null（未知类型）
-    serde_json::Value::Null
-}
+#[cfg(test)]
+mod tests;

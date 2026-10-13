@@ -12,19 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use async_trait::async_trait;
 
 use crate::error::BackendError;
 
 /// 种子数据初始化 trait
 ///
-/// 在数据库为空时插入默认租户、角色、管理员用户和演示数据源。
+/// Provides explicit production bootstrap and legacy development fixtures.
 #[async_trait]
 pub trait SeedRepo: Send + Sync {
     /// 检查数据库中是否已有数据
     async fn has_data(&self) -> Result<bool, BackendError>;
 
-    /// 执行种子数据初始化
+    /// Development/test fixtures only: includes demonstration sources and credentials.
     async fn seed(&self) -> Result<(), BackendError>;
+
+    /// Bootstrap an empty production database without demonstration sources.
+    /// Implementations must validate the password before any data is inserted.
+    async fn seed_bootstrap(&self, _admin_password: &str) -> Result<(), BackendError> {
+        Err(BackendError::Configuration(
+            "当前后端未实现安全管理员初始化".into(),
+        ))
+    }
 }

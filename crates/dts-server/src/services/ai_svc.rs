@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::sync::Arc;
 
 use dts_deerflow_client::{ChatMessage, ChatRequest, DeerFlowClient, PlatformContext, Role};
@@ -204,9 +203,7 @@ impl AiService {
                             },
                             Err(e) => {
                                 error!(error = %e, "DeerFlow report stream error");
-                                let _ = tx
-                                    .send(format!("\n\n❌ 报告生成出错: {e}"))
-                                    .await;
+                                let _ = tx.send(format!("\n\n❌ 报告生成出错: {e}")).await;
                                 break;
                             },
                         }
@@ -214,9 +211,7 @@ impl AiService {
                 },
                 Err(e) => {
                     error!(error = %e, "DeerFlow report request failed");
-                    let _ = tx
-                        .send(format!("\n\n❌ AI 报告服务暂不可用: {e}"))
-                        .await;
+                    let _ = tx.send(format!("\n\n❌ AI 报告服务暂不可用: {e}")).await;
                 },
             }
         });
@@ -276,9 +271,7 @@ impl AiService {
                             },
                             Err(e) => {
                                 error!(error = %e, "DeerFlow diagnosis stream error");
-                                let _ = tx
-                                    .send(format!("\n\n❌ 诊断服务出错: {e}"))
-                                    .await;
+                                let _ = tx.send(format!("\n\n❌ 诊断服务出错: {e}")).await;
                                 break;
                             },
                         }
@@ -286,9 +279,7 @@ impl AiService {
                 },
                 Err(e) => {
                     error!(error = %e, "DeerFlow diagnosis request failed");
-                    let _ = tx
-                        .send(format!("\n\n❌ AI 诊断服务暂不可用: {e}"))
-                        .await;
+                    let _ = tx.send(format!("\n\n❌ AI 诊断服务暂不可用: {e}")).await;
                 },
             }
         });
@@ -310,10 +301,7 @@ fn build_report_prompt(ctx: &ReportContext) -> String {
     prompt.push_str(&format!("- 目标端数据库: {}\n", ctx.target_db_type));
     prompt.push_str(&format!("- 统计周期: 最近 {} 小时\n", ctx.period_hours));
     prompt.push_str(&format!("- 总运行次数: {}\n", ctx.total_runs));
-    prompt.push_str(&format!(
-        "- 成功率: {:.1}%\n",
-        ctx.success_rate * 100.0
-    ));
+    prompt.push_str(&format!("- 成功率: {:.1}%\n", ctx.success_rate * 100.0));
     prompt.push_str(&format!("- 累计同步行数: {}\n", ctx.total_rows_synced));
     prompt.push_str(&format!("- 平均每轮同步: {} 行\n", ctx.avg_rows_per_run));
 

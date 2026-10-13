@@ -10,7 +10,7 @@ export function ErrorBanner({ message, onRetry, onDismiss }: Props) {
   const { t } = useTranslation();
 
   return (
-    <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
+    <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-[var(--color-error)]">
       <div className="flex items-start justify-between gap-3">
         <span className="flex-1">{message}</span>
         <div className="flex items-center gap-2">

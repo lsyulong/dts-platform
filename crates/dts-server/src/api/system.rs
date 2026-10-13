@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::sync::Arc;
 
 use actix_web::{HttpRequest, HttpResponse, web};
@@ -26,21 +25,7 @@ use dts_backend::repo::{RoleRepo, TenantRepo};
 use dts_backend::types::*;
 use uuid::Uuid;
 
-pub const ALL_PERMISSIONS: &[&str] = &[
-    "task:read",
-    "task:write",
-    "task:delete",
-    "ds:read",
-    "ds:write",
-    "ds:delete",
-    "alert:read",
-    "alert:write",
-    "monitor:read",
-    "ops:read",
-    "admin:*",
-    "system:read",
-    "system:write",
-];
+pub const ALL_PERMISSIONS: &[&str] = dts_backend::PERMISSIONS;
 
 // ── Request types ────────────────────────────────────────────────────
 
@@ -99,14 +84,20 @@ pub struct UpdateTenantReq {
 /// GET /api/v1/system/users
 pub async fn list_users(
     req: HttpRequest,
-    auth_svc: web::Data<AuthService>,
     user_svc: web::Data<UserService>,
     query: web::Query<UsersQuery>,
 ) -> Result<HttpResponse, AppError> {
-    let _claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::require_permission(&req, "user:manage").await?;
+    if query
+        .tenant_id
+        .as_deref()
+        .is_some_and(|id| id != claims.tenant_id)
+    {
+        return Err(AppError::Forbidden("只能查询当前租户用户".into()));
+    }
     let users = user_svc
         .list_users(
-            query.tenant_id.as_deref(),
+            Some(&claims.tenant_id),
             query.search.as_deref(),
             query.status.as_deref(),
         )
@@ -122,8 +113,11 @@ pub async fn create_user(
     user_svc: web::Data<UserService>,
     body: web::Json<CreateUserReq>,
 ) -> Result<HttpResponse, AppError> {
-    let claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::require_permission(&req, "user:manage").await?;
 
+    auth_svc
+        .ensure_tenant_roles(&claims, &body.role_ids)
+        .await?;
     let user = user_svc
         .create_user(
             &claims.tenant_id,
@@ -159,9 +153,18 @@ pub async fn update_user(
     path: web::Path<String>,
     body: web::Json<UpdateUserReq>,
 ) -> Result<HttpResponse, AppError> {
-    let _claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::require_permission(&req, "user:manage").await?;
     let user_id = path.into_inner();
+    let current = auth_svc.ensure_manageable_user(&claims, &user_id).await?;
 
+    if let Some(role_ids) = &body.role_ids {
+        auth_svc.ensure_tenant_roles(&claims, role_ids).await?;
+    }
+    if current.status != "active" && body.status.as_deref() == Some("active") {
+        // A previous stop may have left sessions in an unavailable external store.
+        // Do not restore access until all remaining sessions have been revoked.
+        auth_svc.revoke_user(&user_id).await?;
+    }
     user_svc
         .update_user(&user_id, body.display_name.clone(), body.status.clone())
         .await
@@ -172,6 +175,14 @@ pub async fn update_user(
             .update_user_roles(&user_id, role_ids)
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
+    }
+
+    if body
+        .status
+        .as_deref()
+        .is_some_and(|status| status != "active")
+    {
+        auth_svc.revoke_user(&user_id).await?;
     }
 
     info!("用户 {} 更新成功", user_id);
@@ -186,13 +197,16 @@ pub async fn reset_password(
     path: web::Path<String>,
     body: web::Json<ResetPasswordReq>,
 ) -> Result<HttpResponse, AppError> {
-    let _claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::require_permission(&req, "user:manage").await?;
     let user_id = path.into_inner();
+    auth_svc.ensure_manageable_user(&claims, &user_id).await?;
 
     user_svc
         .reset_user_password(&user_id, &body.new_password)
         .await
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
+
+    auth_svc.revoke_user(&user_id).await?;
 
     info!("用户 {} 密码已重置", user_id);
     Ok(HttpResponse::Ok().json(serde_json::json!({ "message": "密码重置成功" })))
@@ -205,13 +219,16 @@ pub async fn delete_user(
     user_svc: web::Data<UserService>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    let _claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::require_permission(&req, "user:manage").await?;
     let user_id = path.into_inner();
+    auth_svc.ensure_manageable_user(&claims, &user_id).await?;
 
     user_svc
         .soft_delete_user(&user_id)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    auth_svc.revoke_user(&user_id).await?;
 
     info!("用户 {} 已软删除", user_id);
     Ok(HttpResponse::Ok().json(serde_json::json!({ "message": "用户已删除" })))
@@ -222,12 +239,11 @@ pub async fn delete_user(
 /// GET /api/v1/system/roles
 pub async fn list_roles(
     req: HttpRequest,
-    auth_svc: web::Data<AuthService>,
     role_repo: web::Data<Arc<dyn RoleRepo>>,
 ) -> Result<HttpResponse, AppError> {
-    let _claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::require_permission(&req, "user:manage").await?;
     let roles = role_repo
-        .list_all(None)
+        .list_all(Some(&claims.tenant_id))
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
     Ok(HttpResponse::Ok().json(serde_json::json!({ "data": roles })))
@@ -240,8 +256,12 @@ pub async fn create_role(
     role_repo: web::Data<Arc<dyn RoleRepo>>,
     body: web::Json<CreateRoleReq>,
 ) -> Result<HttpResponse, AppError> {
-    let claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::require_permission(&req, "user:manage").await?;
 
+    validate_permissions(&body.permissions)?;
+    auth_svc
+        .ensure_grantable_permissions(&claims, &body.permissions)
+        .await?;
     let role_id = role_repo
         .create_with_permissions(&CreateRoleParams {
             id: Uuid::new_v4().to_string(),
@@ -269,9 +289,21 @@ pub async fn update_role(
     path: web::Path<String>,
     body: web::Json<UpdateRoleReq>,
 ) -> Result<HttpResponse, AppError> {
-    let _claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::require_permission(&req, "user:manage").await?;
     let role_id = path.into_inner();
+    let role = auth_svc.tenant_role(&claims, &role_id).await?;
+    if role.is_system {
+        return Err(AppError::BadRequest(
+            "系统角色不可修改或删除，请创建自定义角色".into(),
+        ));
+    }
 
+    if let Some(permissions) = &body.permissions {
+        validate_permissions(permissions)?;
+        auth_svc
+            .ensure_grantable_permissions(&claims, permissions)
+            .await?;
+    }
     role_repo
         .update(
             &role_id,
@@ -294,8 +326,14 @@ pub async fn delete_role(
     role_repo: web::Data<Arc<dyn RoleRepo>>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    let _claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::require_permission(&req, "user:manage").await?;
     let role_id = path.into_inner();
+    let role = auth_svc.tenant_role(&claims, &role_id).await?;
+    if role.is_system {
+        return Err(AppError::BadRequest(
+            "系统角色不可修改或删除，请创建自定义角色".into(),
+        ));
+    }
 
     role_repo
         .delete(&role_id)
@@ -311,27 +349,29 @@ pub async fn delete_role(
 /// GET /api/v1/system/tenants
 pub async fn list_tenants(
     req: HttpRequest,
-    auth_svc: web::Data<AuthService>,
     tenant_repo: web::Data<Arc<dyn TenantRepo>>,
 ) -> Result<HttpResponse, AppError> {
-    let _claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::require_permission(&req, "user:manage").await?;
     let tenants = tenant_repo
-        .list_all()
+        .find_by_id(&claims.tenant_id)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
-    Ok(HttpResponse::Ok().json(serde_json::json!({ "data": tenants })))
+    Ok(HttpResponse::Ok()
+        .json(serde_json::json!({ "data": tenants.into_iter().collect::<Vec<_>>() })))
 }
 
 /// PUT /api/v1/system/tenants/{id}
 pub async fn update_tenant(
     req: HttpRequest,
-    auth_svc: web::Data<AuthService>,
     tenant_repo: web::Data<Arc<dyn TenantRepo>>,
     path: web::Path<String>,
     body: web::Json<UpdateTenantReq>,
 ) -> Result<HttpResponse, AppError> {
-    let _claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::require_permission(&req, "user:manage").await?;
     let tenant_id = path.into_inner();
+    if tenant_id != claims.tenant_id {
+        return Err(AppError::NotFound("租户不存在".into()));
+    }
 
     tenant_repo
         .update(
@@ -355,9 +395,14 @@ pub async fn list_permissions(
     req: HttpRequest,
     auth_svc: web::Data<AuthService>,
 ) -> Result<HttpResponse, AppError> {
-    let _claims = auth::extract_claims(&req, &auth_svc.jwt_secret)?;
+    let claims = auth::require_permission(&req, "user:manage").await?;
+    let granted = auth_svc
+        .role_repo
+        .find_user_permissions(&claims.sub)
+        .await?;
     let perms: Vec<serde_json::Value> = ALL_PERMISSIONS
         .iter()
+        .filter(|permission| granted.iter().any(|held| held == **permission))
         .map(|&p| {
             serde_json::json!({
                 "code": p,
@@ -366,4 +411,14 @@ pub async fn list_permissions(
         })
         .collect();
     Ok(HttpResponse::Ok().json(serde_json::json!({ "data": perms })))
+}
+
+fn validate_permissions(permissions: &[String]) -> Result<(), AppError> {
+    if permissions
+        .iter()
+        .any(|permission| !ALL_PERMISSIONS.contains(&permission.as_str()))
+    {
+        return Err(AppError::BadRequest("包含未知权限代码".into()));
+    }
+    Ok(())
 }

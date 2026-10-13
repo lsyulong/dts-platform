@@ -17,7 +17,7 @@ describe('LoginPage', () => {
     return render(
       <MemoryRouter initialEntries={['/login']}>
         <LoginPage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
   }
 

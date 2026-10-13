@@ -12,14 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 pub mod ai;
+pub mod alert_policies;
 pub mod alerts;
-pub mod query;
+pub mod assets;
 pub mod auth;
+pub mod bi_share;
+pub mod data_access;
+pub mod data_quality;
 pub mod datasources;
+pub mod development_revisions;
+pub mod development_schedules;
+pub mod messages;
+pub mod metrics;
 pub mod monitoring;
+pub mod navigation;
+pub mod notification_connections;
+pub mod organization_members;
+pub mod platform_projection;
+pub mod product;
+mod product_actions;
+pub mod product_exports;
+pub mod product_jobs;
+pub mod product_references;
+pub mod quality_alerts;
+pub mod query;
 pub mod scheduler;
+pub mod scheduler_trigger;
+pub mod sensitive_recognition;
+pub mod service_access;
+pub mod service_invocation;
+pub mod standards;
 pub mod system;
+pub mod system_content;
+pub mod tag_assignments;
+pub mod task_logs;
 pub mod tasks;
 pub mod tenants;

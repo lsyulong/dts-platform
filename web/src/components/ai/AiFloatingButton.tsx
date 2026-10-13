@@ -12,7 +12,7 @@ export function AiFloatingButton({ onClick, isOpen }: Props) {
       type="button"
       onClick={onClick}
       aria-label="Open AI Assistant"
-      className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-500/30 transition-all hover:bg-violet-500 hover:scale-105 active:scale-95"
+      className="fixed bottom-5 right-5 z-30 flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--color-action)] text-white shadow-lg transition-all hover:bg-[var(--color-action-hover)] hover:scale-105 active:scale-95"
     >
       <Sparkles size={24} />
     </button>

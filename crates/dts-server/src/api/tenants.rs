@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-use actix_web::{HttpResponse, web};
+use actix_web::{HttpRequest, HttpResponse, web};
 use tracing::info;
 
+use crate::middleware::auth;
 use crate::models::auth::CreateTenantRequest;
 use crate::models::error::AppError;
 use crate::services::auth_svc::AuthService;
@@ -23,11 +23,29 @@ use crate::services::tenant_svc::TenantService;
 
 /// POST /api/v1/tenants
 pub async fn create(
+    req: HttpRequest,
     tenant_svc: web::Data<TenantService>,
     body: web::Json<CreateTenantRequest>,
 ) -> Result<HttpResponse, AppError> {
-    let password_hash = AuthService::hash_password_sync("admin123")
-        .map_err(|e| AppError::Internal(e.to_string()))?;
+    auth::require_permission(&req, "tenant:create").await?;
+    let password = body
+        .admin_password
+        .as_deref()
+        .filter(|password| password.len() >= 12)
+        .ok_or_else(|| AppError::BadRequest("请提供至少 12 字节的管理员密码".into()))?;
+    if body.name.trim().is_empty()
+        || body.slug.is_empty()
+        || !body
+            .slug
+            .bytes()
+            .all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_')
+    {
+        return Err(AppError::BadRequest(
+            "租户名称不能为空，标识仅允许字母、数字、横线和下划线".into(),
+        ));
+    }
+    let password_hash =
+        AuthService::hash_password_sync(password).map_err(|e| AppError::Internal(e.to_string()))?;
 
     let admin_username = format!("admin_{}", body.slug);
     let admin_email = format!("admin@{}", body.slug);
@@ -53,18 +71,22 @@ pub async fn create(
         "name": body.name,
         "slug": body.slug,
         "admin_username": admin_username,
-        "message": "租户创建成功，默认管理员密码为 admin123，请及时修改"
+        "message": "租户创建成功"
     })))
 }
 
 /// GET /api/v1/tenants
-pub async fn list(tenant_svc: web::Data<TenantService>) -> Result<HttpResponse, AppError> {
-    let tenants = tenant_svc
-        .list()
+pub async fn list(
+    req: HttpRequest,
+    tenant_svc: web::Data<TenantService>,
+) -> Result<HttpResponse, AppError> {
+    let claims = auth::require_permission(&req, "user:manage").await?;
+    let tenant = tenant_svc
+        .get_by_id(&claims.tenant_id)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
-        "data": tenants
+        "data": [tenant]
     })))
 }

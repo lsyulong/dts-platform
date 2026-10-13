@@ -53,13 +53,13 @@ describe('MetricCard', () => {
     it('applies emerald color for up trend', () => {
       render(<MetricCard title="Revenue" value="$10K" subtitle="+12%" trend="up" />);
       const subtitleEl = screen.getByText('+12%');
-      expect(subtitleEl.className).toContain('text-emerald-400');
+      expect(subtitleEl.className).toContain('text-[var(--color-success)]');
     });
 
     it('applies rose color for down trend', () => {
       render(<MetricCard title="Errors" value="5" subtitle="+2 more" trend="down" />);
       const subtitleEl = screen.getByText('+2 more');
-      expect(subtitleEl.className).toContain('text-rose-400');
+      expect(subtitleEl.className).toContain('text-[var(--color-error)]');
     });
 
     it('applies zinc color for neutral trend', () => {
@@ -97,7 +97,7 @@ describe('MetricCard', () => {
       const { container } = render(<MetricCard title="Test" value="test" />);
       const card = container.firstElementChild;
       expect(card).not.toBeNull();
-      expect(card?.className).toContain('rounded-2xl');
+      expect(card?.className).toContain('rounded-lg');
       expect(card?.className).toContain('border');
     });
   });

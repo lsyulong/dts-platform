@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ExternalLink, RefreshCw, Clock, Play, FileText, Monitor } from 'lucide-react';
 import { useTasks, useScheduleStatus } from '../hooks/useApi';
 import { LoadingSpinner, EmptyState } from '../components/ui';
+import { apiErrorMessage } from '../lib/apiError';
 
 const JIASCHEDULER_URL = 'http://localhost:9090';
 
@@ -32,7 +33,7 @@ export default function OpsCenterPage() {
           href={JIASCHEDULER_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 rounded-xl border border-[var(--color-border-hover)] px-4 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)] transition-colors"
+          className="flex items-center gap-2 rounded-lg border border-[var(--color-border-hover)] px-4 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)] transition-colors"
         >
           <ExternalLink size={14} />
           jiascheduler {t('ops.console')}
@@ -42,12 +43,27 @@ export default function OpsCenterPage() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: t('ops.totalTasks'), value: tasks.length, color: 'text-[var(--color-text-primary)]' },
-          { label: t('ops.runningTasks'), value: tasks.filter((t) => t.status === 'running').length, color: 'text-blue-400' },
-          { label: t('ops.failedTasks'), value: tasks.filter((t) => t.status === 'failed').length, color: 'text-rose-400' },
-          { label: t('ops.activeSchedules'), value: '--', color: 'text-emerald-400' },
+          {
+            label: t('ops.totalTasks'),
+            value: tasks.length,
+            color: 'text-[var(--color-text-primary)]',
+          },
+          {
+            label: t('ops.runningTasks'),
+            value: tasks.filter((t) => t.status === 'running').length,
+            color: 'text-[var(--color-accent)]',
+          },
+          {
+            label: t('ops.failedTasks'),
+            value: tasks.filter((t) => t.status === 'failed').length,
+            color: 'text-[var(--color-error)]',
+          },
+          { label: t('ops.activeSchedules'), value: '--', color: 'text-[var(--color-success)]' },
         ].map((stat, i) => (
-          <div key={i} className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-4">
+          <div
+            key={i}
+            className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-4"
+          >
             <p className="text-xs text-[var(--color-text-tertiary)]">{stat.label}</p>
             <p className={`mt-1 text-2xl font-bold ${stat.color}`}>{stat.value}</p>
           </div>
@@ -62,7 +78,7 @@ export default function OpsCenterPage() {
             onClick={() => setActiveTab(tab.key)}
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors -mb-px ${
               activeTab === tab.key
-                ? 'border-blue-500 text-blue-400'
+                ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
                 : 'border-transparent text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'
             }`}
           >
@@ -113,10 +129,10 @@ function InstancesTab({ tasks }: { tasks: Array<{ id: string; name: string; stat
 
 function InstanceRow({ taskId, taskName }: { taskId: string; taskName: string }) {
   const { t } = useTranslation();
-  const { data: schedule, isLoading } = useScheduleStatus(taskId);
+  const { data: schedule, isLoading, error } = useScheduleStatus(taskId);
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-3">
+    <div className="flex items-center justify-between rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-3">
       <div className="flex-1">
         <p className="text-sm font-medium text-[var(--color-text-primary)]">{taskName}</p>
         <p className="text-xs text-[var(--color-text-tertiary)]">ID: {taskId.slice(0, 8)}...</p>
@@ -124,13 +140,26 @@ function InstanceRow({ taskId, taskName }: { taskId: string; taskName: string })
       <div className="flex items-center gap-4">
         {isLoading ? (
           <span className="text-xs text-[var(--color-text-disabled)]">{t('common.loading')}</span>
+        ) : error ? (
+          <span role="alert" className="text-xs text-[var(--color-error)]">
+            {apiErrorMessage(error, t('tasks.detail.scheduleError'))}
+          </span>
+        ) : schedule?.enabled === false ? (
+          <span className="text-xs text-[var(--color-text-tertiary)]">
+            {t('tasks.detail.schedulerUnavailable')}
+          </span>
         ) : schedule?.has_timer ? (
           <div className="text-right">
-            <span className="inline-block rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
-              {schedule.cron_expr ?? t('ops.scheduled')}
+            <span
+              className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${schedule.active ? 'bg-emerald-500/10 text-[var(--color-success)]' : 'bg-amber-500/10 text-[var(--color-warning)]'}`}
+            >
+              {t(
+                `ops.scheduleStates.${schedule.active ? 'active' : (schedule.state ?? 'inactive')}`,
+              )}
             </span>
             <p className="mt-0.5 text-xs text-[var(--color-text-tertiary)]">
-              {t('ops.recentRuns', { count: schedule.schedule_history.length })}
+              {schedule.cron_expr} (UTC) · {t('ops.dispatchHistory')} (
+              {schedule.schedule_history.length})
             </p>
           </div>
         ) : (
@@ -154,14 +183,16 @@ function DispatchTab({ tasks: _tasks }: { tasks: Array<{ id: string; name: strin
   return (
     <div className="mt-4 space-y-4">
       <p className="text-sm text-[var(--color-text-tertiary)]">{t('ops.dispatchHint')}</p>
-      <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5">
-        <h3 className="mb-3 text-sm font-medium text-[var(--color-text-secondary)]">{t('ops.quickDispatch')}</h3>
+      <div className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5">
+        <h3 className="mb-3 text-sm font-medium text-[var(--color-text-secondary)]">
+          {t('ops.quickDispatch')}
+        </h3>
         <p className="text-xs text-[var(--color-text-disabled)] mb-4">{t('ops.dispatchDesc')}</p>
         <a
           href={`${JIASCHEDULER_URL}/dispatch`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-600"
+          className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-action)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-action-hover)]"
         >
           {t('ops.gotoJiascheduler')} <ExternalLink size={14} />
         </a>
@@ -175,14 +206,16 @@ function LogsTab({ tasks: _tasks }: { tasks: Array<{ id: string; name: string }>
   return (
     <div className="mt-4 space-y-4">
       <p className="text-sm text-[var(--color-text-tertiary)]">{t('ops.logsHint')}</p>
-      <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5">
-        <h3 className="mb-3 text-sm font-medium text-[var(--color-text-secondary)]">{t('ops.execLogs')}</h3>
+      <div className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5">
+        <h3 className="mb-3 text-sm font-medium text-[var(--color-text-secondary)]">
+          {t('ops.execLogs')}
+        </h3>
         <p className="text-xs text-[var(--color-text-disabled)] mb-4">{t('ops.logsDesc')}</p>
         <a
           href={`${JIASCHEDULER_URL}/exec/query`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-600"
+          className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-action)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-action-hover)]"
         >
           {t('ops.gotoJiascheduler')} <ExternalLink size={14} />
         </a>
@@ -196,14 +229,16 @@ function AgentsTab() {
   return (
     <div className="mt-4 space-y-4">
       <p className="text-sm text-[var(--color-text-tertiary)]">{t('ops.agentsHint')}</p>
-      <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5">
-        <h3 className="mb-3 text-sm font-medium text-[var(--color-text-secondary)]">{t('ops.agentManagement')}</h3>
+      <div className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-elevated)] p-5">
+        <h3 className="mb-3 text-sm font-medium text-[var(--color-text-secondary)]">
+          {t('ops.agentManagement')}
+        </h3>
         <p className="text-xs text-[var(--color-text-disabled)] mb-4">{t('ops.agentsDesc')}</p>
         <a
           href={`${JIASCHEDULER_URL}/instance`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-600"
+          className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-action)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-action-hover)]"
         >
           {t('ops.gotoJiascheduler')} <ExternalLink size={14} />
         </a>

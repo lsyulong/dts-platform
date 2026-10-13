@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! Monitoring API integration tests — dashboard overview endpoint
 
 mod common;
@@ -22,52 +21,28 @@ use dts_server::api::monitoring;
 use dts_server::services::monitoring_svc::MonitoringService;
 use pretty_assertions::assert_eq;
 
-/// Generate a valid JWT for the seed admin user.
-async fn get_admin_token(ctx: &dts_server::db::BackendContext) -> String {
-    let tenant = ctx
-        .tenant_repo
-        .find_by_slug("default")
-        .await
-        .expect("find_by_slug")
-        .expect("tenant");
-
-    let user = ctx
-        .user_repo
-        .find_by_tenant_and_username(&tenant.id, "admin")
-        .await
-        .expect("find_by_tenant_and_username")
-        .expect("user");
-
-    let now = chrono::Utc::now();
-    let claims = dts_server::services::token::Claims {
-        sub: user.id,
-        tenant_id: tenant.id,
-        username: user.username,
-        exp: (now + chrono::Duration::hours(1)).timestamp() as usize,
-        iat: now.timestamp() as usize,
-    };
-    dts_server::services::token::create_token(&claims, common::DEFAULT_JWT_SECRET).unwrap()
-}
-
 // ========== Overview Tests ==========
 
 #[actix_web::test]
 async fn overview_with_valid_token_returns_200() {
     let ctx = common::setup_test_backend().await.expect("backend init");
-    let token = get_admin_token(&ctx).await;
+    let token = common::admin_token(&ctx).await;
 
     let monitoring_svc = MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
 
-    let app = test::init_service(App::new().app_data(web::Data::new(monitoring_svc)).service(
-        web::scope("/api/v1").service(
-            web::scope("/monitoring").route("/overview", web::get().to(monitoring::overview)),
-        ),
-    ))
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(common::test_auth_service(&ctx)))
+            .app_data(web::Data::new(monitoring_svc))
+            .service(web::scope("/api/v1").service(
+                web::scope("/monitoring").route("/overview", web::get().to(monitoring::overview)),
+            )),
+    )
     .await;
 
     let req = test::TestRequest::get()
         .uri("/api/v1/monitoring/overview")
-        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .insert_header(("Authorization", format!("Bearer {token}")))
         .to_request();
 
     let resp = test::call_service(&app, req).await;
@@ -77,20 +52,23 @@ async fn overview_with_valid_token_returns_200() {
 #[actix_web::test]
 async fn overview_returns_correct_structure() {
     let ctx = common::setup_test_backend().await.expect("backend init");
-    let token = get_admin_token(&ctx).await;
+    let token = common::admin_token(&ctx).await;
 
     let monitoring_svc = MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
 
-    let app = test::init_service(App::new().app_data(web::Data::new(monitoring_svc)).service(
-        web::scope("/api/v1").service(
-            web::scope("/monitoring").route("/overview", web::get().to(monitoring::overview)),
-        ),
-    ))
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(common::test_auth_service(&ctx)))
+            .app_data(web::Data::new(monitoring_svc))
+            .service(web::scope("/api/v1").service(
+                web::scope("/monitoring").route("/overview", web::get().to(monitoring::overview)),
+            )),
+    )
     .await;
 
     let req = test::TestRequest::get()
         .uri("/api/v1/monitoring/overview")
-        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .insert_header(("Authorization", format!("Bearer {token}")))
         .to_request();
 
     let resp = test::call_service(&app, req).await;
@@ -140,11 +118,14 @@ async fn overview_without_token_returns_401() {
 
     let monitoring_svc = MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
 
-    let app = test::init_service(App::new().app_data(web::Data::new(monitoring_svc)).service(
-        web::scope("/api/v1").service(
-            web::scope("/monitoring").route("/overview", web::get().to(monitoring::overview)),
-        ),
-    ))
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(common::test_auth_service(&ctx)))
+            .app_data(web::Data::new(monitoring_svc))
+            .service(web::scope("/api/v1").service(
+                web::scope("/monitoring").route("/overview", web::get().to(monitoring::overview)),
+            )),
+    )
     .await;
 
     let req = test::TestRequest::get()
@@ -158,44 +139,23 @@ async fn overview_without_token_returns_401() {
 #[actix_web::test]
 async fn overview_with_expired_token_returns_401() {
     let ctx = common::setup_test_backend().await.expect("backend init");
-
-    let tenant = ctx
-        .tenant_repo
-        .find_by_slug("default")
-        .await
-        .expect("find_by_slug")
-        .expect("tenant");
-
-    let user = ctx
-        .user_repo
-        .find_by_tenant_and_username(&tenant.id, "admin")
-        .await
-        .expect("find_by_tenant_and_username")
-        .expect("user");
-
-    let expired_claims = dts_server::services::token::Claims {
-        sub: user.id,
-        tenant_id: tenant.id,
-        username: user.username,
-        exp: (chrono::Utc::now() - chrono::Duration::hours(1)).timestamp() as usize,
-        iat: (chrono::Utc::now() - chrono::Duration::hours(2)).timestamp() as usize,
-    };
-    let expired_token =
-        dts_server::services::token::create_token(&expired_claims, common::DEFAULT_JWT_SECRET)
-            .unwrap();
+    let expired_token = common::expired_admin_token(&ctx).await;
 
     let monitoring_svc = MonitoringService::new(ctx.monitoring_repo.clone(), ctx.task_repo.clone());
 
-    let app = test::init_service(App::new().app_data(web::Data::new(monitoring_svc)).service(
-        web::scope("/api/v1").service(
-            web::scope("/monitoring").route("/overview", web::get().to(monitoring::overview)),
-        ),
-    ))
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(common::test_auth_service(&ctx)))
+            .app_data(web::Data::new(monitoring_svc))
+            .service(web::scope("/api/v1").service(
+                web::scope("/monitoring").route("/overview", web::get().to(monitoring::overview)),
+            )),
+    )
     .await;
 
     let req = test::TestRequest::get()
         .uri("/api/v1/monitoring/overview")
-        .insert_header(("Authorization", format!("Bearer {}", expired_token)))
+        .insert_header(("Authorization", format!("Bearer {expired_token}")))
         .to_request();
 
     let resp = test::call_service(&app, req).await;

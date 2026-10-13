@@ -25,13 +25,15 @@ export function StepIndicator({ currentStep }: Props) {
               i < currentStep
                 ? 'bg-emerald-500 text-white'
                 : i === currentStep
-                  ? 'bg-blue-500 text-white shadow-[0_0_12px_rgba(37,99,235,0.3)]'
+                  ? 'bg-[var(--color-action)] text-white shadow-sm'
                   : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-tertiary)]'
             }`}
           >
             {i < currentStep ? <Check size={14} /> : i + 1}
           </div>
-          <span className={`text-xs ${i <= currentStep ? 'text-[var(--color-text-secondary)]' : 'text-[var(--color-text-disabled)]'}`}>
+          <span
+            className={`text-xs ${i <= currentStep ? 'text-[var(--color-text-secondary)]' : 'text-[var(--color-text-disabled)]'}`}
+          >
             {label}
           </span>
           {i < steps.length - 1 && <div className="h-px w-6 bg-[var(--color-bg-tertiary)]" />}

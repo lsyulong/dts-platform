@@ -12,76 +12,62 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use super::*;
+use async_trait::async_trait;
+use dts_backend::{repo::RawConnectionInfo, types::*};
 use std::sync::Mutex;
 
-use async_trait::async_trait;
-use dts_backend::repo::RawConnectionInfo;
-use dts_backend::repo::task_run::CreateTaskRunParams as TRCreateParams;
-use dts_backend::repo::task_run::UpdateTaskRunParams as TRUpdateParams;
-use dts_backend::types::*;
-use dts_engine::SyncProgress;
-
-// ============================================================
-// Mock EngineService
-// ============================================================
+type ProgressSender = tokio::sync::mpsc::UnboundedSender<SyncProgress>;
 
 struct MockEngine {
-    submit_result: Mutex<Option<Result<String, dts_engine::EngineError>>>,
-}
-
-impl MockEngine {
-    fn new() -> Self {
-        Self {
-            submit_result: Mutex::new(None),
-        }
-    }
-
-    fn set_submit_result(&self, result: Result<String, dts_engine::EngineError>) {
-        *self.submit_result.lock().unwrap() = Some(result);
-    }
+    runs: Arc<MockTaskRunRepo>,
+    submitted: Mutex<Vec<TaskSubmission>>,
+    sender: Mutex<Option<ProgressSender>>,
+    submit_fails: Mutex<bool>,
+    cancelled: Mutex<Vec<String>>,
 }
 
 #[async_trait]
 impl EngineService for MockEngine {
-    async fn submit(
-        &self,
-        _task: TaskSubmission,
-        _progress_tx: tokio::sync::mpsc::UnboundedSender<SyncProgress>,
-    ) -> Result<String, dts_engine::EngineError> {
-        self.submit_result
-            .lock()
-            .unwrap()
-            .clone()
-            .unwrap_or(Ok("mock-run-id".into()))
+    fn supports(&self, _: &TaskSubmission) -> bool {
+        true
     }
 
-    async fn cancel(&self, _run_id: &str) -> Result<(), dts_engine::EngineError> {
+    async fn submit(
+        &self,
+        task: TaskSubmission,
+        tx: ProgressSender,
+    ) -> Result<String, dts_engine::EngineError> {
+        assert!(
+            self.runs
+                .created
+                .lock()
+                .unwrap()
+                .iter()
+                .any(|run| run.id == task.run_id),
+            "run must be persisted before execution is visible"
+        );
+        self.submitted.lock().unwrap().push(task.clone());
+        if *self.submit_fails.lock().unwrap() {
+            return Err(dts_engine::EngineError::Internal(
+                "injected submit failure".into(),
+            ));
+        }
+        *self.sender.lock().unwrap() = Some(tx);
+        Ok(task.run_id)
+    }
+    async fn cancel(&self, run_id: &str) -> Result<(), dts_engine::EngineError> {
+        self.cancelled.lock().unwrap().push(run_id.into());
+        if let Some(tx) = self.sender.lock().unwrap().take() {
+            let mut event = progress(run_id, RunStatus::Cancelled);
+            event.message = Some("cancelled".into());
+            let _ = tx.send(event);
+        }
         Ok(())
     }
 }
 
-// ============================================================
-// Mock DatasourceRepo
-// ============================================================
-
-struct MockDatasourceRepo {
-    conn_info: Mutex<Option<RawConnectionInfo>>,
-}
-
-impl MockDatasourceRepo {
-    fn new() -> Self {
-        Self {
-            conn_info: Mutex::new(None),
-        }
-    }
-
-    fn set_connection_info(&self, info: Option<RawConnectionInfo>) {
-        *self.conn_info.lock().unwrap() = info;
-    }
-}
-
+struct MockDatasourceRepo;
 #[async_trait]
 impl DatasourceRepo for MockDatasourceRepo {
     async fn create(&self, _: &CreateDatasourceParams) -> Result<String, BackendError> {
@@ -99,10 +85,22 @@ impl DatasourceRepo for MockDatasourceRepo {
     }
     async fn get_connection_info(
         &self,
-        _: &str,
+        id: &str,
         _: &str,
     ) -> Result<Option<RawConnectionInfo>, BackendError> {
-        Ok(self.conn_info.lock().unwrap().clone())
+        Ok(Some(RawConnectionInfo {
+            db_type: if id == "target" {
+                "postgresql"
+            } else {
+                "mysql"
+            }
+            .into(),
+            host: "localhost".into(),
+            port: if id == "target" { 5432 } else { 3306 },
+            username: Some("test".into()),
+            password: Some("test".into()),
+            database_name: Some(id.into()),
+        }))
     }
     async fn delete(&self, _: &str, _: &str) -> Result<bool, BackendError> {
         Ok(true)
@@ -118,32 +116,11 @@ impl DatasourceRepo for MockDatasourceRepo {
     }
 }
 
-// ============================================================
-// Mock TaskRepo
-// ============================================================
-
 struct MockTaskRepo {
-    detail_result: Mutex<Option<Option<TaskDetail>>>,
-    status_updates: Mutex<Vec<(String, String, String)>>,
+    detail: Mutex<Option<TaskDetail>>,
+    statuses: Mutex<Vec<String>>,
+    update_succeeds: Mutex<bool>,
 }
-
-impl MockTaskRepo {
-    fn new() -> Self {
-        Self {
-            detail_result: Mutex::new(None),
-            status_updates: Mutex::new(vec![]),
-        }
-    }
-
-    fn set_detail(&self, detail: Option<TaskDetail>) {
-        *self.detail_result.lock().unwrap() = Some(detail);
-    }
-
-    fn status_updates(&self) -> Vec<(String, String, String)> {
-        self.status_updates.lock().unwrap().clone()
-    }
-}
-
 #[async_trait]
 impl TaskRepo for MockTaskRepo {
     async fn create(&self, _: &CreateTaskParams) -> Result<String, BackendError> {
@@ -157,14 +134,11 @@ impl TaskRepo for MockTaskRepo {
         _: &str,
         _: &str,
     ) -> Result<Option<TaskDetail>, BackendError> {
-        Ok(self.detail_result.lock().unwrap().clone().unwrap_or(None))
+        Ok(self.detail.lock().unwrap().clone())
     }
-    async fn update_status(&self, id: &str, tid: &str, status: &str) -> Result<bool, BackendError> {
-        self.status_updates
-            .lock()
-            .unwrap()
-            .push((id.into(), tid.into(), status.into()));
-        Ok(true)
+    async fn update_status(&self, _: &str, _: &str, status: &str) -> Result<bool, BackendError> {
+        self.statuses.lock().unwrap().push(status.into());
+        Ok(*self.update_succeeds.lock().unwrap())
     }
     async fn count_by_tenant(&self, _: &str) -> Result<i64, BackendError> {
         Ok(0)
@@ -177,170 +151,348 @@ impl TaskRepo for MockTaskRepo {
     }
 }
 
-// ============================================================
-// Mock TaskRunRepo
-// ============================================================
-
 struct MockTaskRunRepo {
-    created: Mutex<Vec<TRCreateParams>>,
+    created: Mutex<Vec<CreateTaskRunParams>>,
+    updated: Mutex<Vec<UpdateTaskRunParams>>,
+    create_fails: Mutex<bool>,
+    update_succeeds: Mutex<bool>,
 }
-
-impl MockTaskRunRepo {
-    fn new() -> Self {
-        Self {
-            created: Mutex::new(vec![]),
-        }
-    }
-
-    fn created_runs(&self) -> Vec<TRCreateParams> {
-        self.created.lock().unwrap().clone()
-    }
-}
-
 #[async_trait]
 impl TaskRunRepo for MockTaskRunRepo {
-    async fn create(&self, params: &TRCreateParams) -> Result<String, BackendError> {
+    async fn create(&self, params: &CreateTaskRunParams) -> Result<String, BackendError> {
+        if *self.create_fails.lock().unwrap() {
+            return Err(BackendError::Query("injected create failure".into()));
+        }
         self.created.lock().unwrap().push(params.clone());
         Ok(params.id.clone())
     }
-    async fn update(&self, _: &TRUpdateParams) -> Result<bool, BackendError> {
-        Ok(true)
+    async fn update(&self, params: &UpdateTaskRunParams) -> Result<bool, BackendError> {
+        self.updated.lock().unwrap().push(params.clone());
+        Ok(*self.update_succeeds.lock().unwrap())
     }
     async fn find_recent(&self, _: &str, _: i64) -> Result<Vec<TaskRunInfo>, BackendError> {
         Ok(vec![])
     }
 }
 
-// ============================================================
-// Tests
-// ============================================================
+struct Harness {
+    scheduler: TaskScheduler,
+    engine: Arc<MockEngine>,
+    tasks: Arc<MockTaskRepo>,
+    runs: Arc<MockTaskRunRepo>,
+}
+impl Harness {
+    fn new() -> Self {
+        let runs = Arc::new(MockTaskRunRepo {
+            created: Mutex::new(vec![]),
+            updated: Mutex::new(vec![]),
+            create_fails: Mutex::new(false),
+            update_succeeds: Mutex::new(true),
+        });
+        let engine = Arc::new(MockEngine {
+            runs: runs.clone(),
+            submitted: Mutex::new(vec![]),
+            sender: Mutex::new(None),
+            submit_fails: Mutex::new(false),
+            cancelled: Mutex::new(vec![]),
+        });
+        let tasks = Arc::new(MockTaskRepo {
+            detail: Mutex::new(Some(task())),
+            statuses: Mutex::new(vec![]),
+            update_succeeds: Mutex::new(true),
+        });
+        let scheduler = TaskScheduler::new(
+            engine.clone(),
+            tasks.clone(),
+            runs.clone(),
+            Arc::new(MockDatasourceRepo),
+            Arc::new(WsHub::new()),
+        );
+        Self {
+            scheduler,
+            engine,
+            tasks,
+            runs,
+        }
+    }
+    async fn wait_finished(&self) {
+        tokio::time::timeout(std::time::Duration::from_secs(2), async {
+            while self.scheduler.has_active_runs() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+    }
+}
 
-#[tokio::test]
-async fn start_task_not_found_returns_error() {
-    let engine = Arc::new(MockEngine::new());
-    let task_repo = Arc::new(MockTaskRepo::new());
-    let task_run_repo = Arc::new(MockTaskRunRepo::new());
-    let datasource_repo = Arc::new(MockDatasourceRepo::new());
-    let ws_hub = Arc::new(WsHub::new());
-
-    let scheduler = TaskScheduler::new(engine, task_repo, task_run_repo, datasource_repo, ws_hub);
-
-    let result = scheduler.start_task("nonexistent", "tenant-1").await;
-    assert!(result.is_err());
-    let err = result.unwrap_err().to_string();
-    assert!(
-        err.contains("不存在"),
-        "expected 'not found' error, got: {err}"
-    );
+fn task() -> TaskDetail {
+    TaskDetail { id: "task-1".into(), name: "Test".into(), description: None,
+        source_id: "source".into(), target_id: "target".into(), source_name: "source".into(), source_type: "mysql".into(),
+        target_name: "target".into(), target_type: "postgresql".into(), cron_expr: None, status: "draft".into(),
+        config_json: r#"{"table_mappings":[{"source_table":"orders","target_table":"fact_orders","target_schema":"mart"}],"sync_mode":"full","batch_size":500}"#.into(),
+        created_by: "admin".into(), created_at: "".into(), updated_at: "".into(), recent_runs: vec![] }
+}
+fn progress(run_id: &str, status: RunStatus) -> SyncProgress {
+    SyncProgress {
+        run_id: run_id.into(),
+        task_id: "task-1".into(),
+        status,
+        rows_synced: 42,
+        bytes_synced: 128,
+        metrics_available: true,
+        total_rows: Some(42),
+        current_table: None,
+        percent: 100.0,
+        message: Some("progress message".into()),
+    }
 }
 
 #[tokio::test]
 async fn start_task_creates_run_and_updates_status() {
-    let engine = Arc::new(MockEngine::new());
-    let task_repo = Arc::new(MockTaskRepo::new());
-    let task_run_repo = Arc::new(MockTaskRunRepo::new());
-    let datasource_repo = Arc::new(MockDatasourceRepo::new());
-    let ws_hub = Arc::new(WsHub::new());
-
-    datasource_repo.set_connection_info(Some(RawConnectionInfo {
-        db_type: "mysql".into(),
-        host: "10.0.0.1".into(),
-        port: 3306,
-        username: Some("root".into()),
-        password: Some("secret".into()),
-        database_name: Some("source_db".into()),
-    }));
-
-    task_repo.set_detail(Some(TaskDetail {
-        id: "task-1".into(),
-        name: "Test Task".into(),
-        description: None,
-        source_id: "ds-1".into(),
-        target_id: "ds-2".into(),
-        source_name: "MySQL".into(),
-        source_type: "mysql".into(),
-        target_name: "PG".into(),
-        target_type: "postgresql".into(),
-        cron_expr: None,
-        status: "draft".into(),
-        config_json: r#"{"table_mappings":[{"source_table":"users","target_table":"users"}],"sync_mode":"full","batch_size":500}"#.into(),
-        created_by: "admin".into(),
-        created_at: "2026-01-01T00:00:00Z".into(),
-        updated_at: "2026-01-01T00:00:00Z".into(),
-        recent_runs: vec![],
-    }));
-
-    let scheduler = TaskScheduler::new(
-        engine,
-        task_repo.clone(),
-        task_run_repo.clone(),
-        datasource_repo,
-        ws_hub,
-    );
-
-    let result = scheduler.start_task("task-1", "tenant-1").await;
-    assert!(result.is_ok());
-    let run_id = result.unwrap();
-    assert!(!run_id.is_empty());
-
-    let created = task_run_repo.created_runs();
-    assert_eq!(created.len(), 1);
-    assert_eq!(created[0].task_id, "task-1");
-    assert_eq!(created[0].status, "running");
-
-    let updates = task_repo.status_updates();
-    assert_eq!(updates.len(), 1);
+    let harness = Harness::new();
+    let run_id = harness
+        .scheduler
+        .start_task("task-1", "tenant-1")
+        .await
+        .unwrap();
     assert_eq!(
-        updates[0],
-        (
-            "task-1".to_string(),
-            "tenant-1".to_string(),
-            "running".to_string()
-        )
+        harness.runs.created.lock().unwrap()[0].id,
+        run_id,
+        "persisted PipelineRun ID must match engine progress ID"
+    );
+    let submitted = harness.engine.submitted.lock().unwrap();
+    assert_eq!(submitted[0].run_id, run_id);
+    assert_eq!(
+        submitted[0].config.table_mappings[0]
+            .target_schema
+            .as_deref(),
+        Some("mart")
+    );
+    assert_eq!(submitted[0].target.db_type, "pg");
+    assert_eq!(
+        harness.tasks.statuses.lock().unwrap().as_slice(),
+        ["running"]
     );
 }
 
 #[tokio::test]
-async fn scheduler_has_active_runs() {
-    let engine = Arc::new(MockEngine::new());
-    let task_repo = Arc::new(MockTaskRepo::new());
-    let task_run_repo = Arc::new(MockTaskRunRepo::new());
-    let datasource_repo = Arc::new(MockDatasourceRepo::new());
-    let ws_hub = Arc::new(WsHub::new());
+async fn completed_progress_updates_persisted_run_before_closing_registry() {
+    let harness = Harness::new();
+    let run_id = harness
+        .scheduler
+        .start_task("task-1", "tenant-1")
+        .await
+        .unwrap();
+    harness
+        .engine
+        .sender
+        .lock()
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .send(progress(&run_id, RunStatus::Completed))
+        .unwrap();
+    harness.wait_finished().await;
+    let updates = harness.runs.updated.lock().unwrap();
+    assert_eq!(updates[0].run_id, run_id);
+    assert_eq!(updates[0].status, "completed");
+    assert_eq!(updates[0].rows_synced, 42);
+    assert!(updates[0].error_message.is_none());
+    assert!(updates[0].end_time.is_some());
+    assert_eq!(
+        harness.tasks.statuses.lock().unwrap().last().unwrap(),
+        "completed"
+    );
+}
 
-    datasource_repo.set_connection_info(Some(RawConnectionInfo {
-        db_type: "mysql".into(),
-        host: "localhost".into(),
-        port: 3306,
-        username: Some("root".into()),
-        password: Some("pwd".into()),
-        database_name: Some("db".into()),
-    }));
+#[tokio::test]
+async fn failed_run_record_creation_never_submits_external_execution() {
+    let harness = Harness::new();
+    *harness.runs.create_fails.lock().unwrap() = true;
+    assert!(
+        harness
+            .scheduler
+            .start_task("task-1", "tenant-1")
+            .await
+            .is_err()
+    );
+    assert!(harness.engine.submitted.lock().unwrap().is_empty());
+    assert!(!harness.scheduler.has_active_runs());
+}
 
-    task_repo.set_detail(Some(TaskDetail {
-        id: "task-2".into(),
-        name: "T2".into(),
-        description: None,
-        source_id: "s".into(),
-        target_id: "t".into(),
-        source_name: "S".into(),
-        source_type: "mysql".into(),
-        target_name: "T".into(),
-        target_type: "pg".into(),
-        cron_expr: None,
-        status: "draft".into(),
-        config_json: "{}".into(),
-        created_by: "admin".into(),
-        created_at: "".into(),
-        updated_at: "".into(),
-        recent_runs: vec![],
-    }));
+#[tokio::test]
+async fn submit_failure_persists_failed_run_instead_of_leaving_running() {
+    let harness = Harness::new();
+    *harness.engine.submit_fails.lock().unwrap() = true;
+    assert!(
+        harness
+            .scheduler
+            .start_task("task-1", "tenant-1")
+            .await
+            .is_err()
+    );
+    let updates = harness.runs.updated.lock().unwrap();
+    assert_eq!(
+        updates[0].run_id,
+        harness.runs.created.lock().unwrap()[0].id
+    );
+    assert_eq!(updates[0].status, "failed");
+    assert!(updates[0].end_time.is_some());
+    assert!(!harness.scheduler.has_active_runs());
+}
 
-    let scheduler = TaskScheduler::new(engine, task_repo, task_run_repo, datasource_repo, ws_hub);
+#[tokio::test]
+async fn missing_task_status_update_prevents_submission_and_finishes_run() {
+    let harness = Harness::new();
+    *harness.tasks.update_succeeds.lock().unwrap() = false;
+    assert!(
+        harness
+            .scheduler
+            .start_task("task-1", "tenant-1")
+            .await
+            .is_err()
+    );
+    assert!(harness.engine.submitted.lock().unwrap().is_empty());
+    assert_eq!(harness.runs.updated.lock().unwrap()[0].status, "failed");
+}
 
-    assert_eq!(scheduler.active_run_count(), 0);
-    assert!(!scheduler.has_active_runs());
+#[tokio::test]
+async fn concurrent_start_of_same_pipeline_is_rejected() {
+    let harness = Harness::new();
+    let (first, second) = tokio::join!(
+        harness.scheduler.start_task("task-1", "tenant-1"),
+        harness.scheduler.start_task("task-1", "tenant-1")
+    );
+    assert_ne!(first.is_ok(), second.is_ok());
+    assert_eq!(harness.engine.submitted.lock().unwrap().len(), 1);
+    assert_eq!(harness.runs.created.lock().unwrap().len(), 1);
+}
 
-    let result = scheduler.start_task("task-2", "tenant-1").await;
-    assert!(result.is_ok());
+#[tokio::test]
+async fn unexpected_progress_channel_close_finishes_as_failed() {
+    let harness = Harness::new();
+    harness
+        .scheduler
+        .start_task("task-1", "tenant-1")
+        .await
+        .unwrap();
+    harness.engine.sender.lock().unwrap().take();
+    harness.wait_finished().await;
+    assert_eq!(
+        harness.runs.updated.lock().unwrap().last().unwrap().status,
+        "failed"
+    );
+    assert_eq!(
+        harness.tasks.statuses.lock().unwrap().last().unwrap(),
+        "failed"
+    );
+}
+
+#[tokio::test]
+async fn failed_persistence_of_progress_cancels_execution() {
+    let harness = Harness::new();
+    let run_id = harness
+        .scheduler
+        .start_task("task-1", "tenant-1")
+        .await
+        .unwrap();
+    *harness.runs.update_succeeds.lock().unwrap() = false;
+    harness
+        .engine
+        .sender
+        .lock()
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .send(progress(&run_id, RunStatus::Running))
+        .unwrap();
+    harness.wait_finished().await;
+    assert_eq!(
+        harness.engine.cancelled.lock().unwrap().as_slice(),
+        [run_id]
+    );
+    assert_eq!(
+        harness.tasks.statuses.lock().unwrap().last().unwrap(),
+        "failed"
+    );
+}
+
+#[tokio::test]
+async fn cancellation_is_reported_as_cancelled_after_engine_confirmation() {
+    let harness = Harness::new();
+    let run_id = harness
+        .scheduler
+        .start_task("task-1", "tenant-1")
+        .await
+        .unwrap();
+    harness
+        .scheduler
+        .cancel_task("task-1", "tenant-1")
+        .await
+        .unwrap();
+    harness.wait_finished().await;
+    assert_eq!(
+        harness.engine.cancelled.lock().unwrap().as_slice(),
+        [run_id]
+    );
+    assert_eq!(
+        harness.runs.updated.lock().unwrap().last().unwrap().status,
+        "cancelled"
+    );
+    assert_eq!(
+        harness.tasks.statuses.lock().unwrap().last().unwrap(),
+        "cancelled"
+    );
+}
+
+#[tokio::test]
+async fn invalid_config_does_not_submit_a_default_empty_snapshot() {
+    for invalid in [
+        "broken json",
+        "{}",
+        r#"{"table_mappings":{"orders":"fact_orders"}}"#,
+    ] {
+        let harness = Harness::new();
+        harness
+            .tasks
+            .detail
+            .lock()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .config_json = invalid.into();
+        assert!(
+            harness
+                .scheduler
+                .start_task("task-1", "tenant-1")
+                .await
+                .is_err()
+        );
+        assert!(harness.engine.submitted.lock().unwrap().is_empty());
+        assert!(harness.runs.created.lock().unwrap().is_empty());
+    }
+}
+
+#[tokio::test]
+async fn wrong_progress_id_does_not_update_another_run() {
+    let harness = Harness::new();
+    let run_id = harness
+        .scheduler
+        .start_task("task-1", "tenant-1")
+        .await
+        .unwrap();
+    harness
+        .engine
+        .sender
+        .lock()
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .send(progress("wrong-run", RunStatus::Completed))
+        .unwrap();
+    harness.wait_finished().await;
+    let updates = harness.runs.updated.lock().unwrap();
+    assert!(updates.iter().all(|update| update.run_id == run_id));
+    assert_eq!(updates.last().unwrap().status, "failed");
 }

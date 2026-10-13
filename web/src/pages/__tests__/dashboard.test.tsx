@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { renderWithProviders } from '../../test/test-utils';
 import { server } from '../../test/mocks/server';
+import { http, HttpResponse } from 'msw';
 import DashboardPage from '../dashboard';
 
 describe('DashboardPage', () => {
@@ -51,7 +52,7 @@ describe('DashboardPage', () => {
       });
     });
 
-    it('displays success rate', async () => {
+    it('displays the share of configured tasks that have not failed', async () => {
       renderDashboard();
       await waitFor(() => {
         expect(screen.getByText('dashboard.successRate')).toBeInTheDocument();
@@ -115,6 +116,14 @@ describe('DashboardPage', () => {
         expect(screen.getByText('dashboard.systemLog')).toBeInTheDocument();
       });
     });
+
+    it('shows no logs instead of inventing startup or database connection events', async () => {
+      renderDashboard();
+      expect(await screen.findByText('dashboard.waitingForLogs')).toBeInTheDocument();
+      expect(screen.queryByText('dashboard.logStarted')).not.toBeInTheDocument();
+      expect(screen.queryByText('dashboard.logDbConnected')).not.toBeInTheDocument();
+      expect(screen.getByText('12')).toBeInTheDocument();
+    });
   });
 
   describe('formatBytes utility', () => {
@@ -138,13 +147,79 @@ describe('DashboardPage', () => {
   });
 
   describe('empty state', () => {
-    it('shows zero values when overview is minimal', async () => {
-      // The default mock returns rich data; this test just verifies the
-      // component handles null/undefined gracefully via the ?? operators
+    it('keeps chart titles and describes missing data without inventing healthy percentages', async () => {
+      server.use(
+        http.get('http://localhost:8080/api/v1/monitoring/overview', () =>
+          HttpResponse.json({
+            total_tasks: 0,
+            running_tasks: 0,
+            failed_tasks: 0,
+            total_datasources: 0,
+            healthy_datasources: 0,
+            today_synced_rows: 0,
+            today_synced_bytes: 0,
+            success_rate: 100,
+            recent_runs: [],
+          }),
+        ),
+        http.get('http://localhost:8080/api/v1/tasks', () => HttpResponse.json({ data: [] })),
+      );
       renderDashboard();
-      await waitFor(() => {
-        expect(screen.getByText('12')).toBeInTheDocument();
-      });
+      expect(await screen.findByText('dashboard.syncVolumeChart')).toBeInTheDocument();
+      expect(screen.getByText('dashboard.taskDistribution')).toBeInTheDocument();
+      expect(screen.getByText('dashboard.noSyncVolume')).toBeInTheDocument();
+      expect(screen.getByText('dashboard.noTaskDistribution')).toBeInTheDocument();
+      expect(screen.getByText('dashboard.noData')).toBeInTheDocument();
+      expect(screen.getByText('datasources.noDatasources')).toBeInTheDocument();
+      expect(screen.getAllByText('--')).toHaveLength(2);
+      expect(screen.queryByText('100.0%')).not.toBeInTheDocument();
+      expect(screen.queryByText('0/0')).not.toBeInTheDocument();
+      expect(screen.queryByText('dashboard.connectionHealthy')).not.toBeInTheDocument();
+    });
+
+    it('does not label unconfirmed connections as healthy or failed', async () => {
+      server.use(
+        http.get('http://localhost:8080/api/v1/monitoring/overview', () =>
+          HttpResponse.json({
+            total_tasks: 2,
+            running_tasks: 0,
+            failed_tasks: 0,
+            total_datasources: 3,
+            healthy_datasources: 0,
+            today_synced_rows: 0,
+            today_synced_bytes: 0,
+            success_rate: 100,
+            recent_runs: [],
+          }),
+        ),
+      );
+      renderDashboard();
+      expect(await screen.findByText('0/3')).toBeInTheDocument();
+      expect(screen.getByText('dashboard.connectionUnconfirmed')).toBeInTheDocument();
+      expect(screen.queryByText('dashboard.connectionHealthy')).not.toBeInTheDocument();
+      expect(screen.getByText('100.0%')).toBeInTheDocument();
+    });
+
+    it('labels connection health as confirmed only when every connection is healthy', async () => {
+      server.use(
+        http.get('http://localhost:8080/api/v1/monitoring/overview', () =>
+          HttpResponse.json({
+            total_tasks: 2,
+            running_tasks: 0,
+            failed_tasks: 0,
+            total_datasources: 3,
+            healthy_datasources: 3,
+            today_synced_rows: 0,
+            today_synced_bytes: 0,
+            success_rate: 100,
+            recent_runs: [],
+          }),
+        ),
+      );
+      renderDashboard();
+      expect(await screen.findByText('3/3')).toBeInTheDocument();
+      expect(screen.getByText('dashboard.connectionHealthy')).toBeInTheDocument();
+      expect(screen.queryByText('dashboard.connectionUnconfirmed')).not.toBeInTheDocument();
     });
   });
 });

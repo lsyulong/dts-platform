@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use serde::{Deserialize, Serialize};
 
 /// 同步任务提交参数
 #[derive(Debug, Clone)]
 pub struct TaskSubmission {
+    /// Persisted PipelineRun ID, allocated before execution becomes visible.
+    pub run_id: String,
     /// 平台任务 ID
     pub task_id: String,
     /// 源数据库连接配置
@@ -29,7 +30,7 @@ pub struct TaskSubmission {
 }
 
 /// 数据库连接配置
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ConnectionConfig {
     /// 数据库类型：mysql, postgresql 等
     pub db_type: String,
@@ -45,6 +46,19 @@ pub struct ConnectionConfig {
     pub database: String,
 }
 
+impl std::fmt::Debug for ConnectionConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ConnectionConfig")
+            .field("db_type", &self.db_type)
+            .field("host", &self.host)
+            .field("port", &self.port)
+            .field("username", &self.username)
+            .field("password", &"<REDACTED>")
+            .field("database", &self.database)
+            .finish()
+    }
+}
+
 /// 同步配置
 #[derive(Debug, Clone)]
 pub struct SyncConfig {
@@ -57,7 +71,8 @@ pub struct SyncConfig {
 }
 
 /// 表映射
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TableMapping {
     /// 源表名
     pub source_table: String,
@@ -70,15 +85,69 @@ pub struct TableMapping {
 }
 
 /// 同步模式
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum SyncMode {
     /// 全量同步
+    #[default]
     Full,
     /// 增量同步
     Incremental,
     /// 全量 + 增量（先全量后持续增量）
     FullThenIncremental,
+}
+
+impl SyncConfig {
+    pub fn validate(&self) -> Result<(), crate::EngineError> {
+        if self.mode != SyncMode::Full {
+            return Err(crate::EngineError::InvalidConfig(
+                "当前平台适配器仅支持 full；CDC 位点与恢复尚未实现".into(),
+            ));
+        }
+        if self.table_mappings.is_empty() {
+            return Err(crate::EngineError::InvalidConfig(
+                "至少需要一个表映射".into(),
+            ));
+        }
+        if !(1..=100_000).contains(&self.batch_size) {
+            return Err(crate::EngineError::InvalidConfig(
+                "batch_size 必须在 1 到 100000 之间".into(),
+            ));
+        }
+        let mut sources = std::collections::HashSet::new();
+        let mut targets = std::collections::HashSet::new();
+        for mapping in &self.table_mappings {
+            for identifier in [
+                Some(&mapping.source_table),
+                Some(&mapping.target_table),
+                mapping.source_schema.as_ref(),
+                mapping.target_schema.as_ref(),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                // These separators have syntax in ape's filter/router INI grammar.
+                if identifier.is_empty()
+                    || identifier.trim() != identifier
+                    || identifier.chars().any(|c| {
+                        c.is_control() || matches!(c, '.' | ',' | ':' | '*' | '`' | '[' | ']' | '=')
+                    })
+                {
+                    return Err(crate::EngineError::InvalidConfig(
+                        "表名/schema 不可为空或包含映射分隔符".into(),
+                    ));
+                }
+            }
+            if !sources.insert((&mapping.source_schema, &mapping.source_table))
+                || !targets.insert((&mapping.target_schema, &mapping.target_table))
+            {
+                return Err(crate::EngineError::InvalidConfig(
+                    "源表和目标表映射不可重复".into(),
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 /// 同步进度
@@ -94,6 +163,9 @@ pub struct SyncProgress {
     pub rows_synced: u64,
     /// 已同步字节数
     pub bytes_synced: u64,
+    /// True only when the engine supplied a validated global counter sample.
+    #[serde(default)]
+    pub metrics_available: bool,
     /// 预估总行数
     pub total_rows: Option<u64>,
     /// 当前正在处理的表
@@ -116,4 +188,24 @@ pub enum RunStatus {
     Failed,
     /// 已取消
     Cancelled,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn connection_debug_redacts_the_plaintext_password() {
+        let connection = ConnectionConfig {
+            db_type: "mysql".into(),
+            host: "localhost".into(),
+            port: 3306,
+            username: "user".into(),
+            password: "must-never-be-logged".into(),
+            database: "db".into(),
+        };
+        let output = format!("{connection:?}");
+        assert!(!output.contains("must-never-be-logged"));
+        assert!(output.contains("<REDACTED>"));
+    }
 }

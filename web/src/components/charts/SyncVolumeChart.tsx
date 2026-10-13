@@ -1,13 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 type Props = {
   runs: Array<{
@@ -18,11 +10,26 @@ type Props = {
 
 export function SyncVolumeChart({ runs }: Props) {
   const { t } = useTranslation();
-  if (runs.length === 0) return null;
+  if (runs.length === 0)
+    return (
+      <div className="flex h-64 flex-col">
+        <h4 className="mb-3 text-xs font-medium text-[var(--color-text-tertiary)]">
+          {t('dashboard.syncVolumeChart')}
+        </h4>
+        <p
+          role="status"
+          className="flex flex-1 items-center justify-center text-sm text-[var(--color-text-tertiary)]"
+        >
+          {t('dashboard.noSyncVolume')}
+        </p>
+      </div>
+    );
 
   return (
     <div className="h-64">
-      <h4 className="mb-3 text-xs font-medium text-[var(--color-text-tertiary)]">{t('dashboard.syncVolumeChart')}</h4>
+      <h4 className="mb-3 text-xs font-medium text-[var(--color-text-tertiary)]">
+        {t('dashboard.syncVolumeChart')}
+      </h4>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={runs} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-bg-tertiary)" />
@@ -44,7 +51,7 @@ export function SyncVolumeChart({ runs }: Props) {
             }}
             labelStyle={{ color: 'var(--color-text-secondary)' }}
           />
-          <Bar dataKey="rows_synced" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="rows_synced" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

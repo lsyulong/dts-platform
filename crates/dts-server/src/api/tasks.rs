@@ -12,27 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::sync::Arc;
 
 use actix_web::{HttpRequest, HttpResponse, web};
 use serde::{Deserialize, Serialize};
 
 use crate::middleware::auth;
-use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
-use crate::services::task_svc::TaskService;
+use crate::services::task_svc::{PipelineConfig, TaskService, default_batch_size};
 use dts_backend::repo::TaskRepo;
+use dts_engine::{SyncMode, TableMapping};
 
 /// 创建任务请求
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CreateTaskRequest {
     pub name: String,
     pub description: Option<String>,
     pub source_id: String,
     pub target_id: String,
     pub cron_expr: Option<String>,
-    pub table_mappings: Option<serde_json::Value>,
+    pub table_mappings: Option<Vec<TableMapping>>,
+    #[serde(default)]
+    pub sync_mode: SyncMode,
+    #[serde(default = "default_batch_size")]
+    pub batch_size: usize,
     pub filter_config: Option<serde_json::Value>,
 }
 
@@ -54,8 +58,7 @@ pub async fn list(
     task_svc: web::Data<TaskService>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "task:read").await?;
 
     let tasks = task_svc.list_by_tenant(&claims.tenant_id).await?;
     let total = tasks.len();
@@ -72,13 +75,20 @@ pub async fn create(
     req: HttpRequest,
     body: web::Json<CreateTaskRequest>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "task:write").await?;
 
-    let config_json = serde_json::json!({
-        "table_mappings": body.table_mappings,
-        "filter_config": body.filter_config,
-    });
+    let config = PipelineConfig {
+        table_mappings: body.table_mappings.clone().unwrap_or_default(),
+        sync_mode: body.sync_mode.clone(),
+        batch_size: body.batch_size,
+        filter_config: body.filter_config.clone(),
+    };
+    config.validate().map_err(AppError::from)?;
+    if body.name.trim().is_empty() {
+        return Err(AppError::BadRequest("任务名称不能为空".into()));
+    }
+    let config_json = serde_json::to_string(&config)
+        .map_err(|e| AppError::Internal(format!("序列化任务配置失败: {e}")))?;
 
     let task_id = task_svc
         .create(
@@ -88,7 +98,7 @@ pub async fn create(
             &body.source_id,
             &body.target_id,
             body.cron_expr.as_deref(),
-            &config_json.to_string(),
+            &config_json,
             &claims.sub,
         )
         .await?;
@@ -108,8 +118,7 @@ pub async fn get(
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "task:read").await?;
     let task_id = path.into_inner();
 
     let task = task_repo
@@ -126,8 +135,7 @@ pub async fn start(
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "task:execute").await?;
     let task_id = path.into_inner();
 
     let run_id = scheduler.start_task(&task_id, &claims.tenant_id).await?;
@@ -153,22 +161,24 @@ pub struct UpdateStatusRequest {
 }
 
 pub async fn update_status(
-    task_svc: web::Data<TaskService>,
+    scheduler: web::Data<crate::services::scheduler::TaskScheduler>,
     req: HttpRequest,
     path: web::Path<String>,
     body: web::Json<UpdateStatusRequest>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "task:execute").await?;
     let task_id = path.into_inner();
 
-    task_svc
-        .update_status(&task_id, &claims.tenant_id, &body.status)
-        .await?;
+    if body.status != "cancelled" {
+        return Err(AppError::BadRequest(
+            "运行状态由引擎报告；当前只接受 cancelled 取消请求，不支持暂停".into(),
+        ));
+    }
+    scheduler.cancel_task(&task_id, &claims.tenant_id).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "id": task_id,
-        "status": body.status,
+        "status": "cancelling",
     })))
 }
 
@@ -187,8 +197,9 @@ mod tests {
             "source_id": "src-1",
             "target_id": "tgt-1",
             "cron_expr": "0 */6 * * *",
-            "table_mappings": {"users": "users_backup"},
-            "filter_config": {"status": "active"}
+            "table_mappings": [{"source_table": "users", "target_table": "users_backup"}],
+            "sync_mode": "full", "batch_size": 500,
+            "filter_config": null
         });
         let req: CreateTaskRequest = serde_json::from_value(json).unwrap();
         assert_eq!(req.name, "My Sync Task");
@@ -197,7 +208,8 @@ mod tests {
         assert_eq!(req.target_id, "tgt-1");
         assert_eq!(req.cron_expr, Some("0 */6 * * *".into()));
         assert!(req.table_mappings.is_some());
-        assert!(req.filter_config.is_some());
+        assert_eq!(req.sync_mode, SyncMode::Full);
+        assert_eq!(req.batch_size, 500);
     }
 
     #[test]
@@ -213,25 +225,31 @@ mod tests {
         assert_eq!(req.target_id, "tgt-1");
     }
 
-    // ========== UpdateStatusRequest Tests ==========
-
     #[test]
-    fn update_status_request_valid_statuses() {
-        for status in &["draft", "running", "paused", "completed", "failed"] {
-            let json = serde_json::json!({"status": status});
-            let req: UpdateStatusRequest = serde_json::from_value(json).unwrap();
-            assert_eq!(req.status, *status);
-        }
+    fn legacy_mapping_object_is_rejected_instead_of_silently_syncing_every_table() {
+        let json = serde_json::json!({
+            "name": "Task", "source_id": "src", "target_id": "dst",
+            "table_mappings": {"users": "users_backup"}
+        });
+        assert!(serde_json::from_value::<CreateTaskRequest>(json).is_err());
     }
 
     #[test]
-    fn valid_status_values_list_is_complete() {
-        let valid_statuses = ["draft", "running", "paused", "completed", "failed"];
-        assert!(valid_statuses.contains(&"draft"));
-        assert!(valid_statuses.contains(&"running"));
-        assert!(valid_statuses.contains(&"paused"));
-        assert!(valid_statuses.contains(&"completed"));
-        assert!(valid_statuses.contains(&"failed"));
-        assert!(!valid_statuses.contains(&"deleted"));
+    fn unsupported_mode_is_rejected_without_a_snapshot_fallback() {
+        let request: CreateTaskRequest = serde_json::from_value(serde_json::json!({
+            "name":"Task", "source_id":"src", "target_id":"dst", "sync_mode":"incremental",
+            "table_mappings":[{"source_table":"orders","target_table":"fact_orders"}]
+        }))
+        .unwrap();
+        assert!(
+            PipelineConfig {
+                table_mappings: request.table_mappings.unwrap(),
+                sync_mode: request.sync_mode,
+                batch_size: request.batch_size,
+                filter_config: request.filter_config
+            }
+            .validate()
+            .is_err()
+        );
     }
 }

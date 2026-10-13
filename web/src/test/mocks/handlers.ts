@@ -4,10 +4,14 @@ const API_BASE = 'http://localhost:8080/api/v1';
 
 // ── Auth ──────────────────────────────────────────────────────────
 export const loginHandler = http.post(`${API_BASE}/auth/login`, async ({ request }) => {
-  const body = (await request.json()) as { username: string; password: string; tenant_slug: string };
+  const body = (await request.json()) as {
+    username: string;
+    password: string;
+    tenant_slug: string;
+  };
   if (body.username === 'admin' && body.password === 'admin123') {
     return HttpResponse.json({
-      token: 'mock-jwt-token-abc123',
+      token: 'mock-opaque-session-abc123',
       user: {
         id: 'u1',
         username: 'admin',
@@ -16,7 +20,14 @@ export const loginHandler = http.post(`${API_BASE}/auth/login`, async ({ request
         tenant_id: 't1',
         tenant_name: 'default',
         roles: ['admin', 'operator'],
-        permissions: ['task:read', 'task:write', 'ds:read', 'ds:write', 'monitor:read'],
+        permissions: [
+          'task:read',
+          'task:write',
+          'task:execute',
+          'datasource:read',
+          'datasource:write',
+          'monitor:read',
+        ],
       },
     });
   }
@@ -36,11 +47,24 @@ export const getMeHandler = http.get(`${API_BASE}/auth/me`, () => {
   });
 });
 
+export const logoutHandler = http.post(
+  `${API_BASE}/auth/logout`,
+  () => new HttpResponse(null, { status: 204 }),
+);
+
 export const getPermissionsHandler = http.get(`${API_BASE}/auth/permissions`, () => {
   return HttpResponse.json([
-    'task:read', 'task:write', 'task:delete',
-    'ds:read', 'ds:write', 'ds:delete',
-    'monitor:read', 'monitor:write',
+    'task:read',
+    'task:write',
+    'task:execute',
+    'datasource:read',
+    'datasource:write',
+    'monitor:read',
+    'alert:read',
+    'alert:write',
+    'user:manage',
+    'audit:read',
+    'tenant:create',
   ]);
 });
 
@@ -104,12 +128,15 @@ export const getTasksHandler = http.get(`${API_BASE}/tasks`, () => {
 
 export const createTaskHandler = http.post(`${API_BASE}/tasks`, async ({ request }) => {
   const body = await request.json();
-  return HttpResponse.json({
-    id: 'task-new',
-    name: (body as { name: string }).name || 'New Task',
-    status: 'draft',
-    created_at: new Date().toISOString(),
-  }, { status: 201 });
+  return HttpResponse.json(
+    {
+      id: 'task-new',
+      name: (body as { name: string }).name || 'New Task',
+      status: 'draft',
+      created_at: new Date().toISOString(),
+    },
+    { status: 201 },
+  );
 });
 
 export const getTaskDetailHandler = http.get(`${API_BASE}/tasks/:id`, ({ params }) => {
@@ -220,14 +247,17 @@ export const getDatasourcesHandler = http.get(`${API_BASE}/datasources`, () => {
 
 export const createDatasourceHandler = http.post(`${API_BASE}/datasources`, async ({ request }) => {
   const body = await request.json();
-  return HttpResponse.json({
-    id: 'ds-new',
-    name: (body as { name: string }).name || 'New Datasource',
-    db_type: (body as { db_type: string }).db_type || 'MySQL',
-    host: (body as { host: string }).host || 'localhost',
-    health_status: 'healthy',
-    created_at: new Date().toISOString(),
-  }, { status: 201 });
+  return HttpResponse.json(
+    {
+      id: 'ds-new',
+      name: (body as { name: string }).name || 'New Datasource',
+      db_type: (body as { db_type: string }).db_type || 'MySQL',
+      host: (body as { host: string }).host || 'localhost',
+      health_status: 'healthy',
+      created_at: new Date().toISOString(),
+    },
+    { status: 201 },
+  );
 });
 
 export const deleteDatasourceHandler = http.delete(`${API_BASE}/datasources/:id`, () => {
@@ -318,7 +348,7 @@ export const getAlertsHandler = http.get(`${API_BASE}/alerts`, () => {
 });
 
 export const createAlertHandler = http.post(`${API_BASE}/alerts`, async ({ request }) => {
-  const body = await request.json() as { name: string };
+  const body = (await request.json()) as { name: string };
   const newAlert = {
     id: 'alert-new',
     name: body.name || 'New Alert',
@@ -347,6 +377,7 @@ export const handlers = [
   // Auth
   loginHandler,
   getMeHandler,
+  logoutHandler,
   getPermissionsHandler,
   // Tasks
   getTasksHandler,

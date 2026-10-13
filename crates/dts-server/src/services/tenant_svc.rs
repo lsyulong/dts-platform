@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::sync::Arc;
 
 use anyhow::anyhow;
@@ -157,7 +156,10 @@ mod tests {
     #[async_trait]
     impl TenantRepo for MockTenantRepo {
         async fn create(&self, params: &CreateTenantParams) -> Result<String, BackendError> {
-            self.created_tenants.lock().expect("Mutex poisoned").push(params.clone());
+            self.created_tenants
+                .lock()
+                .expect("Mutex poisoned")
+                .push(params.clone());
             Ok(params.id.clone())
         }
 
@@ -178,7 +180,11 @@ mod tests {
         }
 
         async fn find_by_id(&self, _id: &str) -> Result<Option<TenantInfo>, BackendError> {
-            Ok(self.find_by_id_result.lock().expect("Mutex poisoned").clone())
+            Ok(self
+                .find_by_id_result
+                .lock()
+                .expect("Mutex poisoned")
+                .clone())
         }
 
         async fn list_all(&self) -> Result<Vec<TenantInfo>, BackendError> {
@@ -218,7 +224,10 @@ mod tests {
         }
 
         fn created_roles_tenant_ids(&self) -> Vec<String> {
-            self.created_roles_tenant_ids.lock().expect("Mutex poisoned").clone()
+            self.created_roles_tenant_ids
+                .lock()
+                .expect("Mutex poisoned")
+                .clone()
         }
 
         #[allow(dead_code)]
@@ -317,14 +326,20 @@ mod tests {
         }
 
         fn role_assignments(&self) -> Vec<(String, String)> {
-            self.role_assignments.lock().expect("Mutex poisoned").clone()
+            self.role_assignments
+                .lock()
+                .expect("Mutex poisoned")
+                .clone()
         }
     }
 
     #[async_trait]
     impl UserRepo for MockUserRepo {
         async fn create(&self, params: &CreateUserParams) -> Result<String, BackendError> {
-            self.created_users.lock().expect("Mutex poisoned").push(params.clone());
+            self.created_users
+                .lock()
+                .expect("Mutex poisoned")
+                .push(params.clone());
             Ok(params.id.clone())
         }
 

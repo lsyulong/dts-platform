@@ -20,7 +20,9 @@ use dts_backend_postgres::PgRoleRepo;
 
 #[tokio::test]
 async fn create_default_roles_returns_ids() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgRoleRepo::new(pool);
     let tenant_id = uuid::Uuid::new_v4().to_string();
 
@@ -35,7 +37,9 @@ async fn create_default_roles_returns_ids() {
 
 #[tokio::test]
 async fn list_all_returns_roles() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgRoleRepo::new(pool);
     let tenant_id = uuid::Uuid::new_v4().to_string();
     repo.create_default_roles(&tenant_id)
@@ -48,7 +52,9 @@ async fn list_all_returns_roles() {
 
 #[tokio::test]
 async fn find_user_role_names_returns_empty_for_new_user() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgRoleRepo::new(pool);
     let names = repo
         .find_user_role_names("nonexistent-user")
@@ -59,7 +65,9 @@ async fn find_user_role_names_returns_empty_for_new_user() {
 
 #[tokio::test]
 async fn find_all_permissions_returns_list() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgRoleRepo::new(pool);
     let perms = repo.find_all_permissions().await.expect("query failed");
     // System has pre-defined permissions

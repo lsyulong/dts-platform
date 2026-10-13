@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use dts_backend::{BackendError, repo::UserRepo, repo::user::UserDetail, types::*};
@@ -249,11 +248,16 @@ impl UserRepo for SqliteUserRepo {
     }
 
     async fn update(&self, user_id: &str, params: &UpdateUserParams) -> Result<(), BackendError> {
+        let mut transaction = self
+            .pool
+            .begin_with("BEGIN IMMEDIATE")
+            .await
+            .map_err(map_sqlx_error)?;
         if let Some(ref display_name) = params.display_name {
             sqlx::query("UPDATE \"user\" SET display_name = ?1 WHERE id = ?2")
                 .bind(display_name)
                 .bind(user_id)
-                .execute(&self.pool)
+                .execute(&mut *transaction)
                 .await
                 .map_err(map_sqlx_error)?;
         }
@@ -261,10 +265,11 @@ impl UserRepo for SqliteUserRepo {
             sqlx::query("UPDATE \"user\" SET status = ?1 WHERE id = ?2")
                 .bind(status)
                 .bind(user_id)
-                .execute(&self.pool)
+                .execute(&mut *transaction)
                 .await
-                .map_err(map_sqlx_error)?;
+                .map_err(super::product_resource::map_reference_error)?;
         }
+        transaction.commit().await.map_err(map_sqlx_error)?;
         Ok(())
     }
 
@@ -273,7 +278,7 @@ impl UserRepo for SqliteUserRepo {
             .bind(user_id)
             .execute(&self.pool)
             .await
-            .map_err(map_sqlx_error)?;
+            .map_err(super::product_resource::map_reference_error)?;
         Ok(())
     }
 
@@ -294,5 +299,72 @@ impl UserRepo for SqliteUserRepo {
             .await
             .map_err(map_sqlx_error)?;
         Ok(())
+    }
+
+    async fn list_references(
+        &self,
+        tenant_id: &str,
+        search: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<dts_backend::repo::user::UserReferencePage, BackendError> {
+        use dts_backend::repo::user::{UserReferenceItem, UserReferencePage};
+        if !(1..=100).contains(&limit) || search.len() > 128 || search.chars().any(char::is_control)
+        {
+            return Err(BackendError::ConstraintViolation(
+                "用户目录筛选或分页无效".into(),
+            ));
+        }
+        let pattern = format!(
+            "%{}%",
+            search
+                .replace('\\', "\\\\")
+                .replace('%', "\\%")
+                .replace('_', "\\_")
+        );
+        let mut tx = self.pool.begin().await.map_err(map_sqlx_error)?;
+        let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM \"user\" WHERE tenant_id=?1 AND status='active' AND (username LIKE ?2 ESCAPE '\\' OR COALESCE(display_name,'') LIKE ?2 ESCAPE '\\')")
+            .bind(tenant_id).bind(&pattern).fetch_one(&mut *tx).await.map_err(map_sqlx_error)?;
+        let rows = sqlx::query("SELECT id,tenant_id,username,display_name FROM \"user\" WHERE tenant_id=?1 AND status='active' AND (username LIKE ?2 ESCAPE '\\' OR COALESCE(display_name,'') LIKE ?2 ESCAPE '\\') ORDER BY username,id LIMIT ?3 OFFSET ?4")
+            .bind(tenant_id).bind(&pattern).bind(i64::from(limit)).bind(i64::from(offset)).fetch_all(&mut *tx).await.map_err(map_sqlx_error)?;
+        let data = rows
+            .into_iter()
+            .map(|row| {
+                Ok(UserReferenceItem {
+                    id: row.try_get("id").map_err(map_sqlx_error)?,
+                    tenant_id: row.try_get("tenant_id").map_err(map_sqlx_error)?,
+                    username: row.try_get("username").map_err(map_sqlx_error)?,
+                    display_name: row.try_get("display_name").map_err(map_sqlx_error)?,
+                })
+            })
+            .collect::<Result<Vec<_>, BackendError>>()?;
+        tx.commit().await.map_err(map_sqlx_error)?;
+        Ok(UserReferencePage { data, total })
+    }
+
+    async fn update_self_profile(
+        &self,
+        user_id: &str,
+        tenant_id: &str,
+        email: &str,
+        display_name: &str,
+    ) -> Result<bool, BackendError> {
+        let result = sqlx::query("UPDATE \"user\" SET email = ?1, display_name = ?2, updated_at = datetime('now') WHERE id = ?3 AND tenant_id = ?4 AND status = 'active' AND EXISTS(SELECT 1 FROM tenant t WHERE t.id = ?4 AND t.status = 'active')")
+            .bind(email).bind(display_name).bind(user_id).bind(tenant_id)
+            .execute(&self.pool).await.map_err(map_sqlx_error)?;
+        Ok(result.rows_affected() == 1)
+    }
+
+    async fn compare_exchange_password(
+        &self,
+        user_id: &str,
+        tenant_id: &str,
+        expected_hash: &str,
+        new_hash: &str,
+    ) -> Result<bool, BackendError> {
+        let result = sqlx::query("UPDATE \"user\" SET password_hash = ?1, updated_at = datetime('now') WHERE id = ?2 AND tenant_id = ?3 AND password_hash = ?4 AND status = 'active' AND EXISTS(SELECT 1 FROM tenant t WHERE t.id = ?3 AND t.status = 'active')")
+            .bind(new_hash).bind(user_id).bind(tenant_id).bind(expected_hash)
+            .execute(&self.pool).await.map_err(map_sqlx_error)?;
+        Ok(result.rows_affected() == 1)
     }
 }

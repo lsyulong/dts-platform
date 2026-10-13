@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! DTS Platform — 企业级数据同步管理平台
 //!
 //! 公开库入口，供集成测试和外部使用。

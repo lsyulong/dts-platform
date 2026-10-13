@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! Health check API integration tests
 
 use actix_web::{App, test, web};

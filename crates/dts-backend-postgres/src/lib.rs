@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! DTS Backend PostgreSQL — PostgreSQL 协议存储后端
 //!
 //! 基于 sqlx 实现，兼容所有 PostgreSQL 协议数据库：
@@ -30,7 +29,23 @@ mod migrate;
 
 pub use migrate::PgMigrationRunner;
 pub use pool::{PgBackendPool, create_pool};
+pub use repo::PgAlertPolicyRepo;
+pub use repo::PgDataAccessRepo;
+pub use repo::PgMasterDataRepo;
+pub use repo::PgMessageDeliveryRepo;
+pub use repo::PgMetadataCatalogRepo;
+pub use repo::PgNotificationConnectionRepo;
+pub use repo::PgProductJobRepo;
+pub use repo::PgProductResourceRepo;
+pub use repo::PgQualityAlertRepo;
+pub use repo::PgRuntimeConfigurationRepo;
+pub use repo::PgTagAssignmentRepo;
+pub use repo::PgTaskLogRepo;
 pub use repo::{
     PgAlertRepo, PgDatasourceRepo, PgMonitoringRepo, PgRoleRepo, PgSeedRepo, PgTaskRepo,
     PgTaskRunRepo, PgTenantRepo, PgUserRepo,
 };
+pub use repo::{PgBiShareRepo, PgServiceAccessRepo};
+pub use repo::{PgDevelopmentRevisionRepo, PgStandardGovernanceRepo};
+pub use repo::{PgNavigationRepo, PgSensitiveFindingRepo};
+pub use repo::{PgOrganizationMembersRepo, PgPlatformProjectionRepo};

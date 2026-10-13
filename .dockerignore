@@ -1,0 +1,14 @@
+.git
+.claude
+.codex
+.freebuff
+target
+web/node_modules
+web/dist
+web/test-results
+.env
+.env.*
+!.env.example
+data
+**/.credentials-key
+**/*.rp

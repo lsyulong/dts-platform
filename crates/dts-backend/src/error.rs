@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 /// 存储后端统一错误类型
 #[derive(Debug, thiserror::Error)]
 pub enum BackendError {
@@ -30,6 +29,15 @@ pub enum BackendError {
 
     #[error("约束冲突: {0}")]
     ConstraintViolation(String),
+
+    #[error("并发或关联冲突: {0}")]
+    Conflict(String),
+
+    #[error("权限拒绝: {0}")]
+    Forbidden(String),
+
+    #[error("调用次数超过每分钟上限，请在 {retry_after_secs} 秒后重试")]
+    RateLimited { retry_after_secs: u32 },
 
     #[error("迁移失败: {0}")]
     Migration(String),

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use serde::{Deserialize, Serialize};
 
 // ============================================================
@@ -149,6 +148,7 @@ pub struct DatasourceInfo {
     pub username: Option<String>,
     pub database_name: Option<String>,
     pub health_status: String,
+    pub last_test_at: Option<chrono::DateTime<chrono::Utc>>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 

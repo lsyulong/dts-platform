@@ -9,6 +9,8 @@ description = "DTS Platform — 存储后端核心抽象层（trait + 公共类�
 dts-core = { path = "../dts-core" }
 async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = "0.10"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
 thiserror = "2"

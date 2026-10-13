@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use async_trait::async_trait;
 use dts_backend::{BackendError, repo::SeedRepo};
 use dts_backend_rdbms::map_sqlx_error;
@@ -31,20 +30,14 @@ impl SqliteSeedRepo {
     pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }
-}
 
-#[async_trait]
-impl SeedRepo for SqliteSeedRepo {
-    async fn has_data(&self) -> Result<bool, BackendError> {
-        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM tenant")
-            .fetch_one(&self.pool)
-            .await
-            .map_err(map_sqlx_error)?;
-        Ok(count > 0)
-    }
-
-    async fn seed(&self) -> Result<(), BackendError> {
-        tracing::info!("初始化默认种子数据...");
+    async fn seed_internal(
+        &self,
+        admin_password: &str,
+        include_demo: bool,
+    ) -> Result<(), BackendError> {
+        let admin_password_hash = hash_password_sync(admin_password)?;
+        tracing::info!("初始化租户和管理员...");
 
         let tenant_repo = SqliteTenantRepo::new(self.pool.clone());
         let role_repo = SqliteRoleRepo::new(self.pool.clone());
@@ -68,7 +61,6 @@ impl SeedRepo for SqliteSeedRepo {
         let roles = role_repo.create_default_roles(&tenant_id).await?;
 
         // 3. 创建管理员用户
-        let admin_password_hash = hash_password_sync("admin123")?;
         let user_id = Uuid::new_v4().to_string();
 
         user_repo
@@ -82,45 +74,87 @@ impl SeedRepo for SqliteSeedRepo {
             })
             .await?;
 
-        user_repo
-            .assign_role(&user_id, &roles.admin_role_id)
-            .await?;
+        let admin_role_id = if include_demo {
+            roles.admin_role_id
+        } else {
+            role_repo
+                .create_with_permissions(&CreateRoleParams {
+                    id: Uuid::new_v4().to_string(),
+                    tenant_id: tenant_id.clone(),
+                    name: "platform_admin".into(),
+                    description: "平台管理员".into(),
+                    is_system: true,
+                    permissions: dts_backend::PERMISSIONS
+                        .iter()
+                        .map(|permission| (*permission).to_owned())
+                        .collect(),
+                })
+                .await?
+        };
 
-        // 4. 创建演示数据源
-        let mysql_id = Uuid::new_v4().to_string();
-        ds_repo
-            .create(&CreateDatasourceParams {
-                id: mysql_id,
-                tenant_id: tenant_id.clone(),
-                name: "生产 MySQL".into(),
-                db_type: "MySQL".into(),
-                host: "192.168.1.100".into(),
-                port: 3306,
-                username: Some("root".into()),
-                encrypted_password: Some("enc:demo123".into()),
-                database_name: Some("ecommerce".into()),
-                created_by: user_id.clone(),
-            })
-            .await?;
+        user_repo.assign_role(&user_id, &admin_role_id).await?;
 
-        let pg_id = Uuid::new_v4().to_string();
-        ds_repo
-            .create(&CreateDatasourceParams {
-                id: pg_id,
-                tenant_id: tenant_id.clone(),
-                name: "分析 PostgreSQL".into(),
-                db_type: "PostgreSQL".into(),
-                host: "192.168.1.101".into(),
-                port: 5432,
-                username: Some("analyst".into()),
-                encrypted_password: Some("enc:demo456".into()),
-                database_name: Some("warehouse".into()),
-                created_by: user_id,
-            })
-            .await?;
+        if include_demo {
+            // 4. 创建演示数据源
+            let mysql_id = Uuid::new_v4().to_string();
+            ds_repo
+                .create(&CreateDatasourceParams {
+                    id: mysql_id,
+                    tenant_id: tenant_id.clone(),
+                    name: "生产 MySQL".into(),
+                    db_type: "MySQL".into(),
+                    host: "192.168.1.100".into(),
+                    port: 3306,
+                    username: Some("root".into()),
+                    encrypted_password: Some("enc:demo123".into()),
+                    database_name: Some("ecommerce".into()),
+                    created_by: user_id.clone(),
+                })
+                .await?;
 
-        tracing::info!("种子数据初始化完成: 租户='{tenant_name}', 管理员='admin', 密码='admin123'");
+            let pg_id = Uuid::new_v4().to_string();
+            ds_repo
+                .create(&CreateDatasourceParams {
+                    id: pg_id,
+                    tenant_id: tenant_id.clone(),
+                    name: "分析 PostgreSQL".into(),
+                    db_type: "PostgreSQL".into(),
+                    host: "192.168.1.101".into(),
+                    port: 5432,
+                    username: Some("analyst".into()),
+                    encrypted_password: Some("enc:demo456".into()),
+                    database_name: Some("warehouse".into()),
+                    created_by: user_id,
+                })
+                .await?;
+        }
+
+        tracing::info!("管理员初始化完成: 租户=default, 管理员=admin");
         Ok(())
+    }
+}
+
+#[async_trait]
+impl SeedRepo for SqliteSeedRepo {
+    async fn has_data(&self) -> Result<bool, BackendError> {
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM tenant")
+            .fetch_one(&self.pool)
+            .await
+            .map_err(map_sqlx_error)?;
+        Ok(count > 0)
+    }
+
+    async fn seed(&self) -> Result<(), BackendError> {
+        self.seed_internal("admin123", true).await
+    }
+
+    async fn seed_bootstrap(&self, admin_password: &str) -> Result<(), BackendError> {
+        if admin_password.len() < 12 {
+            return Err(BackendError::Configuration(
+                "首次管理员密码必须至少 12 字节".into(),
+            ));
+        }
+        self.seed_internal(admin_password, false).await
     }
 }
 

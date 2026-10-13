@@ -1,0 +1,527 @@
+﻿cargo : [1m[33mwarning[0m[1m:[0m unused config key `net.SHELL` in `D:\cargo\config.toml`
+At line:15 char:1671
++ ... tpro\dts-platform; cargo test --workspace -- --nocapture 2>&1 | Out-F ...
++                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([1m[33mwarnin...go\config.toml`:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[1m[33mwarning[0m[1m:[0m unused config key `net.RUSTFLAGS` in `D:\cargo\config.toml`
+[1m[32m   Compiling[0m dts-server v0.1.0 (D:\rustpro\dts-platform\crates\dts-server)
+[1m[32m   Compiling[0m dts-backend-postgres v0.1.0 (D:\rustpro\dts-platform\crates\dts-backend-postgres)
+[0m[1m[38;5;9merror[0m[0m[1m[38;5;15m: linking with `D:\msys2\mingw64\bin\gcc.exe` failed: exit code: 1[0m
+[0m  [0m[0m[1m[38;5;14m|[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: "D:\\msys2\\mingw64\\bin\\gcc.exe" "-fno-use-linker-p
+lugin" "-Wl,--dynamicbase" "-Wl,--disable-auto-image-base" "-m64" "-Wl,--high-entropy-va" "<sysroot>\\lib\\rustlib\\x86
+_64-pc-windows-gnu\\lib\\rsbegin.o" "C:\\Users\\MI\\AppData\\Local\\Temp\\rustcBtr57x\\symbols.o" "<46 object files omi
+tted>" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libtest-*,libgetopts-*,libunicode_width-*,l
+ibrustc_std_workspace_std-*}.rlib" "D:\\rustpro\\dts-platform\\target\\debug\\deps/{libdts_backend_postgres-6f93ede6e79
+63bec.rlib,libargon2-0ff0b1122be1e37b.rlib,libblake2-95a618a645660fa4.rlib,libpassword_hash-3d62662030a67e31.rlib,libdt
+s_backend_rdbms-89ab7d00cd927ca4.rlib,libsqlx-c872d87505e59faa.rlib,libsqlx_sqlite-a67c2ab73af63f7a.rlib,libfutures_exe
+cutor-ee59c253a051ba4c.rlib,libflume-7960b60ebc36e895.rlib,libserde_urlencoded-2ba778a356125996.rlib,libryu-ecc3ed68ea7
+490c4.rlib,libfutures_intrusive-cbd8d6c0ceb16138.rlib,liblibsqlite3_sys-2364430ffcf9162c.rlib,libsqlx_postgres-9ffa3ef6
+3f348373.rlib,libhex-58fc466c56d723bd.rlib,libwhoami-4a4603edd4c4af8a.rlib,libetcetera-571af9cb31d9ab37.rlib,libhome-73
+834695722269be.rlib,libmd5-c531c5392bac9609.rlib,libatoi-c5a4a493bf0d69e0.rlib,libstringprep-11ca9a02b7934e0d.rlib,libu
+nicode_properties-ecacdc66dce00f24.rlib,libunicode_normalization-7f82bcffd16d92e9.rlib,libtinyvec-7b9b33d515a8c280.rlib
+,libtinyvec_macros-42d8844ebb12bffc.rlib,libunicode_bidi-ba667e6455876a77.rlib,libhkdf-f410c39f812a48f7.rlib,libhmac-7e
+05a89bbdeead51.rlib,libsqlx_mysql-f520414d05b25eac.rlib,libdotenvy-e50205b5ec299cba.rlib,libcrc-8fc7536641de948e.rlib,l
+ibcrc_catalog-47c36ddf7dee3268.rlib,libbyteorder-cb08ace98642255c.rlib,libbitflags-377946d258d39418.rlib,libsha1-d945be
+2fba8c4340.rlib,librsa-c23d65decc21008c.rlib,libpkcs1-8ad102e07fd1d5dc.rlib,libpkcs8-80b3f70652e9536d.rlib,libspki-0040
+9b310b6613b6.rlib,libder-755d594e237518f8.rlib,libpem_rfc7468-e6554f0f7b5863e4.rlib,libbase64ct-c0e5baa5230b5dc3.rlib,l
+ibsignature-e88cef1611ae23e8.rlib,libnum_bigint_dig-3d076ccfbdcc793b.rlib,liblibm-92aae15bf6a820e1.rlib,libnum_iter-baf
+d75bee9aa8b9e.rlib,libnum_integer-a22b3ebf1c43421c.rlib,liblazy_static-dfd56a8ba5858e46.rlib,libspin-9032b12e98d3d3f9.r
+lib,librand-f319e1194f2424b8.rlib,librand_chacha-34871c2aecad0f9d.rlib,libppv_lite86-9e1f05d259a3e101.rlib,libzerocopy-
+c70878bf712453f0.rlib,librand_core-c640a39ad407c481.rlib,libsqlx_core-3c1d3f277575c251.rlib,libwebpki_roots-f6d136c65db
+35ce6.rlib,libwebpki_roots-ef5e1a4f5db82f5a.rlib,libindexmap-71d71de94432926e.rlib,libhashbrown-da94057e5b4a1ce9.rlib,l
+ibbase64-a31f46385ba98787.rlib,librustls-d4ad7635ec0d936d.rlib,libwebpki-0b7291b80bfb897e.rlib,libring-b8428277d4e894ee
+.rlib,libgetrandom-91a3a403942d666d.rlib,libuntrusted-bd772aedbdb11aa6.rlib,librustls_pki_types-e9d5d9ee2262e05e.rlib,l
+ibtokio-d7f1fe056f1f8fc4.rlib,libsocket2-961606f3adb9186f.rlib,libmio-a74c5a14e1347de4.rlib,libwindows_sys-e560cf7c3473
+5962.rlib,libparking_lot-3402792764cba922.rlib,libparking_lot_core-671ac4dea09ff70b.rlib,liblock_api-b622b9f85fa97110.r
+lib,libscopeguard-c3a141ced1c6483f.rlib,libbytes-2a04098c089e63e7.rlib,libhashlink-cb006fa263d0ae97.rlib,libhashbrown-3
+e23260589365407.rlib,libfoldhash-51f2ce15137f9eba.rlib,libequivalent-8bacdb23cfe7a52c.rlib,liballocator_api2-541e147a77
+9e7868.rlib,liburl-1998392ca165aa74.rlib,libidna-c6ff7f36c4788afb.rlib,libidna_adapter-c49ffd13234f7039.rlib,libicu_pro
+perties-06b05e17b58a52f1.rlib,libicu_properties_data-3e370fee339ce72b.rlib,libicu_normalizer-7f9d777bf02cc601.rlib,libs
+mallvec-4fbcfcededb6459a.rlib,libicu_normalizer_data-fabfb0137f7cf879.rlib,libicu_collections-fe82c00821e85812.rlib,lib
+utf8_iter-136189e00d41e843.rlib,libpotential_utf-02d5596f0f92ce70.rlib,libicu_provider-6898dc71b06c7930.rlib,libicu_loc
+ale_core-c8d2c50e683f4b0c.rlib,libtinystr-35bc7fc3a5251722.rlib,liblitemap-2aa891e53eddfaea.rlib,libwriteable-c6bcb1d8a
+ec98f14.rlib,libzerovec-ec4a353a59967fc2.rlib,libzerotrie-d32ed641ae9a64f5.rlib,libyoke-b87469b46fbbdc40.rlib,libstable
+_deref_trait-e70c78e96906368f.rlib,libzerofrom-3e996aa27751c9cd.rlib,libform_urlencoded-96e618d6d611057d.rlib,libpercen
+t_encoding-b59f062fccf9218b.rlib,libtracing-e4ca076b10a8ba53.rlib,liblog-676dc561b88c6d01.rlib,libtracing_core-8c955611
+d86b54ed.rlib,libonce_cell-716614ae2d153603.rlib,libcrossbeam_queue-e3f10761294a601a.rlib,libcrossbeam_utils-6faf0e31c2
+4a7aec.rlib,libeither-37a12615ff49bffd.rlib,libevent_listener-e6c37992ddfea61c.rlib,libparking-8c93efded56e524d.rlib,li
+bfutures_util-aac60660e0bd87c4.rlib,libfutures_io-e93de96a7aed9696.rlib,libslab-c211f5ab25b7beef.rlib,libfutures_channe
+l-77942c343d71f54b.rlib,libpin_project_lite-b7b5455599e2d0ec.rlib,libfutures_sink-20859ef95c5c1283.rlib,libfutures_task
+-0d4193293fd117d2.rlib,libfutures_core-75dfae0f4df02c55.rlib,libdts_backend-e42df0c200f11428.rlib,libuuid-94776648f7989
+f24.rlib,libgetrandom-fc67f4d978bd4712.rlib,librand_core-5df0df3e0b69df7a.rlib,libthiserror-f70c7abea166788c.rlib,libdt
+s_core-edec3200c2d0eb40.rlib,libserde_json-f7f74e76f1a3534e.rlib,libmemchr-84b481273580249a.rlib,libitoa-4458046d5773ef
+30.rlib,libzmij-40f0921e506200aa.rlib,libsha2-2b02015ef2957fc1.rlib,libcpufeatures-648a658346a2fff6.rlib,libcfg_if-da4e
+918977b4d9a7.rlib,libdigest-fa6310f3babde24b.rlib,libsubtle-cca76f5abc9b6f79.rlib,libconst_oid-765a0e2005aae26b.rlib,li
+bblock_buffer-ab4f93597bf3066e.rlib,libcrypto_common-6bd47992f8ea2e70.rlib,libgeneric_array-218781dd83811c7e.rlib,libty
+penum-088438743be36726.rlib,libzeroize-9ea3316a1f8bbf78.rlib,libchrono-04e895262fa30f95.rlib,libwindows_link-6b3cfb1f46
+757a7f.rlib,libnum_traits-2e4a1b64bdeb4edf.rlib,libserde-daa9d7bcfc109614.rlib,libserde_core-20050579cfb08397.rlib}.rli
+b" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2lin
+e-*,libgimli-*,libwindows_targets-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,l
+ibminiz_oxide-*,libadler2-*,libunwind-*,libcfg_if-*,liblibc-*,liballoc-*,librustc_std_workspace_core-*,libcore-*,libcom
+piler_builtins-*}.rlib" "-Wl,-Bdynamic" "-lkernel32" "-lsecur32" "-ladvapi32" "-lkernel32" "-lbcrypt" "-ladvapi32" "-lk
+ernel32" "-lkernel32" "-lntdll" "-luserenv" "-lws2_32" "-ldbghelp" "-lgcc_eh" "-l:libpthread.a" "-lmsvcrt" "-lmingwex" 
+"-lmingw32" "-lgcc" "-lmsvcrt" "-lmingwex" "-luser32" "-lkernel32" "-Wl,--nxcompat" "-L" "D:\\rustpro\\dts-platform\\ta
+rget\\debug\\build\\ring-671750240aff32fa\\out" "-L" "D:\\rustpro\\dts-platform\\target\\debug\\build\\libsqlite3-sys-5
+a867f1323067c7f\\out" "-L" "D:\\cargo\\registry\\src\\rsproxy.cn-e3de039b2554c837\\windows_x86_64_gnu-0.48.5\\lib" "-o"
+ "D:\\rustpro\\dts-platform\\target\\debug\\deps\\tenant_test-d66e84b921bfcd20.exe" "-Wl,--gc-sections" "-no-pie" "-nod
+efaultlibs" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib\\rsend.o"[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: some arguments are omitted. use `--verbose` to show a
+ll linker arguments[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: collect2.exe: error: ld returned 123 exit status[0m
+[0m          [0m
+
+[0m[1m[38;5;9merror[0m[0m[1m[38;5;15m: linking with `D:\msys2\mingw64\bin\gcc.exe` failed: exit code: 1[0m
+[0m  [0m[0m[1m[38;5;14m|[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: "D:\\msys2\\mingw64\\bin\\gcc.exe" "-fno-use-linker-p
+lugin" "-Wl,--dynamicbase" "-Wl,--disable-auto-image-base" "-m64" "-Wl,--high-entropy-va" "<sysroot>\\lib\\rustlib\\x86
+_64-pc-windows-gnu\\lib\\rsbegin.o" "C:\\Users\\MI\\AppData\\Local\\Temp\\rustc9ZLHJI\\symbols.o" "<46 object files omi
+tted>" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libtest-*,libgetopts-*,libunicode_width-*,l
+ibrustc_std_workspace_std-*}.rlib" "D:\\rustpro\\dts-platform\\target\\debug\\deps/{libdts_backend_postgres-6f93ede6e79
+63bec.rlib,libargon2-0ff0b1122be1e37b.rlib,libblake2-95a618a645660fa4.rlib,libpassword_hash-3d62662030a67e31.rlib,libdt
+s_backend_rdbms-89ab7d00cd927ca4.rlib,libsqlx-c872d87505e59faa.rlib,libsqlx_sqlite-a67c2ab73af63f7a.rlib,libfutures_exe
+cutor-ee59c253a051ba4c.rlib,libflume-7960b60ebc36e895.rlib,libserde_urlencoded-2ba778a356125996.rlib,libryu-ecc3ed68ea7
+490c4.rlib,libfutures_intrusive-cbd8d6c0ceb16138.rlib,liblibsqlite3_sys-2364430ffcf9162c.rlib,libsqlx_postgres-9ffa3ef6
+3f348373.rlib,libhex-58fc466c56d723bd.rlib,libwhoami-4a4603edd4c4af8a.rlib,libetcetera-571af9cb31d9ab37.rlib,libhome-73
+834695722269be.rlib,libmd5-c531c5392bac9609.rlib,libatoi-c5a4a493bf0d69e0.rlib,libstringprep-11ca9a02b7934e0d.rlib,libu
+nicode_properties-ecacdc66dce00f24.rlib,libunicode_normalization-7f82bcffd16d92e9.rlib,libtinyvec-7b9b33d515a8c280.rlib
+,libtinyvec_macros-42d8844ebb12bffc.rlib,libunicode_bidi-ba667e6455876a77.rlib,libhkdf-f410c39f812a48f7.rlib,libhmac-7e
+05a89bbdeead51.rlib,libsqlx_mysql-f520414d05b25eac.rlib,libdotenvy-e50205b5ec299cba.rlib,libcrc-8fc7536641de948e.rlib,l
+ibcrc_catalog-47c36ddf7dee3268.rlib,libbyteorder-cb08ace98642255c.rlib,libbitflags-377946d258d39418.rlib,libsha1-d945be
+2fba8c4340.rlib,librsa-c23d65decc21008c.rlib,libpkcs1-8ad102e07fd1d5dc.rlib,libpkcs8-80b3f70652e9536d.rlib,libspki-0040
+9b310b6613b6.rlib,libder-755d594e237518f8.rlib,libpem_rfc7468-e6554f0f7b5863e4.rlib,libbase64ct-c0e5baa5230b5dc3.rlib,l
+ibsignature-e88cef1611ae23e8.rlib,libnum_bigint_dig-3d076ccfbdcc793b.rlib,liblibm-92aae15bf6a820e1.rlib,libnum_iter-baf
+d75bee9aa8b9e.rlib,libnum_integer-a22b3ebf1c43421c.rlib,liblazy_static-dfd56a8ba5858e46.rlib,libspin-9032b12e98d3d3f9.r
+lib,librand-f319e1194f2424b8.rlib,librand_chacha-34871c2aecad0f9d.rlib,libppv_lite86-9e1f05d259a3e101.rlib,libzerocopy-
+c70878bf712453f0.rlib,librand_core-c640a39ad407c481.rlib,libsqlx_core-3c1d3f277575c251.rlib,libwebpki_roots-f6d136c65db
+35ce6.rlib,libwebpki_roots-ef5e1a4f5db82f5a.rlib,libindexmap-71d71de94432926e.rlib,libhashbrown-da94057e5b4a1ce9.rlib,l
+ibbase64-a31f46385ba98787.rlib,librustls-d4ad7635ec0d936d.rlib,libwebpki-0b7291b80bfb897e.rlib,libring-b8428277d4e894ee
+.rlib,libgetrandom-91a3a403942d666d.rlib,libuntrusted-bd772aedbdb11aa6.rlib,librustls_pki_types-e9d5d9ee2262e05e.rlib,l
+ibtokio-d7f1fe056f1f8fc4.rlib,libsocket2-961606f3adb9186f.rlib,libmio-a74c5a14e1347de4.rlib,libwindows_sys-e560cf7c3473
+5962.rlib,libparking_lot-3402792764cba922.rlib,libparking_lot_core-671ac4dea09ff70b.rlib,liblock_api-b622b9f85fa97110.r
+lib,libscopeguard-c3a141ced1c6483f.rlib,libbytes-2a04098c089e63e7.rlib,libhashlink-cb006fa263d0ae97.rlib,libhashbrown-3
+e23260589365407.rlib,libfoldhash-51f2ce15137f9eba.rlib,libequivalent-8bacdb23cfe7a52c.rlib,liballocator_api2-541e147a77
+9e7868.rlib,liburl-1998392ca165aa74.rlib,libidna-c6ff7f36c4788afb.rlib,libidna_adapter-c49ffd13234f7039.rlib,libicu_pro
+perties-06b05e17b58a52f1.rlib,libicu_properties_data-3e370fee339ce72b.rlib,libicu_normalizer-7f9d777bf02cc601.rlib,libs
+mallvec-4fbcfcededb6459a.rlib,libicu_normalizer_data-fabfb0137f7cf879.rlib,libicu_collections-fe82c00821e85812.rlib,lib
+utf8_iter-136189e00d41e843.rlib,libpotential_utf-02d5596f0f92ce70.rlib,libicu_provider-6898dc71b06c7930.rlib,libicu_loc
+ale_core-c8d2c50e683f4b0c.rlib,libtinystr-35bc7fc3a5251722.rlib,liblitemap-2aa891e53eddfaea.rlib,libwriteable-c6bcb1d8a
+ec98f14.rlib,libzerovec-ec4a353a59967fc2.rlib,libzerotrie-d32ed641ae9a64f5.rlib,libyoke-b87469b46fbbdc40.rlib,libstable
+_deref_trait-e70c78e96906368f.rlib,libzerofrom-3e996aa27751c9cd.rlib,libform_urlencoded-96e618d6d611057d.rlib,libpercen
+t_encoding-b59f062fccf9218b.rlib,libtracing-e4ca076b10a8ba53.rlib,liblog-676dc561b88c6d01.rlib,libtracing_core-8c955611
+d86b54ed.rlib,libonce_cell-716614ae2d153603.rlib,libcrossbeam_queue-e3f10761294a601a.rlib,libcrossbeam_utils-6faf0e31c2
+4a7aec.rlib,libeither-37a12615ff49bffd.rlib,libevent_listener-e6c37992ddfea61c.rlib,libparking-8c93efded56e524d.rlib,li
+bfutures_util-aac60660e0bd87c4.rlib,libfutures_io-e93de96a7aed9696.rlib,libslab-c211f5ab25b7beef.rlib,libfutures_channe
+l-77942c343d71f54b.rlib,libpin_project_lite-b7b5455599e2d0ec.rlib,libfutures_sink-20859ef95c5c1283.rlib,libfutures_task
+-0d4193293fd117d2.rlib,libfutures_core-75dfae0f4df02c55.rlib,libdts_backend-e42df0c200f11428.rlib,libuuid-94776648f7989
+f24.rlib,libgetrandom-fc67f4d978bd4712.rlib,librand_core-5df0df3e0b69df7a.rlib,libthiserror-f70c7abea166788c.rlib,libdt
+s_core-edec3200c2d0eb40.rlib,libserde_json-f7f74e76f1a3534e.rlib,libmemchr-84b481273580249a.rlib,libitoa-4458046d5773ef
+30.rlib,libzmij-40f0921e506200aa.rlib,libsha2-2b02015ef2957fc1.rlib,libcpufeatures-648a658346a2fff6.rlib,libcfg_if-da4e
+918977b4d9a7.rlib,libdigest-fa6310f3babde24b.rlib,libsubtle-cca76f5abc9b6f79.rlib,libconst_oid-765a0e2005aae26b.rlib,li
+bblock_buffer-ab4f93597bf3066e.rlib,libcrypto_common-6bd47992f8ea2e70.rlib,libgeneric_array-218781dd83811c7e.rlib,libty
+penum-088438743be36726.rlib,libzeroize-9ea3316a1f8bbf78.rlib,libchrono-04e895262fa30f95.rlib,libwindows_link-6b3cfb1f46
+757a7f.rlib,libnum_traits-2e4a1b64bdeb4edf.rlib,libserde-daa9d7bcfc109614.rlib,libserde_core-20050579cfb08397.rlib}.rli
+b" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2lin
+e-*,libgimli-*,libwindows_targets-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,l
+ibminiz_oxide-*,libadler2-*,libunwind-*,libcfg_if-*,liblibc-*,liballoc-*,librustc_std_workspace_core-*,libcore-*,libcom
+piler_builtins-*}.rlib" "-Wl,-Bdynamic" "-lkernel32" "-lsecur32" "-ladvapi32" "-lkernel32" "-lbcrypt" "-ladvapi32" "-lk
+ernel32" "-lkernel32" "-lntdll" "-luserenv" "-lws2_32" "-ldbghelp" "-lgcc_eh" "-l:libpthread.a" "-lmsvcrt" "-lmingwex" 
+"-lmingw32" "-lgcc" "-lmsvcrt" "-lmingwex" "-luser32" "-lkernel32" "-Wl,--nxcompat" "-L" "D:\\rustpro\\dts-platform\\ta
+rget\\debug\\build\\ring-671750240aff32fa\\out" "-L" "D:\\rustpro\\dts-platform\\target\\debug\\build\\libsqlite3-sys-5
+a867f1323067c7f\\out" "-L" "D:\\cargo\\registry\\src\\rsproxy.cn-e3de039b2554c837\\windows_x86_64_gnu-0.48.5\\lib" "-o"
+ "D:\\rustpro\\dts-platform\\target\\debug\\deps\\monitoring_test-8eeb101fdc305326.exe" "-Wl,--gc-sections" "-no-pie" "
+-nodefaultlibs" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib\\rsend.o"[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: some arguments are omitted. use `--verbose` to show a
+ll linker arguments[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: collect2.exe: error: ld returned 53 exit status[0m
+[0m          [0m
+
+[1m[31merror[0m[1m:[0m could not compile `dts-backend-postgres` (test "tenant_test") due to 1 previous error
+[1m[33mwarning[0m[1m:[0m build failed, waiting for other jobs to finish...
+[1m[31merror[0m[1m:[0m could not compile `dts-backend-postgres` (test "monitoring_test") due to 1 previous error
+[0m[1m[38;5;9merror[0m[0m[1m[38;5;15m: linking with `D:\msys2\mingw64\bin\gcc.exe` failed: exit code: 1[0m
+[0m  [0m[0m[1m[38;5;14m|[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: "D:\\msys2\\mingw64\\bin\\gcc.exe" "-fno-use-linker-p
+lugin" "-Wl,--dynamicbase" "-Wl,--disable-auto-image-base" "-m64" "-Wl,--high-entropy-va" "<sysroot>\\lib\\rustlib\\x86
+_64-pc-windows-gnu\\lib\\rsbegin.o" "C:\\Users\\MI\\AppData\\Local\\Temp\\rustc9PO7E2\\symbols.o" "<47 object files omi
+tted>" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libtest-*,libgetopts-*,libunicode_width-*,l
+ibrustc_std_workspace_std-*}.rlib" "D:\\rustpro\\dts-platform\\target\\debug\\deps/{libdts_backend_postgres-6f93ede6e79
+63bec.rlib,libargon2-0ff0b1122be1e37b.rlib,libblake2-95a618a645660fa4.rlib,libpassword_hash-3d62662030a67e31.rlib,libdt
+s_backend_rdbms-89ab7d00cd927ca4.rlib,libsqlx-c872d87505e59faa.rlib,libsqlx_sqlite-a67c2ab73af63f7a.rlib,libfutures_exe
+cutor-ee59c253a051ba4c.rlib,libflume-7960b60ebc36e895.rlib,libserde_urlencoded-2ba778a356125996.rlib,libryu-ecc3ed68ea7
+490c4.rlib,libfutures_intrusive-cbd8d6c0ceb16138.rlib,liblibsqlite3_sys-2364430ffcf9162c.rlib,libsqlx_postgres-9ffa3ef6
+3f348373.rlib,libhex-58fc466c56d723bd.rlib,libwhoami-4a4603edd4c4af8a.rlib,libetcetera-571af9cb31d9ab37.rlib,libhome-73
+834695722269be.rlib,libmd5-c531c5392bac9609.rlib,libatoi-c5a4a493bf0d69e0.rlib,libstringprep-11ca9a02b7934e0d.rlib,libu
+nicode_properties-ecacdc66dce00f24.rlib,libunicode_normalization-7f82bcffd16d92e9.rlib,libtinyvec-7b9b33d515a8c280.rlib
+,libtinyvec_macros-42d8844ebb12bffc.rlib,libunicode_bidi-ba667e6455876a77.rlib,libhkdf-f410c39f812a48f7.rlib,libhmac-7e
+05a89bbdeead51.rlib,libsqlx_mysql-f520414d05b25eac.rlib,libdotenvy-e50205b5ec299cba.rlib,libcrc-8fc7536641de948e.rlib,l
+ibcrc_catalog-47c36ddf7dee3268.rlib,libbyteorder-cb08ace98642255c.rlib,libbitflags-377946d258d39418.rlib,libsha1-d945be
+2fba8c4340.rlib,librsa-c23d65decc21008c.rlib,libpkcs1-8ad102e07fd1d5dc.rlib,libpkcs8-80b3f70652e9536d.rlib,libspki-0040
+9b310b6613b6.rlib,libder-755d594e237518f8.rlib,libpem_rfc7468-e6554f0f7b5863e4.rlib,libbase64ct-c0e5baa5230b5dc3.rlib,l
+ibsignature-e88cef1611ae23e8.rlib,libnum_bigint_dig-3d076ccfbdcc793b.rlib,liblibm-92aae15bf6a820e1.rlib,libnum_iter-baf
+d75bee9aa8b9e.rlib,libnum_integer-a22b3ebf1c43421c.rlib,liblazy_static-dfd56a8ba5858e46.rlib,libspin-9032b12e98d3d3f9.r
+lib,librand-f319e1194f2424b8.rlib,librand_chacha-34871c2aecad0f9d.rlib,libppv_lite86-9e1f05d259a3e101.rlib,libzerocopy-
+c70878bf712453f0.rlib,librand_core-c640a39ad407c481.rlib,libsqlx_core-3c1d3f277575c251.rlib,libwebpki_roots-f6d136c65db
+35ce6.rlib,libwebpki_roots-ef5e1a4f5db82f5a.rlib,libindexmap-71d71de94432926e.rlib,libhashbrown-da94057e5b4a1ce9.rlib,l
+ibbase64-a31f46385ba98787.rlib,librustls-d4ad7635ec0d936d.rlib,libwebpki-0b7291b80bfb897e.rlib,libring-b8428277d4e894ee
+.rlib,libgetrandom-91a3a403942d666d.rlib,libuntrusted-bd772aedbdb11aa6.rlib,librustls_pki_types-e9d5d9ee2262e05e.rlib,l
+ibtokio-d7f1fe056f1f8fc4.rlib,libsocket2-961606f3adb9186f.rlib,libmio-a74c5a14e1347de4.rlib,libwindows_sys-e560cf7c3473
+5962.rlib,libparking_lot-3402792764cba922.rlib,libparking_lot_core-671ac4dea09ff70b.rlib,liblock_api-b622b9f85fa97110.r
+lib,libscopeguard-c3a141ced1c6483f.rlib,libbytes-2a04098c089e63e7.rlib,libhashlink-cb006fa263d0ae97.rlib,libhashbrown-3
+e23260589365407.rlib,libfoldhash-51f2ce15137f9eba.rlib,libequivalent-8bacdb23cfe7a52c.rlib,liballocator_api2-541e147a77
+9e7868.rlib,liburl-1998392ca165aa74.rlib,libidna-c6ff7f36c4788afb.rlib,libidna_adapter-c49ffd13234f7039.rlib,libicu_pro
+perties-06b05e17b58a52f1.rlib,libicu_properties_data-3e370fee339ce72b.rlib,libicu_normalizer-7f9d777bf02cc601.rlib,libs
+mallvec-4fbcfcededb6459a.rlib,libicu_normalizer_data-fabfb0137f7cf879.rlib,libicu_collections-fe82c00821e85812.rlib,lib
+utf8_iter-136189e00d41e843.rlib,libpotential_utf-02d5596f0f92ce70.rlib,libicu_provider-6898dc71b06c7930.rlib,libicu_loc
+ale_core-c8d2c50e683f4b0c.rlib,libtinystr-35bc7fc3a5251722.rlib,liblitemap-2aa891e53eddfaea.rlib,libwriteable-c6bcb1d8a
+ec98f14.rlib,libzerovec-ec4a353a59967fc2.rlib,libzerotrie-d32ed641ae9a64f5.rlib,libyoke-b87469b46fbbdc40.rlib,libstable
+_deref_trait-e70c78e96906368f.rlib,libzerofrom-3e996aa27751c9cd.rlib,libform_urlencoded-96e618d6d611057d.rlib,libpercen
+t_encoding-b59f062fccf9218b.rlib,libtracing-e4ca076b10a8ba53.rlib,liblog-676dc561b88c6d01.rlib,libtracing_core-8c955611
+d86b54ed.rlib,libonce_cell-716614ae2d153603.rlib,libcrossbeam_queue-e3f10761294a601a.rlib,libcrossbeam_utils-6faf0e31c2
+4a7aec.rlib,libeither-37a12615ff49bffd.rlib,libevent_listener-e6c37992ddfea61c.rlib,libparking-8c93efded56e524d.rlib,li
+bfutures_util-aac60660e0bd87c4.rlib,libfutures_io-e93de96a7aed9696.rlib,libslab-c211f5ab25b7beef.rlib,libfutures_channe
+l-77942c343d71f54b.rlib,libpin_project_lite-b7b5455599e2d0ec.rlib,libfutures_sink-20859ef95c5c1283.rlib,libfutures_task
+-0d4193293fd117d2.rlib,libfutures_core-75dfae0f4df02c55.rlib,libdts_backend-e42df0c200f11428.rlib,libuuid-94776648f7989
+f24.rlib,libgetrandom-fc67f4d978bd4712.rlib,librand_core-5df0df3e0b69df7a.rlib,libthiserror-f70c7abea166788c.rlib,libdt
+s_core-edec3200c2d0eb40.rlib,libserde_json-f7f74e76f1a3534e.rlib,libmemchr-84b481273580249a.rlib,libitoa-4458046d5773ef
+30.rlib,libzmij-40f0921e506200aa.rlib,libsha2-2b02015ef2957fc1.rlib,libcpufeatures-648a658346a2fff6.rlib,libcfg_if-da4e
+918977b4d9a7.rlib,libdigest-fa6310f3babde24b.rlib,libsubtle-cca76f5abc9b6f79.rlib,libconst_oid-765a0e2005aae26b.rlib,li
+bblock_buffer-ab4f93597bf3066e.rlib,libcrypto_common-6bd47992f8ea2e70.rlib,libgeneric_array-218781dd83811c7e.rlib,libty
+penum-088438743be36726.rlib,libzeroize-9ea3316a1f8bbf78.rlib,libchrono-04e895262fa30f95.rlib,libwindows_link-6b3cfb1f46
+757a7f.rlib,libnum_traits-2e4a1b64bdeb4edf.rlib,libserde-daa9d7bcfc109614.rlib,libserde_core-20050579cfb08397.rlib}.rli
+b" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2lin
+e-*,libgimli-*,libwindows_targets-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,l
+ibminiz_oxide-*,libadler2-*,libunwind-*,libcfg_if-*,liblibc-*,liballoc-*,librustc_std_workspace_core-*,libcore-*,libcom
+piler_builtins-*}.rlib" "-Wl,-Bdynamic" "-lkernel32" "-lsecur32" "-ladvapi32" "-lkernel32" "-lbcrypt" "-ladvapi32" "-lk
+ernel32" "-lkernel32" "-lntdll" "-luserenv" "-lws2_32" "-ldbghelp" "-lgcc_eh" "-l:libpthread.a" "-lmsvcrt" "-lmingwex" 
+"-lmingw32" "-lgcc" "-lmsvcrt" "-lmingwex" "-luser32" "-lkernel32" "-Wl,--nxcompat" "-L" "D:\\rustpro\\dts-platform\\ta
+rget\\debug\\build\\ring-671750240aff32fa\\out" "-L" "D:\\rustpro\\dts-platform\\target\\debug\\build\\libsqlite3-sys-5
+a867f1323067c7f\\out" "-L" "D:\\cargo\\registry\\src\\rsproxy.cn-e3de039b2554c837\\windows_x86_64_gnu-0.48.5\\lib" "-o"
+ "D:\\rustpro\\dts-platform\\target\\debug\\deps\\task_test-9bca15d002f816e0.exe" "-Wl,--gc-sections" "-no-pie" "-nodef
+aultlibs" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib\\rsend.o"[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: some arguments are omitted. use `--verbose` to show a
+ll linker arguments[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: collect2.exe: error: ld returned 53 exit status[0m
+[0m          [0m
+
+[0m[1m[38;5;9merror[0m[0m[1m[38;5;15m: linking with `D:\msys2\mingw64\bin\gcc.exe` failed: exit code: 1[0m
+[0m  [0m[0m[1m[38;5;14m|[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: "D:\\msys2\\mingw64\\bin\\gcc.exe" "-fno-use-linker-p
+lugin" "-Wl,--dynamicbase" "-Wl,--disable-auto-image-base" "-m64" "-Wl,--high-entropy-va" "<sysroot>\\lib\\rustlib\\x86
+_64-pc-windows-gnu\\lib\\rsbegin.o" "C:\\Users\\MI\\AppData\\Local\\Temp\\rustc1ozRhW\\symbols.o" "<47 object files omi
+tted>" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libtest-*,libgetopts-*,libunicode_width-*,l
+ibrustc_std_workspace_std-*}.rlib" "D:\\rustpro\\dts-platform\\target\\debug\\deps/{libdts_backend_postgres-6f93ede6e79
+63bec.rlib,libargon2-0ff0b1122be1e37b.rlib,libblake2-95a618a645660fa4.rlib,libpassword_hash-3d62662030a67e31.rlib,libdt
+s_backend_rdbms-89ab7d00cd927ca4.rlib,libsqlx-c872d87505e59faa.rlib,libsqlx_sqlite-a67c2ab73af63f7a.rlib,libfutures_exe
+cutor-ee59c253a051ba4c.rlib,libflume-7960b60ebc36e895.rlib,libserde_urlencoded-2ba778a356125996.rlib,libryu-ecc3ed68ea7
+490c4.rlib,libfutures_intrusive-cbd8d6c0ceb16138.rlib,liblibsqlite3_sys-2364430ffcf9162c.rlib,libsqlx_postgres-9ffa3ef6
+3f348373.rlib,libhex-58fc466c56d723bd.rlib,libwhoami-4a4603edd4c4af8a.rlib,libetcetera-571af9cb31d9ab37.rlib,libhome-73
+834695722269be.rlib,libmd5-c531c5392bac9609.rlib,libatoi-c5a4a493bf0d69e0.rlib,libstringprep-11ca9a02b7934e0d.rlib,libu
+nicode_properties-ecacdc66dce00f24.rlib,libunicode_normalization-7f82bcffd16d92e9.rlib,libtinyvec-7b9b33d515a8c280.rlib
+,libtinyvec_macros-42d8844ebb12bffc.rlib,libunicode_bidi-ba667e6455876a77.rlib,libhkdf-f410c39f812a48f7.rlib,libhmac-7e
+05a89bbdeead51.rlib,libsqlx_mysql-f520414d05b25eac.rlib,libdotenvy-e50205b5ec299cba.rlib,libcrc-8fc7536641de948e.rlib,l
+ibcrc_catalog-47c36ddf7dee3268.rlib,libbyteorder-cb08ace98642255c.rlib,libbitflags-377946d258d39418.rlib,libsha1-d945be
+2fba8c4340.rlib,librsa-c23d65decc21008c.rlib,libpkcs1-8ad102e07fd1d5dc.rlib,libpkcs8-80b3f70652e9536d.rlib,libspki-0040
+9b310b6613b6.rlib,libder-755d594e237518f8.rlib,libpem_rfc7468-e6554f0f7b5863e4.rlib,libbase64ct-c0e5baa5230b5dc3.rlib,l
+ibsignature-e88cef1611ae23e8.rlib,libnum_bigint_dig-3d076ccfbdcc793b.rlib,liblibm-92aae15bf6a820e1.rlib,libnum_iter-baf
+d75bee9aa8b9e.rlib,libnum_integer-a22b3ebf1c43421c.rlib,liblazy_static-dfd56a8ba5858e46.rlib,libspin-9032b12e98d3d3f9.r
+lib,librand-f319e1194f2424b8.rlib,librand_chacha-34871c2aecad0f9d.rlib,libppv_lite86-9e1f05d259a3e101.rlib,libzerocopy-
+c70878bf712453f0.rlib,librand_core-c640a39ad407c481.rlib,libsqlx_core-3c1d3f277575c251.rlib,libwebpki_roots-f6d136c65db
+35ce6.rlib,libwebpki_roots-ef5e1a4f5db82f5a.rlib,libindexmap-71d71de94432926e.rlib,libhashbrown-da94057e5b4a1ce9.rlib,l
+ibbase64-a31f46385ba98787.rlib,librustls-d4ad7635ec0d936d.rlib,libwebpki-0b7291b80bfb897e.rlib,libring-b8428277d4e894ee
+.rlib,libgetrandom-91a3a403942d666d.rlib,libuntrusted-bd772aedbdb11aa6.rlib,librustls_pki_types-e9d5d9ee2262e05e.rlib,l
+ibtokio-d7f1fe056f1f8fc4.rlib,libsocket2-961606f3adb9186f.rlib,libmio-a74c5a14e1347de4.rlib,libwindows_sys-e560cf7c3473
+5962.rlib,libparking_lot-3402792764cba922.rlib,libparking_lot_core-671ac4dea09ff70b.rlib,liblock_api-b622b9f85fa97110.r
+lib,libscopeguard-c3a141ced1c6483f.rlib,libbytes-2a04098c089e63e7.rlib,libhashlink-cb006fa263d0ae97.rlib,libhashbrown-3
+e23260589365407.rlib,libfoldhash-51f2ce15137f9eba.rlib,libequivalent-8bacdb23cfe7a52c.rlib,liballocator_api2-541e147a77
+9e7868.rlib,liburl-1998392ca165aa74.rlib,libidna-c6ff7f36c4788afb.rlib,libidna_adapter-c49ffd13234f7039.rlib,libicu_pro
+perties-06b05e17b58a52f1.rlib,libicu_properties_data-3e370fee339ce72b.rlib,libicu_normalizer-7f9d777bf02cc601.rlib,libs
+mallvec-4fbcfcededb6459a.rlib,libicu_normalizer_data-fabfb0137f7cf879.rlib,libicu_collections-fe82c00821e85812.rlib,lib
+utf8_iter-136189e00d41e843.rlib,libpotential_utf-02d5596f0f92ce70.rlib,libicu_provider-6898dc71b06c7930.rlib,libicu_loc
+ale_core-c8d2c50e683f4b0c.rlib,libtinystr-35bc7fc3a5251722.rlib,liblitemap-2aa891e53eddfaea.rlib,libwriteable-c6bcb1d8a
+ec98f14.rlib,libzerovec-ec4a353a59967fc2.rlib,libzerotrie-d32ed641ae9a64f5.rlib,libyoke-b87469b46fbbdc40.rlib,libstable
+_deref_trait-e70c78e96906368f.rlib,libzerofrom-3e996aa27751c9cd.rlib,libform_urlencoded-96e618d6d611057d.rlib,libpercen
+t_encoding-b59f062fccf9218b.rlib,libtracing-e4ca076b10a8ba53.rlib,liblog-676dc561b88c6d01.rlib,libtracing_core-8c955611
+d86b54ed.rlib,libonce_cell-716614ae2d153603.rlib,libcrossbeam_queue-e3f10761294a601a.rlib,libcrossbeam_utils-6faf0e31c2
+4a7aec.rlib,libeither-37a12615ff49bffd.rlib,libevent_listener-e6c37992ddfea61c.rlib,libparking-8c93efded56e524d.rlib,li
+bfutures_util-aac60660e0bd87c4.rlib,libfutures_io-e93de96a7aed9696.rlib,libslab-c211f5ab25b7beef.rlib,libfutures_channe
+l-77942c343d71f54b.rlib,libpin_project_lite-b7b5455599e2d0ec.rlib,libfutures_sink-20859ef95c5c1283.rlib,libfutures_task
+-0d4193293fd117d2.rlib,libfutures_core-75dfae0f4df02c55.rlib,libdts_backend-e42df0c200f11428.rlib,libuuid-94776648f7989
+f24.rlib,libgetrandom-fc67f4d978bd4712.rlib,librand_core-5df0df3e0b69df7a.rlib,libthiserror-f70c7abea166788c.rlib,libdt
+s_core-edec3200c2d0eb40.rlib,libserde_json-f7f74e76f1a3534e.rlib,libmemchr-84b481273580249a.rlib,libitoa-4458046d5773ef
+30.rlib,libzmij-40f0921e506200aa.rlib,libsha2-2b02015ef2957fc1.rlib,libcpufeatures-648a658346a2fff6.rlib,libcfg_if-da4e
+918977b4d9a7.rlib,libdigest-fa6310f3babde24b.rlib,libsubtle-cca76f5abc9b6f79.rlib,libconst_oid-765a0e2005aae26b.rlib,li
+bblock_buffer-ab4f93597bf3066e.rlib,libcrypto_common-6bd47992f8ea2e70.rlib,libgeneric_array-218781dd83811c7e.rlib,libty
+penum-088438743be36726.rlib,libzeroize-9ea3316a1f8bbf78.rlib,libchrono-04e895262fa30f95.rlib,libwindows_link-6b3cfb1f46
+757a7f.rlib,libnum_traits-2e4a1b64bdeb4edf.rlib,libserde-daa9d7bcfc109614.rlib,libserde_core-20050579cfb08397.rlib}.rli
+b" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2lin
+e-*,libgimli-*,libwindows_targets-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,l
+ibminiz_oxide-*,libadler2-*,libunwind-*,libcfg_if-*,liblibc-*,liballoc-*,librustc_std_workspace_core-*,libcore-*,libcom
+piler_builtins-*}.rlib" "-Wl,-Bdynamic" "-lkernel32" "-lsecur32" "-ladvapi32" "-lkernel32" "-lbcrypt" "-ladvapi32" "-lk
+ernel32" "-lkernel32" "-lntdll" "-luserenv" "-lws2_32" "-ldbghelp" "-lgcc_eh" "-l:libpthread.a" "-lmsvcrt" "-lmingwex" 
+"-lmingw32" "-lgcc" "-lmsvcrt" "-lmingwex" "-luser32" "-lkernel32" "-Wl,--nxcompat" "-L" "D:\\rustpro\\dts-platform\\ta
+rget\\debug\\build\\ring-671750240aff32fa\\out" "-L" "D:\\rustpro\\dts-platform\\target\\debug\\build\\libsqlite3-sys-5
+a867f1323067c7f\\out" "-L" "D:\\cargo\\registry\\src\\rsproxy.cn-e3de039b2554c837\\windows_x86_64_gnu-0.48.5\\lib" "-o"
+ "D:\\rustpro\\dts-platform\\target\\debug\\deps\\datasource_test-d1f15a54cf3aa2c8.exe" "-Wl,--gc-sections" "-no-pie" "
+-nodefaultlibs" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib\\rsend.o"[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: some arguments are omitted. use `--verbose` to show a
+ll linker arguments[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: collect2.exe: error: ld returned 123 exit status[0m
+[0m          [0m
+
+[1m[31merror[0m[1m:[0m could not compile `dts-backend-postgres` (test "task_test") due to 1 previous error
+[1m[31merror[0m[1m:[0m could not compile `dts-backend-postgres` (test "datasource_test") due to 1 previous error
+[0m[1m[38;5;9merror[0m[0m[1m[38;5;15m: linking with `D:\msys2\mingw64\bin\gcc.exe` failed: exit code: 1[0m
+[0m  [0m[0m[1m[38;5;14m|[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: "D:\\msys2\\mingw64\\bin\\gcc.exe" "-fno-use-linker-p
+lugin" "-Wl,--dynamicbase" "-Wl,--disable-auto-image-base" "-m64" "-Wl,--high-entropy-va" "<sysroot>\\lib\\rustlib\\x86
+_64-pc-windows-gnu\\lib\\rsbegin.o" "C:\\Users\\MI\\AppData\\Local\\Temp\\rustcnfbAge\\symbols.o" "<47 object files omi
+tted>" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libtest-*,libgetopts-*,libunicode_width-*,l
+ibrustc_std_workspace_std-*}.rlib" "D:\\rustpro\\dts-platform\\target\\debug\\deps/{libdts_backend_postgres-6f93ede6e79
+63bec.rlib,libargon2-0ff0b1122be1e37b.rlib,libblake2-95a618a645660fa4.rlib,libpassword_hash-3d62662030a67e31.rlib,libdt
+s_backend_rdbms-89ab7d00cd927ca4.rlib,libsqlx-c872d87505e59faa.rlib,libsqlx_sqlite-a67c2ab73af63f7a.rlib,libfutures_exe
+cutor-ee59c253a051ba4c.rlib,libflume-7960b60ebc36e895.rlib,libserde_urlencoded-2ba778a356125996.rlib,libryu-ecc3ed68ea7
+490c4.rlib,libfutures_intrusive-cbd8d6c0ceb16138.rlib,liblibsqlite3_sys-2364430ffcf9162c.rlib,libsqlx_postgres-9ffa3ef6
+3f348373.rlib,libhex-58fc466c56d723bd.rlib,libwhoami-4a4603edd4c4af8a.rlib,libetcetera-571af9cb31d9ab37.rlib,libhome-73
+834695722269be.rlib,libmd5-c531c5392bac9609.rlib,libatoi-c5a4a493bf0d69e0.rlib,libstringprep-11ca9a02b7934e0d.rlib,libu
+nicode_properties-ecacdc66dce00f24.rlib,libunicode_normalization-7f82bcffd16d92e9.rlib,libtinyvec-7b9b33d515a8c280.rlib
+,libtinyvec_macros-42d8844ebb12bffc.rlib,libunicode_bidi-ba667e6455876a77.rlib,libhkdf-f410c39f812a48f7.rlib,libhmac-7e
+05a89bbdeead51.rlib,libsqlx_mysql-f520414d05b25eac.rlib,libdotenvy-e50205b5ec299cba.rlib,libcrc-8fc7536641de948e.rlib,l
+ibcrc_catalog-47c36ddf7dee3268.rlib,libbyteorder-cb08ace98642255c.rlib,libbitflags-377946d258d39418.rlib,libsha1-d945be
+2fba8c4340.rlib,librsa-c23d65decc21008c.rlib,libpkcs1-8ad102e07fd1d5dc.rlib,libpkcs8-80b3f70652e9536d.rlib,libspki-0040
+9b310b6613b6.rlib,libder-755d594e237518f8.rlib,libpem_rfc7468-e6554f0f7b5863e4.rlib,libbase64ct-c0e5baa5230b5dc3.rlib,l
+ibsignature-e88cef1611ae23e8.rlib,libnum_bigint_dig-3d076ccfbdcc793b.rlib,liblibm-92aae15bf6a820e1.rlib,libnum_iter-baf
+d75bee9aa8b9e.rlib,libnum_integer-a22b3ebf1c43421c.rlib,liblazy_static-dfd56a8ba5858e46.rlib,libspin-9032b12e98d3d3f9.r
+lib,librand-f319e1194f2424b8.rlib,librand_chacha-34871c2aecad0f9d.rlib,libppv_lite86-9e1f05d259a3e101.rlib,libzerocopy-
+c70878bf712453f0.rlib,librand_core-c640a39ad407c481.rlib,libsqlx_core-3c1d3f277575c251.rlib,libwebpki_roots-f6d136c65db
+35ce6.rlib,libwebpki_roots-ef5e1a4f5db82f5a.rlib,libindexmap-71d71de94432926e.rlib,libhashbrown-da94057e5b4a1ce9.rlib,l
+ibbase64-a31f46385ba98787.rlib,librustls-d4ad7635ec0d936d.rlib,libwebpki-0b7291b80bfb897e.rlib,libring-b8428277d4e894ee
+.rlib,libgetrandom-91a3a403942d666d.rlib,libuntrusted-bd772aedbdb11aa6.rlib,librustls_pki_types-e9d5d9ee2262e05e.rlib,l
+ibtokio-d7f1fe056f1f8fc4.rlib,libsocket2-961606f3adb9186f.rlib,libmio-a74c5a14e1347de4.rlib,libwindows_sys-e560cf7c3473
+5962.rlib,libparking_lot-3402792764cba922.rlib,libparking_lot_core-671ac4dea09ff70b.rlib,liblock_api-b622b9f85fa97110.r
+lib,libscopeguard-c3a141ced1c6483f.rlib,libbytes-2a04098c089e63e7.rlib,libhashlink-cb006fa263d0ae97.rlib,libhashbrown-3
+e23260589365407.rlib,libfoldhash-51f2ce15137f9eba.rlib,libequivalent-8bacdb23cfe7a52c.rlib,liballocator_api2-541e147a77
+9e7868.rlib,liburl-1998392ca165aa74.rlib,libidna-c6ff7f36c4788afb.rlib,libidna_adapter-c49ffd13234f7039.rlib,libicu_pro
+perties-06b05e17b58a52f1.rlib,libicu_properties_data-3e370fee339ce72b.rlib,libicu_normalizer-7f9d777bf02cc601.rlib,libs
+mallvec-4fbcfcededb6459a.rlib,libicu_normalizer_data-fabfb0137f7cf879.rlib,libicu_collections-fe82c00821e85812.rlib,lib
+utf8_iter-136189e00d41e843.rlib,libpotential_utf-02d5596f0f92ce70.rlib,libicu_provider-6898dc71b06c7930.rlib,libicu_loc
+ale_core-c8d2c50e683f4b0c.rlib,libtinystr-35bc7fc3a5251722.rlib,liblitemap-2aa891e53eddfaea.rlib,libwriteable-c6bcb1d8a
+ec98f14.rlib,libzerovec-ec4a353a59967fc2.rlib,libzerotrie-d32ed641ae9a64f5.rlib,libyoke-b87469b46fbbdc40.rlib,libstable
+_deref_trait-e70c78e96906368f.rlib,libzerofrom-3e996aa27751c9cd.rlib,libform_urlencoded-96e618d6d611057d.rlib,libpercen
+t_encoding-b59f062fccf9218b.rlib,libtracing-e4ca076b10a8ba53.rlib,liblog-676dc561b88c6d01.rlib,libtracing_core-8c955611
+d86b54ed.rlib,libonce_cell-716614ae2d153603.rlib,libcrossbeam_queue-e3f10761294a601a.rlib,libcrossbeam_utils-6faf0e31c2
+4a7aec.rlib,libeither-37a12615ff49bffd.rlib,libevent_listener-e6c37992ddfea61c.rlib,libparking-8c93efded56e524d.rlib,li
+bfutures_util-aac60660e0bd87c4.rlib,libfutures_io-e93de96a7aed9696.rlib,libslab-c211f5ab25b7beef.rlib,libfutures_channe
+l-77942c343d71f54b.rlib,libpin_project_lite-b7b5455599e2d0ec.rlib,libfutures_sink-20859ef95c5c1283.rlib,libfutures_task
+-0d4193293fd117d2.rlib,libfutures_core-75dfae0f4df02c55.rlib,libdts_backend-e42df0c200f11428.rlib,libuuid-94776648f7989
+f24.rlib,libgetrandom-fc67f4d978bd4712.rlib,librand_core-5df0df3e0b69df7a.rlib,libthiserror-f70c7abea166788c.rlib,libdt
+s_core-edec3200c2d0eb40.rlib,libserde_json-f7f74e76f1a3534e.rlib,libmemchr-84b481273580249a.rlib,libitoa-4458046d5773ef
+30.rlib,libzmij-40f0921e506200aa.rlib,libsha2-2b02015ef2957fc1.rlib,libcpufeatures-648a658346a2fff6.rlib,libcfg_if-da4e
+918977b4d9a7.rlib,libdigest-fa6310f3babde24b.rlib,libsubtle-cca76f5abc9b6f79.rlib,libconst_oid-765a0e2005aae26b.rlib,li
+bblock_buffer-ab4f93597bf3066e.rlib,libcrypto_common-6bd47992f8ea2e70.rlib,libgeneric_array-218781dd83811c7e.rlib,libty
+penum-088438743be36726.rlib,libzeroize-9ea3316a1f8bbf78.rlib,libchrono-04e895262fa30f95.rlib,libwindows_link-6b3cfb1f46
+757a7f.rlib,libnum_traits-2e4a1b64bdeb4edf.rlib,libserde-daa9d7bcfc109614.rlib,libserde_core-20050579cfb08397.rlib}.rli
+b" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2lin
+e-*,libgimli-*,libwindows_targets-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,l
+ibminiz_oxide-*,libadler2-*,libunwind-*,libcfg_if-*,liblibc-*,liballoc-*,librustc_std_workspace_core-*,libcore-*,libcom
+piler_builtins-*}.rlib" "-Wl,-Bdynamic" "-lkernel32" "-lsecur32" "-ladvapi32" "-lkernel32" "-lbcrypt" "-ladvapi32" "-lk
+ernel32" "-lkernel32" "-lntdll" "-luserenv" "-lws2_32" "-ldbghelp" "-lgcc_eh" "-l:libpthread.a" "-lmsvcrt" "-lmingwex" 
+"-lmingw32" "-lgcc" "-lmsvcrt" "-lmingwex" "-luser32" "-lkernel32" "-Wl,--nxcompat" "-L" "D:\\rustpro\\dts-platform\\ta
+rget\\debug\\build\\ring-671750240aff32fa\\out" "-L" "D:\\rustpro\\dts-platform\\target\\debug\\build\\libsqlite3-sys-5
+a867f1323067c7f\\out" "-L" "D:\\cargo\\registry\\src\\rsproxy.cn-e3de039b2554c837\\windows_x86_64_gnu-0.48.5\\lib" "-o"
+ "D:\\rustpro\\dts-platform\\target\\debug\\deps\\user_test-ad439b86436672bb.exe" "-Wl,--gc-sections" "-no-pie" "-nodef
+aultlibs" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib\\rsend.o"[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: some arguments are omitted. use `--verbose` to show a
+ll linker arguments[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: collect2.exe: error: ld returned 123 exit status[0m
+[0m          [0m
+
+[0m[1m[38;5;9merror[0m[0m[1m[38;5;15m: linking with `D:\msys2\mingw64\bin\gcc.exe` failed: exit code: 1[0m
+[0m  [0m[0m[1m[38;5;14m|[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: "D:\\msys2\\mingw64\\bin\\gcc.exe" "-fno-use-linker-p
+lugin" "-Wl,--dynamicbase" "-Wl,--disable-auto-image-base" "-m64" "-Wl,--high-entropy-va" "<sysroot>\\lib\\rustlib\\x86
+_64-pc-windows-gnu\\lib\\rsbegin.o" "C:\\Users\\MI\\AppData\\Local\\Temp\\rustc4CB80H\\symbols.o" "<46 object files omi
+tted>" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libtest-*,libgetopts-*,libunicode_width-*,l
+ibrustc_std_workspace_std-*}.rlib" "D:\\rustpro\\dts-platform\\target\\debug\\deps/{libdts_backend_postgres-6f93ede6e79
+63bec.rlib,libargon2-0ff0b1122be1e37b.rlib,libblake2-95a618a645660fa4.rlib,libpassword_hash-3d62662030a67e31.rlib,libdt
+s_backend_rdbms-89ab7d00cd927ca4.rlib,libsqlx-c872d87505e59faa.rlib,libsqlx_sqlite-a67c2ab73af63f7a.rlib,libfutures_exe
+cutor-ee59c253a051ba4c.rlib,libflume-7960b60ebc36e895.rlib,libserde_urlencoded-2ba778a356125996.rlib,libryu-ecc3ed68ea7
+490c4.rlib,libfutures_intrusive-cbd8d6c0ceb16138.rlib,liblibsqlite3_sys-2364430ffcf9162c.rlib,libsqlx_postgres-9ffa3ef6
+3f348373.rlib,libhex-58fc466c56d723bd.rlib,libwhoami-4a4603edd4c4af8a.rlib,libetcetera-571af9cb31d9ab37.rlib,libhome-73
+834695722269be.rlib,libmd5-c531c5392bac9609.rlib,libatoi-c5a4a493bf0d69e0.rlib,libstringprep-11ca9a02b7934e0d.rlib,libu
+nicode_properties-ecacdc66dce00f24.rlib,libunicode_normalization-7f82bcffd16d92e9.rlib,libtinyvec-7b9b33d515a8c280.rlib
+,libtinyvec_macros-42d8844ebb12bffc.rlib,libunicode_bidi-ba667e6455876a77.rlib,libhkdf-f410c39f812a48f7.rlib,libhmac-7e
+05a89bbdeead51.rlib,libsqlx_mysql-f520414d05b25eac.rlib,libdotenvy-e50205b5ec299cba.rlib,libcrc-8fc7536641de948e.rlib,l
+ibcrc_catalog-47c36ddf7dee3268.rlib,libbyteorder-cb08ace98642255c.rlib,libbitflags-377946d258d39418.rlib,libsha1-d945be
+2fba8c4340.rlib,librsa-c23d65decc21008c.rlib,libpkcs1-8ad102e07fd1d5dc.rlib,libpkcs8-80b3f70652e9536d.rlib,libspki-0040
+9b310b6613b6.rlib,libder-755d594e237518f8.rlib,libpem_rfc7468-e6554f0f7b5863e4.rlib,libbase64ct-c0e5baa5230b5dc3.rlib,l
+ibsignature-e88cef1611ae23e8.rlib,libnum_bigint_dig-3d076ccfbdcc793b.rlib,liblibm-92aae15bf6a820e1.rlib,libnum_iter-baf
+d75bee9aa8b9e.rlib,libnum_integer-a22b3ebf1c43421c.rlib,liblazy_static-dfd56a8ba5858e46.rlib,libspin-9032b12e98d3d3f9.r
+lib,librand-f319e1194f2424b8.rlib,librand_chacha-34871c2aecad0f9d.rlib,libppv_lite86-9e1f05d259a3e101.rlib,libzerocopy-
+c70878bf712453f0.rlib,librand_core-c640a39ad407c481.rlib,libsqlx_core-3c1d3f277575c251.rlib,libwebpki_roots-f6d136c65db
+35ce6.rlib,libwebpki_roots-ef5e1a4f5db82f5a.rlib,libindexmap-71d71de94432926e.rlib,libhashbrown-da94057e5b4a1ce9.rlib,l
+ibbase64-a31f46385ba98787.rlib,librustls-d4ad7635ec0d936d.rlib,libwebpki-0b7291b80bfb897e.rlib,libring-b8428277d4e894ee
+.rlib,libgetrandom-91a3a403942d666d.rlib,libuntrusted-bd772aedbdb11aa6.rlib,librustls_pki_types-e9d5d9ee2262e05e.rlib,l
+ibtokio-d7f1fe056f1f8fc4.rlib,libsocket2-961606f3adb9186f.rlib,libmio-a74c5a14e1347de4.rlib,libwindows_sys-e560cf7c3473
+5962.rlib,libparking_lot-3402792764cba922.rlib,libparking_lot_core-671ac4dea09ff70b.rlib,liblock_api-b622b9f85fa97110.r
+lib,libscopeguard-c3a141ced1c6483f.rlib,libbytes-2a04098c089e63e7.rlib,libhashlink-cb006fa263d0ae97.rlib,libhashbrown-3
+e23260589365407.rlib,libfoldhash-51f2ce15137f9eba.rlib,libequivalent-8bacdb23cfe7a52c.rlib,liballocator_api2-541e147a77
+9e7868.rlib,liburl-1998392ca165aa74.rlib,libidna-c6ff7f36c4788afb.rlib,libidna_adapter-c49ffd13234f7039.rlib,libicu_pro
+perties-06b05e17b58a52f1.rlib,libicu_properties_data-3e370fee339ce72b.rlib,libicu_normalizer-7f9d777bf02cc601.rlib,libs
+mallvec-4fbcfcededb6459a.rlib,libicu_normalizer_data-fabfb0137f7cf879.rlib,libicu_collections-fe82c00821e85812.rlib,lib
+utf8_iter-136189e00d41e843.rlib,libpotential_utf-02d5596f0f92ce70.rlib,libicu_provider-6898dc71b06c7930.rlib,libicu_loc
+ale_core-c8d2c50e683f4b0c.rlib,libtinystr-35bc7fc3a5251722.rlib,liblitemap-2aa891e53eddfaea.rlib,libwriteable-c6bcb1d8a
+ec98f14.rlib,libzerovec-ec4a353a59967fc2.rlib,libzerotrie-d32ed641ae9a64f5.rlib,libyoke-b87469b46fbbdc40.rlib,libstable
+_deref_trait-e70c78e96906368f.rlib,libzerofrom-3e996aa27751c9cd.rlib,libform_urlencoded-96e618d6d611057d.rlib,libpercen
+t_encoding-b59f062fccf9218b.rlib,libtracing-e4ca076b10a8ba53.rlib,liblog-676dc561b88c6d01.rlib,libtracing_core-8c955611
+d86b54ed.rlib,libonce_cell-716614ae2d153603.rlib,libcrossbeam_queue-e3f10761294a601a.rlib,libcrossbeam_utils-6faf0e31c2
+4a7aec.rlib,libeither-37a12615ff49bffd.rlib,libevent_listener-e6c37992ddfea61c.rlib,libparking-8c93efded56e524d.rlib,li
+bfutures_util-aac60660e0bd87c4.rlib,libfutures_io-e93de96a7aed9696.rlib,libslab-c211f5ab25b7beef.rlib,libfutures_channe
+l-77942c343d71f54b.rlib,libpin_project_lite-b7b5455599e2d0ec.rlib,libfutures_sink-20859ef95c5c1283.rlib,libfutures_task
+-0d4193293fd117d2.rlib,libfutures_core-75dfae0f4df02c55.rlib,libdts_backend-e42df0c200f11428.rlib,libuuid-94776648f7989
+f24.rlib,libgetrandom-fc67f4d978bd4712.rlib,librand_core-5df0df3e0b69df7a.rlib,libthiserror-f70c7abea166788c.rlib,libdt
+s_core-edec3200c2d0eb40.rlib,libserde_json-f7f74e76f1a3534e.rlib,libmemchr-84b481273580249a.rlib,libitoa-4458046d5773ef
+30.rlib,libzmij-40f0921e506200aa.rlib,libsha2-2b02015ef2957fc1.rlib,libcpufeatures-648a658346a2fff6.rlib,libcfg_if-da4e
+918977b4d9a7.rlib,libdigest-fa6310f3babde24b.rlib,libsubtle-cca76f5abc9b6f79.rlib,libconst_oid-765a0e2005aae26b.rlib,li
+bblock_buffer-ab4f93597bf3066e.rlib,libcrypto_common-6bd47992f8ea2e70.rlib,libgeneric_array-218781dd83811c7e.rlib,libty
+penum-088438743be36726.rlib,libzeroize-9ea3316a1f8bbf78.rlib,libchrono-04e895262fa30f95.rlib,libwindows_link-6b3cfb1f46
+757a7f.rlib,libnum_traits-2e4a1b64bdeb4edf.rlib,libserde-daa9d7bcfc109614.rlib,libserde_core-20050579cfb08397.rlib}.rli
+b" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2lin
+e-*,libgimli-*,libwindows_targets-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,l
+ibminiz_oxide-*,libadler2-*,libunwind-*,libcfg_if-*,liblibc-*,liballoc-*,librustc_std_workspace_core-*,libcore-*,libcom
+piler_builtins-*}.rlib" "-Wl,-Bdynamic" "-lkernel32" "-lsecur32" "-ladvapi32" "-lkernel32" "-lbcrypt" "-ladvapi32" "-lk
+ernel32" "-lkernel32" "-lntdll" "-luserenv" "-lws2_32" "-ldbghelp" "-lgcc_eh" "-l:libpthread.a" "-lmsvcrt" "-lmingwex" 
+"-lmingw32" "-lgcc" "-lmsvcrt" "-lmingwex" "-luser32" "-lkernel32" "-Wl,--nxcompat" "-L" "D:\\rustpro\\dts-platform\\ta
+rget\\debug\\build\\ring-671750240aff32fa\\out" "-L" "D:\\rustpro\\dts-platform\\target\\debug\\build\\libsqlite3-sys-5
+a867f1323067c7f\\out" "-L" "D:\\cargo\\registry\\src\\rsproxy.cn-e3de039b2554c837\\windows_x86_64_gnu-0.48.5\\lib" "-o"
+ "D:\\rustpro\\dts-platform\\target\\debug\\deps\\alert_test-a7bba3204c50eaf7.exe" "-Wl,--gc-sections" "-no-pie" "-node
+faultlibs" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib\\rsend.o"[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: some arguments are omitted. use `--verbose` to show a
+ll linker arguments[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: collect2.exe: error: ld returned 123 exit status[0m
+[0m          [0m
+
+[1m[31merror[0m[1m:[0m could not compile `dts-backend-postgres` (test "user_test") due to 1 previous error
+[1m[31merror[0m[1m:[0m could not compile `dts-backend-postgres` (test "alert_test") due to 1 previous error
+[0m[1m[38;5;9merror[0m[0m[1m[38;5;15m: linking with `D:\msys2\mingw64\bin\gcc.exe` failed: exit code: 1[0m
+[0m  [0m[0m[1m[38;5;14m|[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: "D:\\msys2\\mingw64\\bin\\gcc.exe" "-fno-use-linker-p
+lugin" "-Wl,--dynamicbase" "-Wl,--disable-auto-image-base" "-m64" "-Wl,--high-entropy-va" "<sysroot>\\lib\\rustlib\\x86
+_64-pc-windows-gnu\\lib\\rsbegin.o" "C:\\Users\\MI\\AppData\\Local\\Temp\\rustcDh9XoJ\\symbols.o" "<257 object files om
+itted>" "-Wl,-Bstatic" "D:\\rustpro\\dts-platform\\target\\debug\\deps/{libdotenv-32123b4cea4ef89f.rlib,libdts_engine_a
+pe-f9e7f52a7a7008e2.rlib,libtempfile-b58c96e4a6e5ee0e.rlib,libfastrand-0ac5d08c49ce1942.rlib,libdts_scheduler_client-c9
+794195f8e7f180.rlib}.rlib" "<sysroot>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib/{libtest-*,libgetopts-*,libunicode_widt
+h-*,librustc_std_workspace_std-*}.rlib" "D:\\rustpro\\dts-platform\\target\\debug\\deps/{libactix_ws-7c540dd21ef3dc3d.r
+lib,libdashmap-e938066ff3c75682.rlib,libhashbrown-8722945eec9ea9f1.rlib,libsa_token_storage_memory-c61667bc9eeaabab.rli
+b,libarrow_flight-a7817b298efb2ddb.rlib,libarrow_cast-019b5ce480a60833.rlib,liblexical_core-24ea304bf95e0a81.rlib,lible
+xical_write_float-7129b804df45054e.rlib,liblexical_write_integer-448c2766885f5866.rlib,liblexical_parse_float-eee83b80d
+88c0e19.rlib,liblexical_parse_integer-29d6db5bf845b3f9.rlib,liblexical_util-ee42133316cc81aa.rlib,libtonic_prost-62c7fb
+a29819e893.rlib,libarrow_row-7847f2a3c1debd4f.rlib,libarrow_string-44f3c7680efc8ce2.rlib,libarrow_ord-78419012edb82bd5.
+rlib,libarrow_arith-962236e3a869a5c4.rlib,libtonic-28cb011993250cc4.rlib,libhyper_timeout-5ca285d2f9746ec7.rlib,libaxum
+-e53029eb2e37c7c7.rlib,libmatchit-ffd2bd64acb8a033.rlib,libaxum_core-1f5f378efa9854cc.rlib,libpin_project-23df88d685489
+c61.rlib,libfutures-6356b0a8d4848f77.rlib,libprost_types-bdbdba9878663295.rlib,libprost-3903550841879ad0.rlib,libarrow_
+ipc-99b841a14c039459.rlib,libarrow_select-5ebf811bd117f849.rlib,libarrow_array-941435b1ac41008a.rlib,libahash-1901c5a12
+945e552.rlib,libgetrandom-54a85d9945e72720.rlib,libnum_complex-82920aa297ad6c58.rlib,libarrow_data-a0f30c025ff46820.rli
+b,libflatbuffers-4f39f80483be684b.rlib,libarrow_schema-e07a741599a0d53e.rlib,libarrow_buffer-d7b2eb2320c7b2d9.rlib,libh
+alf-ff8d12a0bad90c53.rlib,libchrono_tz-8655ac3a0ec904da.rlib,libphf-02f21aaadf057db1.rlib,libphf_shared-fb079f80dce4a0e
+d.rlib,libsiphasher-7b9a59838f747715.rlib,libsqlparser-c593914a1c89f96b.rlib,librecursive-55292ced694e8d99.rlib,libstac
+ker-6e46b666a282960e.rlib,libpsm-3a5623ad4ea687d7.rlib,libwindows_sys-ca02d8c110d3bd04.rlib,liblibc-a82541cc54b72bc6.rl
+ib,libsa_token_core-a023c12dd6e56db5.rlib,libjsonwebtoken-4298059d234c6b2d.rlib,libpem-35be7d46e1500f3e.rlib,libsimple_
+asn1-67309ce4b431a8e4.rlib,libnum_bigint-0f72f597f823d24d.rlib,libed25519_dalek-0732e9c3158f1942.rlib,libcurve25519_dal
+ek-b867e95d5da35cfa.rlib,libed25519-8b01101ea2f73c36.rlib,libp384-950879b0dd59ad5c.rlib,libp256-2d881475242927ea.rlib,l
+ibecdsa-342f17e816e9aacd.rlib,librfc6979-a6ff2646ee68d894.rlib,libprimeorder-b23ea6f9e6ffb71b.rlib,libelliptic_curve-b5
+e354cccfbb357e.rlib,libsec1-4b133655eb3dc918.rlib,libcrypto_bigint-428fd41d2bb98c02.rlib,libbase16ct-d6a020ab13db675c.r
+lib,libgroup-ace93e3354d3de31.rlib,libff-18f74dcd32d8751c.rlib,libhmac-69cd9511dbc43aee.rlib,libsha2-1bd4d07caaeb1d13.r
+lib,libsa_token_adapter-b382b307d794c9b3.rlib,liburlencoding-8645062789eca8b1.rlib,libdts_deerflow_client-2d71d1f7d678f
+c2c.rlib,libreqwest-cb7be81f1f2ae3cc.rlib,libcookie_store-bb9632c6530a8861.rlib,libpublicsuffix-20cd7ffad406c767.rlib,l
+ibpsl_types-7c127841b861e543.rlib,libcookie-2c65c8b2b097ea75.rlib,libhyper_tls-5d931084552c134e.rlib,libtokio_native_tl
+s-11a771d9f90a535e.rlib,libtower_http-45f1fc8a497bdb11.rlib,libtower-2c881b5d7e3e2ccc.rlib,libtower_layer-0d39a21851e0a
+e15.rlib,libnative_tls-90d04ab348c0dbe3.rlib,libschannel-ff3066d8b972ec0f.rlib,libhyper_util-b3789a041cd9c14c.rlib,libw
+indows_registry-7c4a12ca8c9ee812.rlib,libwindows_strings-0748eeb68dd4bb3a.rlib,libwindows_result-1dc6f6d5db3be459.rlib,
+libipnet-f223b48a603d3bc8.rlib,libtower_service-76564ef8a121fe39.rlib,libhyper-15a395d83dde140c.rlib,libwant-57b92bd321
+607731.rlib,libtry_lock-fbb16930cc307076.rlib,libh2-4111d5cb4ebc6558.rlib,libatomic_waker-794fa38de895cc46.rlib,libhttp
+_body_util-84fe25b7c2f23b0f.rlib,libhttp_body-67c22e661c4e07d1.rlib,libhttp-f800e77dba9b32e6.rlib,libsync_wrapper-4459f
+5d5633595ec.rlib,libanyhow-70ea5eb4de6dec57.rlib,libdts_backend_sqlite-9891544c3351bb98.rlib,libargon2-0ff0b1122be1e37b
+.rlib,libblake2-95a618a645660fa4.rlib,libpassword_hash-3d62662030a67e31.rlib,libdts_backend_rdbms-89ab7d00cd927ca4.rlib
+,libsqlx-c872d87505e59faa.rlib,libsqlx_sqlite-a67c2ab73af63f7a.rlib,libfutures_executor-ee59c253a051ba4c.rlib,libflume-
+7960b60ebc36e895.rlib,libfutures_intrusive-cbd8d6c0ceb16138.rlib,liblibsqlite3_sys-2364430ffcf9162c.rlib,libsqlx_postgr
+es-9ffa3ef63f348373.rlib,libhex-58fc466c56d723bd.rlib,libwhoami-4a4603edd4c4af8a.rlib,libetcetera-571af9cb31d9ab37.rlib
+,libhome-73834695722269be.rlib,libmd5-c531c5392bac9609.rlib,libatoi-c5a4a493bf0d69e0.rlib,libstringprep-11ca9a02b7934e0
+d.rlib,libunicode_properties-ecacdc66dce00f24.rlib,libunicode_normalization-7f82bcffd16d92e9.rlib,libtinyvec-7b9b33d515
+a8c280.rlib,libtinyvec_macros-42d8844ebb12bffc.rlib,libunicode_bidi-ba667e6455876a77.rlib,libhkdf-f410c39f812a48f7.rlib
+,libhmac-7e05a89bbdeead51.rlib,libsqlx_mysql-f520414d05b25eac.rlib,libdotenvy-e50205b5ec299cba.rlib,libcrc-8fc7536641de
+948e.rlib,libcrc_catalog-47c36ddf7dee3268.rlib,libbyteorder-cb08ace98642255c.rlib,libsha1-d945be2fba8c4340.rlib,librsa-
+c23d65decc21008c.rlib,libpkcs1-8ad102e07fd1d5dc.rlib,libpkcs8-80b3f70652e9536d.rlib,libspki-00409b310b6613b6.rlib,libde
+r-755d594e237518f8.rlib,libpem_rfc7468-e6554f0f7b5863e4.rlib,libbase64ct-c0e5baa5230b5dc3.rlib,libsignature-e88cef1611a
+e23e8.rlib,libnum_bigint_dig-3d076ccfbdcc793b.rlib,liblibm-92aae15bf6a820e1.rlib,libnum_iter-bafd75bee9aa8b9e.rlib,libn
+um_integer-a22b3ebf1c43421c.rlib,liblazy_static-dfd56a8ba5858e46.rlib,libspin-9032b12e98d3d3f9.rlib,librand-f319e1194f2
+424b8.rlib,librand_chacha-34871c2aecad0f9d.rlib,libppv_lite86-9e1f05d259a3e101.rlib,libzerocopy-c70878bf712453f0.rlib,l
+ibrand_core-c640a39ad407c481.rlib,libsqlx_core-3c1d3f277575c251.rlib,libwebpki_roots-f6d136c65db35ce6.rlib,libwebpki_ro
+ots-ef5e1a4f5db82f5a.rlib,librustls-d4ad7635ec0d936d.rlib,libwebpki-0b7291b80bfb897e.rlib,librustls_pki_types-e9d5d9ee2
+262e05e.rlib,libhashlink-cb006fa263d0ae97.rlib,libhashbrown-3e23260589365407.rlib,libfoldhash-51f2ce15137f9eba.rlib,lib
+allocator_api2-541e147a779e7868.rlib,libcrossbeam_queue-e3f10761294a601a.rlib,libcrossbeam_utils-6faf0e31c24a7aec.rlib,
+libeither-37a12615ff49bffd.rlib,libevent_listener-e6c37992ddfea61c.rlib,libparking-8c93efded56e524d.rlib,libactix_cors-
+3fef935fefde15aa.rlib,libdts_engine-50ab5e5e9fca03e8.rlib,libring-b8428277d4e894ee.rlib,libgetrandom-91a3a403942d666d.r
+lib,libuntrusted-bd772aedbdb11aa6.rlib,libpretty_assertions-890c69d28bf739b9.rlib,libdiff-17fc5d1854836626.rlib,libyans
+i-6b7881c8062fe263.rlib,libtokio_stream-574f5b6e7d10d372.rlib,libdts_backend-e42df0c200f11428.rlib,libuuid-94776648f798
+9f24.rlib,libthiserror-f70c7abea166788c.rlib,libdts_core-edec3200c2d0eb40.rlib,libsha2-2b02015ef2957fc1.rlib,libcpufeat
+ures-648a658346a2fff6.rlib,libdigest-fa6310f3babde24b.rlib,libsubtle-cca76f5abc9b6f79.rlib,libconst_oid-765a0e2005aae26
+b.rlib,libblock_buffer-ab4f93597bf3066e.rlib,libcrypto_common-6bd47992f8ea2e70.rlib,libgeneric_array-218781dd83811c7e.r
+lib,libzeroize-9ea3316a1f8bbf78.rlib,libchrono-04e895262fa30f95.rlib,libnum_traits-2e4a1b64bdeb4edf.rlib,libactix_web-4
+a904a02d6c852d7.rlib,libimpl_more-098a4fb8d4f0c0c5.rlib,liburl-1998392ca165aa74.rlib,libidna-c6ff7f36c4788afb.rlib,libi
+dna_adapter-c49ffd13234f7039.rlib,libicu_properties-06b05e17b58a52f1.rlib,libicu_properties_data-3e370fee339ce72b.rlib,
+libicu_normalizer-7f9d777bf02cc601.rlib,libicu_normalizer_data-fabfb0137f7cf879.rlib,libicu_collections-fe82c00821e8581
+2.rlib,libutf8_iter-136189e00d41e843.rlib,libpotential_utf-02d5596f0f92ce70.rlib,libicu_provider-6898dc71b06c7930.rlib,
+libicu_locale_core-c8d2c50e683f4b0c.rlib,libtinystr-35bc7fc3a5251722.rlib,liblitemap-2aa891e53eddfaea.rlib,libwriteable
+-c6bcb1d8aec98f14.rlib,libzerovec-ec4a353a59967fc2.rlib,libzerotrie-d32ed641ae9a64f5.rlib,libyoke-b87469b46fbbdc40.rlib
+,libstable_deref_trait-e70c78e96906368f.rlib,libzerofrom-3e996aa27751c9cd.rlib,libserde_urlencoded-2ba778a356125996.rli
+b,libryu-ecc3ed68ea7490c4.rlib,libform_urlencoded-96e618d6d611057d.rlib,libserde_json-f7f74e76f1a3534e.rlib,libzmij-40f
+0921e506200aa.rlib,libactix_server-201d89a13312498c.rlib,libsocket2-a1867c564e87ecd8.rlib,libwindows_sys-0acda9cd59236b
+fe.rlib,libwindows_targets-69e15fc95d27cfb1.rlib,libactix_router-d4c20400a7f06484.rlib,libregex-0e7a87685a88ee7c.rlib,l
+ibregex_automata-fb61ddf55af993c5.rlib,libaho_corasick-a1f0be1852080d69.rlib,libregex_syntax-9c0e2181d33534c4.rlib,libc
+ookie-730e10d92ae7b5b5.rlib,libtime-c98a9647cca038db.rlib,libpowerfmt-3b982a50e71ea4dc.rlib,libnum_conv-76b8de26365d96b
+a.rlib,libderanged-4aea411e2c9c0cb4.rlib,libtime_core-430b5c9756a24684.rlib,libactix_http-c10e263910f4dd83.rlib,librand
+-cdbce9c80f7d1156.rlib,libgetrandom-fc67f4d978bd4712.rlib,libchacha20-f630c30787bf4f4f.rlib,librand_core-5df0df3e0b69df
+7a.rlib,libhttparse-2dc112a6b67212ac.rlib,libbrotli-6af7edc7ba35e0eb.rlib,libbrotli_decompressor-2db8c5166a5951d1.rlib,
+liballoc_stdlib-ae0dfd92c8a1e98d.rlib,liballoc_no_stdlib-f64045cd4db33388.rlib,libhttpdate-67a4579a94edf1d4.rlib,libsha
+1-97c8ae317e44358f.rlib,libcpufeatures-adfd87a30dbec645.rlib,libdigest-1dff70a9c0b6f624.rlib,libctutils-ef3754cd4bc7c55
+c.rlib,libcmov-fc18a8cb974cf893.rlib,libconst_oid-f90f79eadc007581.rlib,libcrypto_common-6df7a9fd84bbecdc.rlib,libblock
+_buffer-39bf90ca2b84d774.rlib,libhybrid_array-2ae5d84f1c74241e.rlib,libtypenum-088438743be36726.rlib,libbase64-a31f4638
+5ba98787.rlib,liblocal_channel-a826319f717d85c7.rlib,libbytestring-25fb456311cca8f9.rlib,libencoding_rs-0cbc1273e76de2a
+6.rlib,liblanguage_tags-94cc24c44744023c.rlib,libfoldhash-175cb561020db225.rlib,libmime-40b08b49d6ac59c5.rlib,libpercen
+t_encoding-b59f062fccf9218b.rlib,libh2-3deb7d6b32c73efc.rlib,libindexmap-71d71de94432926e.rlib,libequivalent-8bacdb23cf
+e7a52c.rlib,libhashbrown-da94057e5b4a1ce9.rlib,libfutures_util-aac60660e0bd87c4.rlib,libfutures_io-e93de96a7aed9696.rli
+b,libslab-c211f5ab25b7beef.rlib,libfutures_channel-77942c343d71f54b.rlib,libfutures_task-0d4193293fd117d2.rlib,libzstd-
+72bd354fbcda7b25.rlib,libzstd_safe-572a191de699f483.rlib,libzstd_sys-d74f4e43e8d238e8.rlib,libflate2-00fecab68ba16a4c.r
+lib,libminiz_oxide-182f63d3bc813612.rlib,libsimd_adler32-7d4445f04d8380fd.rlib,libcrc32fast-f1fd2a3a9c8b915b.rlib,libac
+tix_service-dd86bd34a401a3a0.rlib,libactix_codec-65d26cdac6e89e5b.rlib,libtracing-e4ca076b10a8ba53.rlib,libtracing_core
+-8c955611d86b54ed.rlib,libonce_cell-716614ae2d153603.rlib,libmemchr-84b481273580249a.rlib,libbitflags-377946d258d39418.
+rlib,libtokio_util-3ba991d5c0375188.rlib,libfutures_sink-20859ef95c5c1283.rlib,libderive_more-5586c279211d84f6.rlib,lib
+actix_utils-2ef96b7e05a7fda7.rlib,liblocal_waker-8b10d44caa50a93f.rlib,libactix_rt-0c78af5c707756fb.rlib,libtokio-d7f1f
+e056f1f8fc4.rlib,libsocket2-961606f3adb9186f.rlib,libmio-a74c5a14e1347de4.rlib,libwindows_sys-e560cf7c34735962.rlib,lib
+log-676dc561b88c6d01.rlib,libparking_lot-3402792764cba922.rlib,libparking_lot_core-671ac4dea09ff70b.rlib,libwindows_lin
+k-6b3cfb1f46757a7f.rlib,libcfg_if-da4e918977b4d9a7.rlib,libsmallvec-4fbcfcededb6459a.rlib,libserde-daa9d7bcfc109614.rli
+b,libserde_core-20050579cfb08397.rlib,liblock_api-b622b9f85fa97110.rlib,libscopeguard-c3a141ced1c6483f.rlib,libpin_proj
+ect_lite-b7b5455599e2d0ec.rlib,libfutures_core-75dfae0f4df02c55.rlib,libhttp-7d18e8c57618382e.rlib,libitoa-4458046d5773
+ef30.rlib,libbytes-2a04098c089e63e7.rlib,libfnv-fb8c95b74f544af9.rlib}.rlib" "<sysroot>\\lib\\rustlib\\x86_64-pc-window
+s-gnu\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libwindows_targets-*,librustc_
+demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,libcf
+g_if-*,liblibc-*,liballoc-*,librustc_std_workspace_core-*,libcore-*,libcompiler_builtins-*}.rlib" "-Wl,-Bdynamic" "-lke
+rnel32" "-lwindows.0.52.0" "-lsecur32" "-ladvapi32" "-lkernel32" "-lbcrypt" "-ladvapi32" "-lwindows.0.52.0" "-lkernel32
+" "-lkernel32" "-lntdll" "-luserenv" "-lws2_32" "-ldbghelp" "-lgcc_eh" "-l:libpthread.a" "-lmsvcrt" "-lmingwex" "-lming
+w32" "-lgcc" "-lmsvcrt" "-lmingwex" "-luser32" "-lkernel32" "-Wl,--nxcompat" "-L" "D:\\rustpro\\dts-platform\\target\\d
+ebug\\build\\zstd-sys-084bd9aa7efe614f\\out" "-L" "D:\\rustpro\\dts-platform\\target\\debug\\build\\ring-671750240aff32
+fa\\out" "-L" "D:\\rustpro\\dts-platform\\target\\debug\\build\\libsqlite3-sys-5a867f1323067c7f\\out" "-L" "D:\\rustpro
+\\dts-platform\\target\\debug\\build\\stacker-4eeaa64dbd1222ca\\out" "-L" "D:\\rustpro\\dts-platform\\target\\debug\\bu
+ild\\psm-28a7c48cf126f560\\out" "-L" "D:\\cargo\\registry\\src\\rsproxy.cn-e3de039b2554c837\\windows_x86_64_gnu-0.52.6\
+\lib" "-L" "D:\\cargo\\registry\\src\\rsproxy.cn-e3de039b2554c837\\windows_x86_64_gnu-0.48.5\\lib" "-o" "D:\\rustpro\\d
+ts-platform\\target\\debug\\deps\\dts_server-47cef888e8892bf8.exe" "-Wl,--gc-sections" "-no-pie" "-nodefaultlibs" "<sys
+root>\\lib\\rustlib\\x86_64-pc-windows-gnu\\lib\\rsend.o"[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: some arguments are omitted. use `--verbose` to show a
+ll linker arguments[0m
+[0m  [0m[0m[1m[38;5;14m= [0m[0m[1m[38;5;15mnote[0m[0m: collect2.exe: error: ld returned 123 exit status[0m
+[0m          [0m
+
+[1m[31merror[0m[1m:[0m could not compile `dts-server` (lib test) due to 1 previous error

@@ -38,7 +38,9 @@ async fn setup() -> Option<(PgTaskRepo, String)> {
 
 #[tokio::test]
 async fn create_and_find_task() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     let id = uuid::Uuid::new_v4().to_string();
     let params = CreateTaskParams {
         id: id.clone(),
@@ -65,7 +67,9 @@ async fn create_and_find_task() {
 
 #[tokio::test]
 async fn list_by_tenant_filters_correctly() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     repo.create(&CreateTaskParams {
         id: uuid::Uuid::new_v4().to_string(),
         tenant_id: tenant_id.clone(),
@@ -80,16 +84,15 @@ async fn list_by_tenant_filters_correctly() {
     .await
     .expect("create failed");
 
-    let tasks = repo
-        .list_by_tenant(&tenant_id)
-        .await
-        .expect("list failed");
+    let tasks = repo.list_by_tenant(&tenant_id).await.expect("list failed");
     assert_eq!(tasks.len(), 1);
 }
 
 #[tokio::test]
 async fn update_status_works() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     let id = uuid::Uuid::new_v4().to_string();
     repo.create(&CreateTaskParams {
         id: id.clone(),
@@ -121,7 +124,9 @@ async fn update_status_works() {
 
 #[tokio::test]
 async fn count_by_status_returns_correct_count() {
-    let Some((repo, tenant_id)) = setup().await else { return; };
+    let Some((repo, tenant_id)) = setup().await else {
+        return;
+    };
     repo.create(&CreateTaskParams {
         id: uuid::Uuid::new_v4().to_string(),
         tenant_id: tenant_id.clone(),

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAppStore } from '../app';
 
 describe('useAppStore', () => {
@@ -21,9 +21,18 @@ describe('useAppStore', () => {
       expect(state.mobileSidebarOpen).toBe(false);
     });
 
-    it('has dark theme by default', () => {
-      const state = useAppStore.getState();
-      expect(state.theme).toBe('dark');
+    it('starts with light theme for a new user', async () => {
+      localStorage.removeItem('theme');
+      vi.resetModules();
+      const { useAppStore: freshStore } = await import('../app');
+      expect(freshStore.getState().theme).toBe('light');
+    });
+
+    it('retains a previously saved dark theme', async () => {
+      localStorage.setItem('theme', 'dark');
+      vi.resetModules();
+      const { useAppStore: freshStore } = await import('../app');
+      expect(freshStore.getState().theme).toBe('dark');
     });
   });
 

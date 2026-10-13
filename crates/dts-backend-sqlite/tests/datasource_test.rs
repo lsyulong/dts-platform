@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-use dts_backend::repo::{DatasourceRepo, TenantRepo};
+use dts_backend::repo::{DatasourceRepo, RecordDatasourceProbeParams, TenantRepo};
 use dts_backend_rdbms::MigrationRunner;
 use dts_backend_sqlite::{SqliteDatasourceRepo, SqliteMigrationRunner, SqliteTenantRepo};
 use dts_core::types::{CreateDatasourceParams, CreateTenantParams};
@@ -272,4 +271,50 @@ async fn list_by_tenant_orders_by_created_at_desc() {
     assert_eq!(list.len(), 2);
     assert_eq!(list[0].name, "Second"); // Most recent first
     assert_eq!(list[1].name, "First");
+}
+
+#[tokio::test]
+async fn probe_history_and_current_health_are_persisted_together() {
+    let (_pool, repo, tenant_id) = setup().await;
+    let datasource_id = uuid::Uuid::new_v4().to_string();
+    repo.create(&CreateDatasourceParams {
+        id: datasource_id.clone(),
+        tenant_id: tenant_id.clone(),
+        name: "Probe target".into(),
+        db_type: "SQLite".into(),
+        host: ":memory:".into(),
+        port: 0,
+        username: None,
+        encrypted_password: None,
+        database_name: None,
+        created_by: "user1".into(),
+    })
+    .await
+    .expect("create failed");
+    let observed_at = chrono::Utc::now();
+    let recorded = repo
+        .record_probe(&RecordDatasourceProbeParams {
+            id: uuid::Uuid::new_v4().to_string(),
+            tenant_id: tenant_id.clone(),
+            datasource_id: datasource_id.clone(),
+            supported: true,
+            status: "healthy".into(),
+            latency_ms: Some(4),
+            error_message: None,
+            actor_id: "user1".into(),
+            observed_at,
+        })
+        .await
+        .expect("record probe failed");
+
+    assert_eq!(recorded.status, "healthy");
+    let listed = repo.list_by_tenant(&tenant_id).await.expect("list failed");
+    assert_eq!(listed[0].health_status, "healthy");
+    assert!(listed[0].last_test_at.is_some());
+    let history = repo
+        .list_probes(&tenant_id, &datasource_id, 20)
+        .await
+        .expect("probe history failed");
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0].latency_ms, Some(4));
 }

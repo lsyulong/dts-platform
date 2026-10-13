@@ -35,12 +35,7 @@ describe('EmptyState', () => {
   });
 
   it('renders action when provided', () => {
-    render(
-      <EmptyState
-        title="No items"
-        action={<a href="/create">Create one</a>}
-      />
-    );
+    render(<EmptyState title="No items" action={<a href="/create">Create one</a>} />);
     expect(screen.getByText('Create one')).toBeInTheDocument();
   });
 

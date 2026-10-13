@@ -45,7 +45,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d target_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dts_platform"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -65,11 +65,11 @@ services:
       SWANLAKE_SESSION_TIMEOUT_SECONDS: "1800"
       # DuckDB 初始化 SQL — ATTACH PostgreSQL 目标库
       SWANLAKE_DUCKLAKE_INIT_SQL: |
-        ATTACH 'host=postgres port=5432 dbname=dts_platform user=postgres password=postgres123' AS dts_pg (TYPE postgres, READ_ONLY);
+        ATTACH 'host=postgres port=5432 dbname=warehouse user=dts_query password=dts_query_local_demo' AS dts_pg (TYPE postgres, READ_ONLY);
       PGHOST: postgres
       PGPORT: "5432"
-      PGUSER: postgres
-      PGPASSWORD: postgres123
+      PGUSER: dts_query
+      PGPASSWORD: dts_query_local_demo
     ports:
       - "4214:4214"   # Flight SQL gRPC
       - "4215:4215"   # Status HTTP
@@ -77,7 +77,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:4215/healthz || exit 1"]
+      test: ["CMD", "/usr/local/bin/grpc-health-probe", "-addr=localhost:4214", "-service=arrow.flight.protocol.FlightService"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -93,7 +93,10 @@ services:
     environment:
       DATABASE_BACKEND: "postgres"
       DATABASE_URL: "postgresql://postgres:postgres123@postgres:5432/dts_platform"
-      JWT_SECRET: "dev-jwt-secret-change-in-production"
+      AUTH_STORAGE: "${AUTH_STORAGE:-memory}"
+      AUTH_TOKEN_TIMEOUT_SECS: "${AUTH_TOKEN_TIMEOUT_SECS:-86400}"
+      AUTH_REDIS_URL: "${AUTH_REDIS_URL:-}"
+      BOOTSTRAP_ADMIN_PASSWORD: "${BOOTSTRAP_ADMIN_PASSWORD:-}"
       SERVER_HOST: "0.0.0.0"
       SERVER_PORT: "8080"
       # DeerFlow AI (optional — set DEERFLOW_ENABLED=true to enable)
@@ -104,12 +107,14 @@ services:
       SWANLAKE_ENABLED: "true"
       SWANLAKE_HOST: "swanlake"
       SWANLAKE_PORT: "4214"
-      # Engine
-      APE_DTS_BIN: "/usr/local/bin/ape-dts"
+      SWANLAKE_TENANT_SLUG: "default"
+      # Engine: provide a Linux ape-dts executable in docker/bin before starting tasks.
+      APE_DTS_BIN: "/opt/ape/ape-dts"
     ports:
       - "8080:8080"
     volumes:
       - dts_data:/app/data
+      - ./docker/bin:/opt/ape:ro
     depends_on:
       postgres:
         condition: service_healthy

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! DTS Engine — 数据同步引擎抽象层
 //!
 //! 定义 `EngineService` trait，作为不同同步引擎实现（ape-dts、自研等）的统一抽象。
@@ -20,19 +19,27 @@
 
 pub mod error;
 pub mod model;
+mod router;
 
 pub use error::EngineError;
 pub use model::*;
+pub use router::EngineRouter;
 
 /// 引擎抽象 trait
 ///
 /// 不同引擎实现只需满足此接口即可接入 DTS Platform。
 #[async_trait::async_trait]
 pub trait EngineService: Send + Sync {
+    /// Returns whether this adapter can execute the supplied source/target pair.
+    ///
+    /// Concrete adapters should keep protocol-specific routing knowledge here so
+    /// callers do not need to know their implementation details.
+    fn supports(&self, task: &TaskSubmission) -> bool;
+
     /// 提交同步任务，返回 `run_id`
     ///
     /// 引擎通过 `progress_tx` 向调用方推送实时进度。
-    /// 返回的 `run_id` 用于后续查询或取消任务。
+    /// Returns the supplied `task.run_id`; progress and cancellation use that same ID.
     async fn submit(
         &self,
         task: TaskSubmission,

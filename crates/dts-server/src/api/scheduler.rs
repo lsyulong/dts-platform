@@ -12,18 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use actix_web::{HttpRequest, HttpResponse, web};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 
 use crate::config::SchedulerConfig;
 use crate::middleware::auth;
-use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
 
 /// 定时调度请求
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SetScheduleRequest {
     pub cron_expr: String,
 }
@@ -31,7 +30,11 @@ pub struct SetScheduleRequest {
 /// 调度状态响应
 #[derive(Debug, Serialize)]
 pub struct ScheduleStatus {
+    pub enabled: bool,
     pub has_timer: bool,
+    pub active: bool,
+    pub state: String,
+    pub timezone: String,
     pub cron_expr: Option<String>,
     pub next_run: Option<String>,
     pub timer_name: Option<String>,
@@ -42,9 +45,7 @@ pub struct ScheduleStatus {
 pub struct ScheduleInstance {
     pub id: u64,
     pub name: String,
-    pub start_time: Option<String>,
-    pub end_time: Option<String>,
-    pub exit_code: Option<i32>,
+    pub created_time: String,
     pub status: String,
 }
 
@@ -55,13 +56,28 @@ pub async fn set_schedule(
     path: web::Path<String>,
     body: web::Json<SetScheduleRequest>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let _claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "task:execute").await?;
     let task_id = path.into_inner();
+    let task = tenant_task(&req, &task_id, &claims.tenant_id).await?;
 
     if !scheduler_config.enabled {
         return Err(AppError::BadRequest("jiascheduler 集成未启用".into()));
     }
+    super::scheduler_trigger::validate_service_config(&scheduler_config)?;
+    dts_scheduler_client::models::TimerExpr::from_cron(&body.cron_expr)
+        .map_err(|e| AppError::BadRequest(e.to_string()))?;
+    scheduler_config
+        .validate_instance()
+        .map_err(|e| AppError::BadRequest(e.to_string()))?;
+    let grant = super::scheduler_trigger::trigger_token(
+        &scheduler_config.service_token,
+        &claims.tenant_id,
+        &task_id,
+        &claims.sub,
+    );
+    let start_url = scheduler_config
+        .trigger_url(&task_id, &claims.tenant_id, &claims.sub)
+        .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
     let client = dts_scheduler_client::JiaSchedulerClient::login(
         &scheduler_config.base_url,
@@ -74,7 +90,7 @@ pub async fn set_schedule(
         AppError::Internal(format!("调度服务连接失败: {e}"))
     })?;
 
-    let sync = dts_scheduler_client::TaskSync::new(client)
+    let sync = dts_scheduler_client::TaskSync::new(client, &scheduler_config.instance_id)
         .await
         .map_err(|e| AppError::Internal(format!("调度初始化失败: {e}")))?;
 
@@ -82,9 +98,9 @@ pub async fn set_schedule(
     let eid = sync
         .upsert_job(
             &task_id,
-            &task_id, // 任务名称从 DB 查，这里简化用 ID
-            &scheduler_config.callback_base_url,
-            &scheduler_config.service_token,
+            &task.name,
+            &start_url,
+            &grant,
             Some(&body.cron_expr),
         )
         .await
@@ -96,7 +112,8 @@ pub async fn set_schedule(
         "task_id": task_id,
         "eid": eid,
         "cron_expr": body.cron_expr,
-        "status": "scheduled",
+        "status": "dispatched",
+        "timezone": "utc",
     })))
 }
 
@@ -106,9 +123,9 @@ pub async fn delete_schedule(
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let _claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "task:execute").await?;
     let task_id = path.into_inner();
+    let _task = tenant_task(&req, &task_id, &claims.tenant_id).await?;
 
     if !scheduler_config.enabled {
         return Err(AppError::BadRequest("jiascheduler 集成未启用".into()));
@@ -122,12 +139,7 @@ pub async fn delete_schedule(
     .await
     .map_err(|e| AppError::Internal(format!("调度服务连接失败: {e}")))?;
 
-    let sync = dts_scheduler_client::TaskSync::new(client)
-        .await
-        .map_err(|e| AppError::Internal(format!("调度初始化失败: {e}")))?;
-
-    let eid = dts_scheduler_client::TaskSync::task_id_to_eid(&task_id);
-    sync.remove_timer(&eid)
+    dts_scheduler_client::TaskSync::remove_task_timer(&client, &task_id)
         .await
         .map_err(|e| AppError::Internal(format!("取消调度失败: {e}")))?;
 
@@ -145,13 +157,17 @@ pub async fn get_schedule(
     req: HttpRequest,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let _claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "task:read").await?;
     let task_id = path.into_inner();
+    let _task = tenant_task(&req, &task_id, &claims.tenant_id).await?;
 
     if !scheduler_config.enabled {
         return Ok(HttpResponse::Ok().json(ScheduleStatus {
+            enabled: false,
             has_timer: false,
+            active: false,
+            state: "disabled".into(),
+            timezone: "utc".into(),
             cron_expr: None,
             next_run: None,
             timer_name: None,
@@ -159,76 +175,181 @@ pub async fn get_schedule(
         }));
     }
 
-    let client = match dts_scheduler_client::JiaSchedulerClient::login(
+    let client = dts_scheduler_client::JiaSchedulerClient::login(
         &scheduler_config.base_url,
         &scheduler_config.username,
         &scheduler_config.password,
     )
     .await
-    {
-        Ok(c) => c,
-        Err(_) => {
-            return Ok(HttpResponse::Ok().json(ScheduleStatus {
-                has_timer: false,
-                cron_expr: None,
-                next_run: None,
-                timer_name: None,
-                schedule_history: vec![],
-            }));
-        },
-    };
+    .map_err(|_| AppError::Internal("调度服务连接失败".into()))?;
 
-    let eid = dts_scheduler_client::TaskSync::task_id_to_eid(&task_id);
+    Ok(HttpResponse::Ok().json(read_schedule_status(&client, &task_id).await?))
+}
 
-    // 查询定时器
-    let timers = client
-        .query_timer(&dts_scheduler_client::models::QueryTimerParams {
-            name: Some(format!("DTS-Timer-{eid}")),
-            job_type: None,
-            page: 1,
-            page_size: 5,
-        })
+async fn read_schedule_status(
+    client: &dts_scheduler_client::JiaSchedulerClient,
+    task_id: &str,
+) -> Result<ScheduleStatus, AppError> {
+    let timer_name = dts_scheduler_client::TaskSync::timer_name(task_id)
+        .map_err(|e| AppError::BadRequest(e.to_string()))?;
+    let timer = client
+        .find_timer(&timer_name)
         .await
-        .unwrap_or(dts_scheduler_client::models::QueryJobTimerResp {
-            data: vec![],
-            total: 0,
-        });
-
-    // 查询调度历史
-    let history = client.query_schedule_history(&eid).await.unwrap_or(
-        dts_scheduler_client::models::QueryScheduleHistoryResp {
-            data: vec![],
-            total: 0,
-        },
-    );
-
-    let has_timer = !timers.data.is_empty();
-    let first_timer = timers.data.first();
-
-    Ok(HttpResponse::Ok().json(ScheduleStatus {
-        has_timer,
-        cron_expr: first_timer.and_then(|t| {
-            t.timer_expr
-                .as_ref()
-                .and_then(|v| v.get("cron").and_then(|c| c.as_str().map(String::from)))
-        }),
-        next_run: None, // jiascheduler 不直接提供 next_run
-        timer_name: first_timer.map(|t| t.name.clone()),
-        schedule_history: history
-            .data
+        .map_err(|e| AppError::Internal(format!("读取调度状态失败: {e}")))?;
+    let job_name = dts_scheduler_client::TaskSync::job_name(task_id)
+        .map_err(|e| AppError::BadRequest(e.to_string()))?;
+    let job = client
+        .find_job(&job_name)
+        .await
+        .map_err(|e| AppError::Internal(format!("读取调度作业失败: {e}")))?;
+    let mut runtime = None;
+    let mut schedule_history = Vec::new();
+    if let Some(job) = &job {
+        if timer.as_ref().is_some_and(|timer| job.eid != timer.eid) {
+            return Err(AppError::Internal(
+                "定时器关联的作业与当前任务不一致".into(),
+            ));
+        }
+        runtime = client
+            .find_schedule(&job.eid, &timer_name)
+            .await
+            .map_err(|e| AppError::Internal(format!("读取实际调度失败: {e}")))?;
+        schedule_history = client
+            .query_schedule_history(&job.eid, &timer_name)
+            .await
+            .map_err(|e| AppError::Internal(format!("读取调度历史失败: {e}")))?
+            .list
             .into_iter()
-            .map(|h| ScheduleInstance {
-                status: if h.exit_code.is_none_or(|c| c == 0) {
-                    "success".into()
-                } else {
-                    "failed".into()
-                },
-                id: h.id,
-                name: h.name,
-                start_time: h.start_time,
-                end_time: h.end_time,
-                exit_code: h.exit_code,
+            .map(|record| ScheduleInstance {
+                id: record.id,
+                name: record.name,
+                created_time: record.created_time,
+                status: "triggered".into(),
             })
-            .collect(),
-    }))
+            .collect();
+    } else if timer.is_some() {
+        return Err(AppError::Internal("定时器对应的调度作业不存在".into()));
+    }
+    let (active, state) = runtime_state(client, runtime.as_ref()).await?;
+    let cron_expr = schedule_cron(runtime.as_ref(), timer.as_ref())?;
+    Ok(ScheduleStatus {
+        enabled: true,
+        has_timer: timer.is_some(),
+        active,
+        state,
+        timezone: "utc".into(),
+        cron_expr,
+        next_run: None,
+        timer_name: timer.map(|timer| timer.name),
+        schedule_history,
+    })
+}
+
+async fn runtime_state(
+    client: &dts_scheduler_client::JiaSchedulerClient,
+    schedule: Option<&dts_scheduler_client::models::ScheduleRecord>,
+) -> Result<(bool, String), AppError> {
+    let Some(schedule) = schedule else {
+        return Ok((false, "inactive".into()));
+    };
+    if schedule.action == "stop_timer" {
+        return Ok((false, "stopped".into()));
+    }
+    if schedule.action != "start_timer" || schedule.instance_ids.len() != 1 {
+        return Err(AppError::Internal("调度记录不是预期的单节点 timer".into()));
+    }
+    let runs = client
+        .running_status(&schedule.eid, &schedule.name)
+        .await
+        .map_err(|e| AppError::Internal(format!("读取 worker 调度状态失败: {e}")))?;
+    Ok(state_from_runs(schedule, &runs))
+}
+
+fn state_from_runs(
+    schedule: &dts_scheduler_client::models::ScheduleRecord,
+    runs: &[dts_scheduler_client::models::RunningStatusRecord],
+) -> (bool, String) {
+    let runs: Vec<_> = runs
+        .iter()
+        .filter(|run| schedule.instance_ids.contains(&run.instance_id))
+        .collect();
+    if runs
+        .iter()
+        .any(|run| run.is_online && run.schedule_status == "scheduling")
+    {
+        return (true, "active".into());
+    }
+    if runs.iter().any(|run| !run.is_online) {
+        return (false, "offline".into());
+    }
+    (false, "pending".into())
+}
+
+fn schedule_cron(
+    runtime: Option<&dts_scheduler_client::models::ScheduleRecord>,
+    timer: Option<&dts_scheduler_client::models::JobTimerRecord>,
+) -> Result<Option<String>, AppError> {
+    if let Some(expr) = runtime.and_then(|schedule| schedule.timer_expr.as_ref()) {
+        if expr.timezone != "utc" {
+            return Err(AppError::Internal("请重新设置调度以使用 UTC 时区".into()));
+        }
+        return dts_scheduler_client::models::TimerExpr::from_cron(&expr.expr)
+            .map(|expr| Some(expr.to_cron()))
+            .map_err(|e| AppError::Internal(e.to_string()));
+    }
+    if let Some(expr) = timer.and_then(|timer| timer.timer_expr.as_ref()) {
+        if expr.timezone != "utc" {
+            return Err(AppError::Internal("请重新设置调度以使用 UTC 时区".into()));
+        }
+        return Ok(Some(expr.to_cron()));
+    }
+    Ok(None)
+}
+
+async fn tenant_task(
+    req: &HttpRequest,
+    id: &str,
+    tenant_id: &str,
+) -> Result<dts_backend::types::TaskDetail, AppError> {
+    let repo = req
+        .app_data::<web::Data<std::sync::Arc<dyn dts_backend::TaskRepo>>>()
+        .ok_or_else(|| AppError::Internal("任务存储未配置".into()))?;
+    repo.find_detail_by_id(id, tenant_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("任务不存在".into()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn active_schedule_requires_confirmed_online_worker_state() {
+        let schedule = serde_json::from_value(serde_json::json!({
+            "id": 88, "eid": "real-eid", "name": "timer", "job_type": "default",
+            "schedule_type": "timer", "action": "start_timer", "instance_ids": ["worker-1"], "timer_expr": null,
+        })).unwrap();
+        let mut run = serde_json::from_value::<dts_scheduler_client::models::RunningStatusRecord>(
+            serde_json::json!({
+                "eid": "real-eid", "instance_id": "worker-1", "is_online": true,
+                "schedule_name": "timer", "schedule_status": "scheduling", "next_time": "",
+            }),
+        )
+        .unwrap();
+        assert_eq!(state_from_runs(&schedule, &[]), (false, "pending".into()));
+        assert_eq!(
+            state_from_runs(&schedule, std::slice::from_ref(&run)),
+            (true, "active".into())
+        );
+        run.is_online = false;
+        assert_eq!(
+            state_from_runs(&schedule, std::slice::from_ref(&run)),
+            (false, "offline".into())
+        );
+        run.instance_id = "foreign-worker".into();
+        assert_eq!(
+            state_from_runs(&schedule, &[run]),
+            (false, "pending".into())
+        );
+    }
 }

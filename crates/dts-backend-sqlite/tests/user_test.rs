@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use dts_backend::repo::TenantRepo;
 use dts_backend::repo::UserRepo;
 use dts_backend_rdbms::MigrationRunner;

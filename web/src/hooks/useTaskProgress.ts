@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useAuthStore } from '../stores/auth';
 
 export interface SyncProgress {
   run_id: string;
@@ -9,95 +10,104 @@ export interface SyncProgress {
   total_rows?: number;
   current_table?: string;
   percent: number;
+  metrics_available?: boolean;
   message?: string;
 }
 
 interface ProgressState {
   connected: boolean;
+  accessDenied: boolean;
   latest: SyncProgress | null;
   history: SyncProgress[];
   completed: boolean;
 }
 
-const WS_BASE = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-  ? 'ws://localhost:8080'
-  : `ws://${window.location.hostname}:8080`;
-
 export function useTaskProgress(taskId: string | undefined) {
+  const token = useAuthStore((state) => state.token);
   const [state, setState] = useState<ProgressState>({
     connected: false,
+    accessDenied: false,
     latest: null,
     history: [],
     completed: false,
   });
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const connect = useCallback(() => {
-    if (!taskId) return;
-
-    const ws = new WebSocket(`${WS_BASE}/ws/tasks/${taskId}`);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      setState((s) => ({ ...s, connected: true }));
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data) as { type?: string } & SyncProgress;
-
-        // 处理两种消息格式：直接 SyncProgress 或 WsHub 包裹格式
-        // WsHub 推送格式：(task_id, json_payload) 通过 broadcast
-        // 实际可能收到直接 JSON 或数组
-
-        let progress: SyncProgress | null = null;
-
-        // 直接 SyncProgress
-        if (msg.run_id && msg.status) {
-          progress = msg as SyncProgress;
-        }
-        // 其他包裹格式 fallback
-        else if (typeof msg === 'object' && 'rows_synced' in msg) {
-          progress = msg as unknown as SyncProgress;
-        }
-
-        if (progress) {
-          setState((s) => ({
-            ...s,
-            latest: progress,
-            history: [...s.history, progress].slice(-100), // 最多保留 100 条
-            completed: ['Completed', 'Failed', 'Cancelled'].includes(progress.status),
-          }));
-        }
-      } catch {
-        // 忽略解析失败的 JSON
-      }
-    };
-
-    ws.onclose = () => {
-      setState((s) => ({ ...s, connected: false }));
-      // 5 秒后自动重连（除非已完成）
-      setState((prev) => {
-        if (!prev.completed) {
-          reconnectTimer.current = setTimeout(connect, 5000);
-        }
-        return prev;
-      });
-    };
-
-    ws.onerror = () => {
-      ws.close();
-    };
-  }, [taskId]);
-
   useEffect(() => {
+    let disposed = false;
+    let completed = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    const initialState: ProgressState = {
+      connected: false,
+      accessDenied: false,
+      latest: null,
+      history: [],
+      completed: false,
+    };
+    setState(initialState);
+
+    const connect = () => {
+      if (!taskId || !token || disposed) return;
+      const apiUrl = new URL(
+        import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1',
+        window.location.href,
+      );
+      apiUrl.protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+      apiUrl.pathname = `/ws/tasks/${encodeURIComponent(taskId)}`;
+      apiUrl.search = '';
+      apiUrl.hash = '';
+      const ws = new WebSocket(apiUrl, ['dts.logs', `bearer.${token}`]);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        if (!disposed) setState((s) => ({ ...s, connected: true }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data) as { type?: string } & SyncProgress;
+
+          let progress: SyncProgress | null = null;
+
+          if (msg.run_id && msg.status) {
+            progress = msg as SyncProgress;
+          } else if (typeof msg === 'object' && 'rows_synced' in msg) {
+            progress = msg as unknown as SyncProgress;
+          }
+
+          if (progress && !disposed) {
+            completed = ['Completed', 'Failed', 'Cancelled'].includes(progress.status);
+            setState((s) => ({
+              ...s,
+              latest: progress,
+              history: [...s.history, progress].slice(-100),
+              completed,
+            }));
+          }
+        } catch {
+          // Log text and heartbeat frames do not carry progress data.
+        }
+      };
+
+      ws.onclose = (event) => {
+        if (disposed) return;
+        const accessDenied = event.code === 1008;
+        setState((s) => ({ ...s, connected: false, accessDenied }));
+        if (accessDenied) clearTimeout(reconnectTimer);
+        else if (!completed) reconnectTimer = setTimeout(connect, 5000);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    };
     connect();
     return () => {
+      disposed = true;
+      clearTimeout(reconnectTimer);
       wsRef.current?.close();
-      clearTimeout(reconnectTimer.current);
+      wsRef.current = null;
     };
-  }, [connect]);
+  }, [taskId, token]);
 
   return state;
 }

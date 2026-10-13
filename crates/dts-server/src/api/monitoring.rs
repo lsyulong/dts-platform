@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use actix_web::{HttpRequest, HttpResponse, web};
 
 use crate::middleware::auth;
-use crate::middleware::auth::get_jwt_secret;
 use crate::models::error::AppError;
 use crate::services::monitoring_svc::MonitoringService;
 
@@ -25,8 +23,7 @@ pub async fn overview(
     monitoring_svc: web::Data<MonitoringService>,
     req: HttpRequest,
 ) -> Result<HttpResponse, AppError> {
-    let jwt_secret = get_jwt_secret(None);
-    let claims = auth::extract_claims(&req, &jwt_secret)?;
+    let claims = auth::require_permission(&req, "monitor:read").await?;
 
     let overview = monitoring_svc.get_overview(&claims.tenant_id).await?;
 
@@ -86,17 +83,5 @@ mod tests {
             100.0
         };
         assert_eq!(success_rate, 100.0);
-    }
-
-    #[test]
-    fn overview_default_values_for_null_sums() {
-        let rows: Option<i64> = None;
-        assert_eq!(rows.unwrap_or(0), 0);
-
-        let bytes: Option<i64> = None;
-        assert_eq!(bytes.unwrap_or(0), 0);
-
-        let rows_some: Option<i64> = Some(12345);
-        assert_eq!(rows_some.unwrap_or(0), 12345);
     }
 }

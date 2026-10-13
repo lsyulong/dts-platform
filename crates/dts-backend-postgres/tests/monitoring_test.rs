@@ -57,7 +57,9 @@ async fn setup_with_data() -> Option<(PgMonitoringRepo, String)> {
 
 #[tokio::test]
 async fn get_overview_returns_stats() {
-    let Some((repo, tenant_id)) = setup_with_data().await else { return; };
+    let Some((repo, tenant_id)) = setup_with_data().await else {
+        return;
+    };
     let overview = repo
         .get_overview(&tenant_id)
         .await
@@ -68,7 +70,9 @@ async fn get_overview_returns_stats() {
 
 #[tokio::test]
 async fn get_overview_for_empty_tenant() {
-    let Some(pool) = setup_pool().await else { return; };
+    let Some(pool) = setup_pool().await else {
+        return;
+    };
     let repo = PgMonitoringRepo::new(pool);
     let overview = repo
         .get_overview("nonexistent-tenant")

@@ -12,610 +12,257 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+use std::io::Write;
 use std::process::Stdio;
 use std::time::Duration;
 
-use chrono::Local;
 use dts_engine::{EngineError, RunStatus, SyncProgress, TaskSubmission};
-use serde::Serialize;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::oneshot;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
-/// ape-dts 二进制文件路径（可通过环境变量覆盖）
-const DEFAULT_APE_DTS_BIN: &str = "../ape-dts/target/release/dt-main";
+use crate::config::ApeDtsIniConfig;
 
-/// 通过子进程调用 ape-dts 二进制执行同步任务。
-///
-/// 流程：
-/// 1. 将 TaskSubmission 序列化为 ape-dts 的 TOML 配置文件
-/// 2. 写入临时文件
-/// 3. 启动 `dt-main <config_path>` 子进程
-/// 4. 逐行读取 stdout 解析日志，提取进度信息
-/// 5. 等待进程结束或收到取消信号，报告最终状态
-///
-/// 当 `cancel_rx` 收到信号时，kill 子进程并清理临时文件。
+pub(crate) fn validate_submission(task: &TaskSubmission) -> Result<(), EngineError> {
+    ApeDtsIniConfig::from_submission(task, &task.run_id).map(|_| ())
+}
+
 pub(crate) async fn run_sync(
     task: TaskSubmission,
     run_id: &str,
+    bin_path: &str,
     progress_tx: tokio::sync::mpsc::UnboundedSender<SyncProgress>,
     cancel_rx: oneshot::Receiver<()>,
 ) -> Result<(), EngineError> {
-    let task_id = task.task_id.clone();
-    let total_tables = task.config.table_mappings.len();
-    let source_table = task
-        .config
-        .table_mappings
-        .first()
-        .map(|m| m.source_table.clone())
-        .unwrap_or_default();
-
-    // 1. 发送启动进度
-    if let Err(_e) = progress_tx.send(SyncProgress {
-        run_id: run_id.into(),
-        task_id: task_id.clone(),
-        status: RunStatus::Running,
-        rows_synced: 0,
-        bytes_synced: 0,
-        total_rows: None,
-        current_table: Some(source_table.clone()),
-        percent: 0.0,
-        message: Some(format!(
-            "Starting ape-dts: {} -> {}, {} table(s)",
-            task.source.db_type, task.target.db_type, total_tables,
-        )),
-    }) {
-        warn!(run_id = %run_id, "progress receiver disconnected at startup");
-        return Err(EngineError::Internal("progress receiver disconnected".into()));
-    }
-
-    // 2. 构建并写入配置文件
-    let config = ApeDtsTomlConfig::from_submission(&task, run_id);
-    let config_path = write_temp_config(&config, run_id)?;
-
-    info!(
-        run_id = %run_id,
-        task_id = %task_id,
-        config_path = %config_path,
-        "启动 ape-dts 子进程"
-    );
-
-    // 3. 查找 ape-dts 二进制
-    let bin_path = std::env::var("APE_DTS_BIN").unwrap_or_else(|_| DEFAULT_APE_DTS_BIN.to_string());
-
-    // 4. 启动子进程
-    let mut child = Command::new(&bin_path)
-        .arg(&config_path)
+    let mut logger_file = tempfile::Builder::new()
+        .prefix("dts-monitor-")
+        .suffix(".yaml")
+        .tempfile()
+        .map_err(|e| EngineError::Internal(format!("创建日志配置失败: {e}")))?;
+    logger_file.write_all(b"appenders:\n  stdout:\n    kind: console\n    encoder:\n      pattern: '{m}{n}'\nloggers:\n  monitor_logger:\n    level: info\n    appenders: [stdout]\n    additive: false\nroot:\n  level: off\n  appenders: []\n")
+        .map_err(|e| EngineError::Internal(format!("写入日志配置失败: {e}")))?;
+    logger_file
+        .flush()
+        .map_err(|e| EngineError::Internal(format!("刷新日志配置失败: {e}")))?;
+    let log_dir =
+        tempfile::tempdir().map_err(|e| EngineError::Internal(format!("创建日志目录失败: {e}")))?;
+    let config = ApeDtsIniConfig::from_submission(&task, run_id)?
+        .with_runtime_paths(logger_file.path(), log_dir.path())?;
+    let mut config_file = tempfile::Builder::new()
+        .prefix("dts-pipeline-")
+        .suffix(".ini")
+        .tempfile()
+        .map_err(|e| EngineError::Internal(format!("创建临时配置失败: {e}")))?;
+    config_file
+        .write_all(config.as_str().as_bytes())
+        .map_err(|e| EngineError::Internal(format!("写入临时配置失败: {e}")))?;
+    config_file
+        .flush()
+        .map_err(|e| EngineError::Internal(format!("刷新配置失败: {e}")))?;
+    let mut child = Command::new(bin_path)
+        .arg(config_file.path())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true)
         .spawn()
-        .map_err(|e| {
-            EngineError::Internal(format!("无法启动 ape-dts 子进程 (path={bin_path}): {e}"))
-        })?;
-
-    // 5. 读取 stdout 解析进度
+        .map_err(|e| EngineError::Internal(format!("无法启动 ape-dts (path={bin_path}): {e}")))?;
+    info!(run_id, task_id = %task.task_id, "ape-dts process started");
     let stdout = child
         .stdout
         .take()
-        .ok_or_else(|| EngineError::Internal("ape-dts: stdout pipe not available".into()))?;
+        .ok_or_else(|| EngineError::Internal("stdout pipe unavailable".into()))?;
     let stderr = child
         .stderr
         .take()
-        .ok_or_else(|| EngineError::Internal("ape-dts: stderr pipe not available".into()))?;
-
+        .ok_or_else(|| EngineError::Internal("stderr pipe unavailable".into()))?;
     let rid = run_id.to_string();
-    let tid = task_id.clone();
+    let tid = task.task_id.clone();
     let tx = progress_tx.clone();
-
-    // 后台读取 stdout
-    let stdout_handle = tokio::spawn(async move {
-        let reader = BufReader::new(stdout);
-        let mut lines = reader.lines();
-        let mut rows_synced: u64 = 0;
-        let mut current_table: Option<String> = None;
-
-        while let Ok(Some(line)) = lines.next_line().await {
-            // 解析 ape-dts 日志，提取进度信息
-            if let Some(progress) = parse_progress_line(&line, &rid, &tid) {
-                rows_synced = progress.rows_synced;
-                current_table = progress.current_table.clone();
-                let _ = tx.send(progress);
+    let mut stdout_handle = tokio::spawn(async move {
+        let mut lines = BufReader::new(stdout).lines();
+        let mut stats = GlobalStats::default();
+        while let Some(line) = lines.next_line().await? {
+            if let Some(metric) = parse_global_metric(&line) {
+                stats.observe(metric);
+                if tx
+                    .send(SyncProgress {
+                        run_id: rid.clone(),
+                        task_id: tid.clone(),
+                        status: RunStatus::Running,
+                        rows_synced: stats.rows,
+                        bytes_synced: stats.bytes,
+                        metrics_available: stats.available(),
+                        total_rows: None,
+                        current_table: None,
+                        percent: 0.0,
+                        message: Some(format!(
+                            "已观察到全局写入计数：{} 行，{} 字节",
+                            stats.rows, stats.bytes
+                        )),
+                    })
+                    .is_err()
+                {
+                    break;
+                }
             }
         }
-        (rows_synced, current_table)
+        Ok::<_, std::io::Error>(stats)
     });
-
-    // 后台读取 stderr
-    let rid2 = run_id.to_string();
-    let tid2 = task_id.clone();
-    let tx2 = progress_tx.clone();
-    let stderr_handle = tokio::spawn(async move {
-        let reader = BufReader::new(stderr);
-        let mut lines = reader.lines();
-        while let Ok(Some(line)) = lines.next_line().await {
-            if line.contains("ERROR") || line.contains("error") {
-                error!(run_id = %rid2, "ape-dts: {line}");
-                let _ = tx2.send(SyncProgress {
-                    run_id: rid2.clone(),
-                    task_id: tid2.clone(),
-                    status: RunStatus::Running,
-                    rows_synced: 0,
-                    bytes_synced: 0,
-                    total_rows: None,
-                    current_table: None,
-                    percent: 0.0,
-                    message: Some(format!("ape-dts error: {line}")),
-                });
-            }
-        }
+    // Drain stderr without broadcasting raw connection strings or credentials.
+    let mut stderr_handle = tokio::spawn(async move {
+        let mut lines = BufReader::new(stderr).lines();
+        while lines.next_line().await?.is_some() {}
+        Ok::<_, std::io::Error>(())
     });
-
-    // 6. 等待进程结束或收到取消信号
-    let max_duration = Duration::from_secs(3600); // 1 hour max
-
-    let exit_status = tokio::select! {
-        // Check cancel signal first (biased ordering)
-        _ = cancel_rx => {
-            info!(run_id = %run_id, "收到取消信号，终止 ape-dts 子进程");
-            child.kill().await.ok();
-            let _ = tokio::time::timeout(Duration::from_secs(2), stdout_handle).await;
-            let _ = tokio::time::timeout(Duration::from_secs(2), stderr_handle).await;
-            if let Err(e) = std::fs::remove_file(&config_path) {
-                warn!(run_id = %run_id, path = %config_path, error = %e, "failed to clean up temp config");
+    let (status, message) = tokio::select! {
+        cancelled = cancel_rx => {
+            child.kill().await.map_err(|e| EngineError::Internal(format!("终止子进程失败: {e}")))?;
+            if cancelled.is_ok() {
+                (RunStatus::Cancelled, Some("任务已取消".to_string()))
+            } else {
+                (RunStatus::Failed, Some("引擎取消通道意外断开".to_string()))
             }
-            let _ = progress_tx.send(SyncProgress {
-                run_id: run_id.into(),
-                task_id,
-                status: RunStatus::Cancelled,
-                rows_synced: 0,
-                bytes_synced: 0,
-                total_rows: None,
-                current_table: None,
-                percent: 0.0,
-                message: Some("任务已取消".into()),
-            });
-            return Ok(());
         }
-        exit = tokio::time::timeout(max_duration, child.wait()) => {
-            exit
+        _ = progress_tx.closed() => {
+            child.kill().await.map_err(|e| EngineError::Internal(format!("终止子进程失败: {e}")))?;
+            return Err(EngineError::Internal("progress receiver disconnected".into()));
+        }
+        exit = tokio::time::timeout(Duration::from_secs(3600), child.wait()) => {
+            match exit {
+                Ok(Ok(exit)) if exit.success() => (RunStatus::Completed, None),
+                Ok(Ok(exit)) => (RunStatus::Failed, Some(format!("ape-dts exited with code {:?}", exit.code()))),
+                Ok(Err(e)) => {
+                    child.kill().await.map_err(|kill| EngineError::Internal(format!("终止子进程失败: {kill}")))?;
+                    (RunStatus::Failed, Some(format!("ape-dts process wait failed: {e}")))
+                }
+                Err(_) => {
+                    child.kill().await.map_err(|e| EngineError::Internal(format!("终止子进程失败: {e}")))?;
+                    (RunStatus::Failed, Some("ape-dts task timed out (1 hour)".into()))
+                }
+            }
         }
     };
-
-    let (rows, last_table) = match stdout_handle.await {
-        Ok(result) => result,
-        Err(e) => {
-            error!(run_id = %run_id, error = %e, "stdout reader panicked");
-            (0, None)
+    let stats = match tokio::time::timeout(Duration::from_secs(2), &mut stdout_handle).await {
+        Ok(Ok(Ok(stats))) => stats,
+        _ => {
+            stdout_handle.abort();
+            warn!(run_id, "stdout reader failed or did not close");
+            GlobalStats::default()
         },
     };
-    // 等待 stderr 排空后再清理（最多等待 2 秒）
-    let _ = tokio::time::timeout(Duration::from_secs(2), stderr_handle).await;
-
-    // 清理临时文件
-    if let Err(e) = std::fs::remove_file(&config_path) {
-        warn!(run_id = %run_id, path = %config_path, error = %e, "Failed to clean up temp config file");
+    if tokio::time::timeout(Duration::from_secs(2), &mut stderr_handle)
+        .await
+        .is_err()
+    {
+        stderr_handle.abort();
     }
-
-    match exit_status {
-        Ok(Ok(status)) if status.success() => {
-            info!(
-                run_id = %run_id,
-                task_id = %task_id,
-                rows_synced = rows,
-                "ape-dts 同步完成"
-            );
-            let _ = progress_tx.send(SyncProgress {
-                run_id: run_id.into(),
-                task_id,
-                status: RunStatus::Completed,
-                rows_synced: rows,
-                bytes_synced: 0,
-                total_rows: None,
-                current_table: last_table,
-                percent: 100.0,
-                message: Some("ape-dts sync completed".into()),
-            });
-        },
-        Ok(Ok(status)) => {
-            let code = status.code().unwrap_or(-1);
-            error!(run_id = %run_id, exit_code = code, "ape-dts 异常退出");
-            let _ = progress_tx.send(SyncProgress {
-                run_id: run_id.into(),
-                task_id,
-                status: RunStatus::Failed,
-                rows_synced: rows,
-                bytes_synced: 0,
-                total_rows: None,
-                current_table: last_table,
-                percent: 0.0,
-                message: Some(format!("ape-dts exited with code {code}")),
-            });
-        },
-        Ok(Err(e)) => {
-            error!(run_id = %run_id, error = %e, "等待 ape-dts 进程失败");
-            let _ = progress_tx.send(SyncProgress {
-                run_id: run_id.into(),
-                task_id,
-                status: RunStatus::Failed,
-                rows_synced: 0,
-                bytes_synced: 0,
-                total_rows: None,
-                current_table: None,
-                percent: 0.0,
-                message: Some(format!("ape-dts process error: {e}")),
-            });
-        },
-        Err(_) => {
-            error!(run_id = %run_id, "ape-dts 任务超时");
-            let _ = progress_tx.send(SyncProgress {
-                run_id: run_id.into(),
-                task_id,
-                status: RunStatus::Failed,
-                rows_synced: 0,
-                bytes_synced: 0,
-                total_rows: None,
-                current_table: None,
-                percent: 0.0,
-                message: Some("ape-dts task timed out (1 hour)".into()),
-            });
-        },
-    }
-
+    progress_tx
+        .send(SyncProgress {
+            run_id: run_id.into(),
+            task_id: task.task_id,
+            status: status.clone(),
+            rows_synced: stats.rows,
+            bytes_synced: stats.bytes,
+            metrics_available: stats.available(),
+            total_rows: None,
+            current_table: None,
+            percent: if status == RunStatus::Completed {
+                100.0
+            } else {
+                0.0
+            },
+            message: message.or_else(|| {
+                Some(if stats.available() {
+                    "全局计数来自最后的日志采样，需通过数据对账确认最终结果".into()
+                } else {
+                    "执行已结束，未获得完整的全局计数；需进行数据对账".into()
+                })
+            }),
+        })
+        .map_err(|_| EngineError::Internal("progress receiver disconnected".into()))?;
     Ok(())
 }
+#[derive(Debug)]
+enum GlobalMetric {
+    Rows(u64),
+    Bytes(u64),
+}
 
-/// 解析 ape-dts 日志行，提取进度信息
-///
-/// 支持的日志模式：
-/// - "extracted N rows from TABLE"           → 提取行数
-/// - "written N rows to TABLE"               → 写入行数
-/// - "progress: N% (current/total)"          → 百分比 + 总数
-/// - "snapshot completed for TABLE:"         → 单表完成
-/// - "total extracted: N rows, M bytes"      → 汇总统计
-/// - "estimated total: N rows"               → 预估总行数
-fn parse_progress_line(line: &str, run_id: &str, task_id: &str) -> Option<SyncProgress> {
-    let mut rows_synced: u64 = 0;
-    let mut bytes_synced: u64 = 0;
-    let mut current_table: Option<String> = None;
-    let mut total_rows: Option<u64> = None;
-    let mut message: Option<String> = None;
-    let mut percent: f64 = 0.0;
+#[derive(Default)]
+struct GlobalStats {
+    rows: u64,
+    bytes: u64,
+    has_rows: bool,
+    has_bytes: bool,
+}
 
-    // 模式 1: "extracted N rows from TABLE"
-    if let Some(rest) = line.split("extracted ").nth(1) {
-        if let Some(num_str) = rest.split_whitespace().next() {
-            if let Ok(n) = num_str.replace([',', '_'], "").parse::<u64>() {
-                rows_synced = n;
-                if let Some(table_part) = rest.split("from ").nth(1) {
-                    current_table = table_part.split_whitespace().next().map(String::from);
-                }
-                message = Some(format!("Extracting: {line}"));
-            }
+impl GlobalStats {
+    fn observe(&mut self, metric: GlobalMetric) {
+        match metric {
+            GlobalMetric::Rows(rows) => {
+                self.rows = self.rows.max(rows);
+                self.has_rows = true;
+            },
+            GlobalMetric::Bytes(bytes) => {
+                self.bytes = self.bytes.max(bytes);
+                self.has_bytes = true;
+            },
         }
     }
-
-    // 模式 2: "written N rows to TABLE"
-    if let Some(rest) = line.split("written ").nth(1) {
-        if let Some(num_str) = rest.split_whitespace().next() {
-            if let Ok(n) = num_str.replace([',', '_'], "").parse::<u64>() {
-                rows_synced = n;
-                if let Some(table_part) = rest.split("to ").nth(1) {
-                    current_table = table_part.split_whitespace().next().map(String::from);
-                }
-                message = Some(format!("Writing: {line}"));
-            }
-        }
+    fn available(&self) -> bool {
+        self.has_rows && self.has_bytes
     }
+}
 
-    // 模式 3: "progress: N% (current/total)"
-    if let Some(rest) = line.split("progress:").nth(1) {
-        if let Some(pct_str) = rest.trim().split('%').next() {
-            if let Ok(p) = pct_str.parse::<f64>() {
-                percent = p;
-            }
-        }
-        // 提取 "(current/total)" 中的 total
-        if let Some(paren) = rest.split('(').nth(1) {
-            if let Some(frac) = paren.split(')').next() {
-                if let Some(total_str) = frac.split('/').nth(1) {
-                    if let Ok(t) = total_str.trim().replace(',', "").parse::<u64>() {
-                        total_rows = Some(t);
-                    }
-                }
-            }
-        }
-        message = Some(line.to_string());
+fn parse_global_metric(line: &str) -> Option<GlobalMetric> {
+    // Matches ape-dts GroupMonitor's cumulative run-wide statistics only.
+    let fields: Vec<&str> = line.split('|').map(str::trim).collect();
+    let fields = fields
+        .windows(4)
+        .find(|fields| fields[0] == "pipeline" && fields[1] == "global")?;
+    let value = fields[3].strip_prefix("latest=")?.parse::<u64>().ok()?;
+    match fields[2] {
+        "sinked_records" => Some(GlobalMetric::Rows(value)),
+        "sinked_bytes" => Some(GlobalMetric::Bytes(value)),
+        _ => None,
     }
+}
 
-    // 模式 4: "snapshot completed for TABLE:" or "table TABLE completed"
-    if let Some(table) = line.split("completed for ").nth(1).or_else(|| {
-        line.split("table ")
-            .nth(1)
-            .and_then(|r| r.split(" completed").next())
-    }) {
-        current_table = table
-            .split(&[':', ','][..])
-            .next()
-            .map(|s| s.trim().to_string());
-        message = Some(format!(
-            "Table completed: {}",
-            current_table.as_deref().unwrap_or("?")
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parser_accepts_only_actual_upstream_global_counters() {
+        assert!(matches!(
+            parse_global_metric("2026-10-08 | pipeline | global | sinked_records | latest=42"),
+            Some(GlobalMetric::Rows(42))
         ));
-    }
-
-    // 模式 5: "total extracted: N rows, M bytes" or "total synced: N rows"
-    if line.contains("total extracted") || line.contains("total synced") {
-        for part in line.split(',').map(|s| s.trim()) {
-            if let Some(num_str) = part.split_whitespace().next() {
-                if let Ok(n) = num_str.replace(',', "").parse::<u64>() {
-                    if part.contains("row") {
-                        rows_synced = rows_synced.max(n);
-                    } else if part.contains("byte") {
-                        bytes_synced = bytes_synced.max(n);
-                    }
-                }
-            }
-        }
-        message = Some(format!("Summary: {line}"));
-    }
-
-    // 模式 6: "estimated total: N rows" or "total rows: N"
-    if let Some(rest) = line.split("total").nth(1) {
-        if rest.contains("row") {
-            for part in rest.split_whitespace() {
-                if let Ok(n) = part.replace([',', ':'], "").parse::<u64>() {
-                    total_rows = Some(n);
-                    break;
-                }
-            }
-        }
-    }
-
-    // 模式 7: "processing table TABLE (N/M)" or "[N/M]"
-    if let Some(table) = line.split("processing table ").nth(1) {
-        current_table = table.split_whitespace().next().map(String::from);
-        message = Some(format!(
-            "Processing: {}",
-            current_table.as_deref().unwrap_or("?")
+        assert!(matches!(
+            parse_global_metric("pipeline | global | sinked_bytes | latest=128"),
+            Some(GlobalMetric::Bytes(128))
         ));
-    }
-
-    // 模式 8: 纯数字行 "N rows" 或 "N / M"
-    if rows_synced == 0 {
-        for part in line.split(&['/', '|'][..]) {
-            let trimmed = part.trim();
-            if let Ok(n) = trimmed.replace(',', "").parse::<u64>() {
-                if n > 0 && line.contains("row") {
-                    rows_synced = n;
-                    message = Some(line.to_string());
-                    break;
-                }
-            }
+        for ignored in [
+            "extracted 42 rows from mysql://user:secret@host/db",
+            "pipeline | orders | sinked_records | latest=99",
+            "pipeline | global | sinked_records | latest=42 secret",
+            "ERROR postgres://user:secret@host/db",
+        ] {
+            assert!(parse_global_metric(ignored).is_none());
         }
     }
 
-    // 总是发送（即使是0行），让前端知道任务还在运行
-    Some(SyncProgress {
-        run_id: run_id.to_string(),
-        task_id: task_id.to_string(),
-        status: RunStatus::Running,
-        rows_synced,
-        bytes_synced: 0,
-        total_rows,
-        current_table,
-        percent,
-        message: message.or_else(|| Some(line.to_string())),
-    })
-}
-
-/// ape-dts 期望的 TOML 配置结构（简化版，仅全量同步）
-#[derive(Debug, Serialize)]
-struct ApeDtsTomlConfig {
-    #[serde(rename = "global")]
-    global: GlobalSection,
-    extractor_basic: ExtractorBasicSection,
-    extractor: ExtractorSection,
-    sinker_basic: SinkerBasicSection,
-    sinker: SinkerSection,
-    pipeline: PipelineSection,
-    parallelizer: ParallelizerSection,
-    runtime: RuntimeSection,
-    filter: FilterSection,
-}
-
-#[derive(Debug, Serialize)]
-struct GlobalSection {
-    task_id: String,
-    print_interval_secs: u32,
-}
-
-#[derive(Debug, Serialize)]
-struct ExtractorBasicSection {
-    db_type: String,
-    max_connections: u32,
-    url: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    username: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    password: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-struct ExtractorSection {
-    extract_type: String,
-    db_type: String,
-    url: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    username: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    password: Option<String>,
-    tables: Vec<String>,
-    batch_size: usize,
-    app_name: String,
-}
-
-#[derive(Debug, Serialize)]
-struct SinkerBasicSection {
-    db_type: String,
-    max_connections: u32,
-    url: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    username: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    password: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-struct SinkerSection {
-    sink_type: String,
-    db_type: String,
-    url: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    username: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    password: Option<String>,
-    disable_foreign_key_checks: bool,
-    batch_size: usize,
-    app_name: String,
-}
-
-#[derive(Debug, Serialize)]
-struct PipelineSection {
-    batch_size: usize,
-}
-
-#[derive(Debug, Serialize)]
-struct ParallelizerSection {
-    task_type: String,
-}
-
-#[derive(Debug, Serialize)]
-struct RuntimeSection {
-    log_level: String,
-}
-
-#[derive(Debug, Serialize)]
-struct FilterSection {
-    tables: Vec<String>,
-}
-
-impl ApeDtsTomlConfig {
-    fn from_submission(task: &TaskSubmission, run_id: &str) -> Self {
-        let db_type = task.source.db_type.to_lowercase();
-        let target_type = task.target.db_type.to_lowercase();
-        let source_url = build_url(&task.source);
-        let target_url = build_url(&task.target);
-        let username = if task.source.username.is_empty() {
-            None
-        } else {
-            Some(task.source.username.clone())
-        };
-        let password = if task.source.password.is_empty() {
-            None
-        } else {
-            Some(task.source.password.clone())
-        };
-        let target_username = if task.target.username.is_empty() {
-            None
-        } else {
-            Some(task.target.username.clone())
-        };
-        let target_password = if task.target.password.is_empty() {
-            None
-        } else {
-            Some(task.target.password.clone())
-        };
-
-        let tables: Vec<String> = task
-            .config
-            .table_mappings
-            .iter()
-            .map(|m| m.source_table.clone())
-            .collect();
-
-        Self {
-            global: GlobalSection {
-                task_id: run_id.to_string(),
-                print_interval_secs: 30,
-            },
-            extractor_basic: ExtractorBasicSection {
-                db_type: db_type.clone(),
-                max_connections: 10,
-                url: source_url.clone(),
-                username: username.clone(),
-                password: password.clone(),
-            },
-            extractor: ExtractorSection {
-                extract_type: "Snapshot".to_string(),
-                db_type,
-                url: source_url,
-                username,
-                password,
-                tables: tables.clone(),
-                batch_size: task.config.batch_size,
-                app_name: "dts-platform".to_string(),
-            },
-            sinker_basic: SinkerBasicSection {
-                db_type: target_type.clone(),
-                max_connections: 10,
-                url: target_url.clone(),
-                username: target_username.clone(),
-                password: target_password.clone(),
-            },
-            sinker: SinkerSection {
-                sink_type: "Write".to_string(),
-                db_type: target_type,
-                url: target_url,
-                username: target_username,
-                password: target_password,
-                disable_foreign_key_checks: true,
-                batch_size: task.config.batch_size,
-                app_name: "dts-platform".to_string(),
-            },
-            pipeline: PipelineSection {
-                batch_size: task.config.batch_size,
-            },
-            parallelizer: ParallelizerSection {
-                task_type: "Snapshot_Direct_Write".to_string(),
-            },
-            runtime: RuntimeSection {
-                log_level: "info".to_string(),
-            },
-            filter: FilterSection { tables },
-        }
+    #[test]
+    fn cumulative_global_samples_are_not_summed_and_missing_samples_remain_unknown() {
+        let mut stats = GlobalStats::default();
+        assert!(!stats.available());
+        stats.observe(GlobalMetric::Rows(42));
+        assert!(!stats.available());
+        stats.observe(GlobalMetric::Rows(84));
+        stats.observe(GlobalMetric::Bytes(128));
+        assert!(stats.available());
+        assert_eq!(stats.rows, 84);
+        assert_eq!(stats.bytes, 128);
     }
-}
-
-fn build_url(conn: &dts_engine::ConnectionConfig) -> String {
-    match conn.db_type.to_lowercase().as_str() {
-        "mysql" => format!(
-            "mysql://{}:{}@{}:{}/{}",
-            conn.username, conn.password, conn.host, conn.port, conn.database
-        ),
-        "postgresql" | "pg" | "postgres" => format!(
-            "postgresql://{}:{}@{}:{}/{}",
-            conn.username, conn.password, conn.host, conn.port, conn.database
-        ),
-        _ => format!(
-            "{}://{}:{}@{}:{}/{}",
-            conn.db_type, conn.username, conn.password, conn.host, conn.port, conn.database
-        ),
-    }
-}
-
-fn write_temp_config(config: &ApeDtsTomlConfig, run_id: &str) -> Result<String, EngineError> {
-    let timestamp = Local::now().format("%Y%m%d_%H%M%S");
-    let filename = format!("dts_task_{run_id}_{timestamp}.toml");
-    let path = std::env::temp_dir().join(&filename);
-
-    let toml_str = toml::to_string_pretty(config)
-        .map_err(|e| EngineError::Internal(format!("序列化 config 失败: {e}")))?;
-
-    std::fs::write(&path, toml_str)
-        .map_err(|e| EngineError::Internal(format!("写入 config 文件失败: {e}")))?;
-
-    Ok(path.to_string_lossy().to_string())
 }

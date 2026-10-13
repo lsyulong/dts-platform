@@ -12,18 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use actix_web::{HttpRequest, HttpResponse, web};
 use actix_ws::Message;
 use futures::StreamExt;
 use tokio::sync::broadcast;
 
 use crate::models::error::AppError;
+use crate::services::auth_svc::AuthService;
+use crate::services::task_log_svc::{RunLogScope, TaskLogService};
+use dts_backend::TaskRepo;
+use std::sync::Arc;
 
 /// WebSocket 连接配置
 #[derive(Clone)]
 pub struct WsHub {
     pub tx: broadcast::Sender<(String, String)>,
+    log_service: Option<TaskLogService>,
 }
 
 impl Default for WsHub {
@@ -35,7 +39,33 @@ impl Default for WsHub {
 impl WsHub {
     pub fn new() -> Self {
         let (tx, _) = broadcast::channel(256);
-        Self { tx }
+        Self {
+            tx,
+            log_service: None,
+        }
+    }
+
+    pub fn with_log_service(service: TaskLogService) -> Self {
+        Self {
+            log_service: Some(service),
+            ..Self::new()
+        }
+    }
+
+    pub async fn push_run_log(
+        &self,
+        scope: RunLogScope<'_>,
+        level: &str,
+        component: &str,
+        message: &str,
+    ) -> Result<(), dts_backend::BackendError> {
+        let service = self.log_service.as_ref().ok_or_else(|| {
+            dts_backend::BackendError::Configuration("未配置运行日志持久化".into())
+        })?;
+        let log = service.record(scope, level, component, message).await?;
+        let payload = serde_json::json!({ "type": "log", "task_id": scope.task_id, "run_id": scope.run_id, "id": log.id, "sequence": log.sequence, "timestamp": log.timestamp, "level": log.level, "component": log.component, "message": log.message });
+        let _ = self.tx.send((scope.task_id.into(), payload.to_string()));
+        Ok(())
     }
 
     /// 向任务频道推送日志
@@ -83,11 +113,53 @@ pub async fn task_log_ws(
     path: web::Path<String>,
     hub: web::Data<WsHub>,
 ) -> Result<HttpResponse, AppError> {
+    let bearer = req
+        .headers()
+        .get("Authorization")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
+        .or_else(|| {
+            req.headers()
+                .get("Sec-WebSocket-Protocol")
+                .and_then(|value| value.to_str().ok())
+                .and_then(|value| {
+                    value
+                        .split(',')
+                        .find_map(|part| part.trim().strip_prefix("bearer."))
+                })
+        })
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| AppError::Unauthorized("任务日志连接需要认证".into()))?;
+    let auth = req
+        .app_data::<web::Data<AuthService>>()
+        .ok_or_else(|| AppError::Internal("认证服务未配置".into()))?;
+    let claims = auth.authenticate(bearer).await?;
+    auth.authorize(&claims, "task:read").await?;
     let task_id = path.into_inner();
+    let repo = req
+        .app_data::<web::Data<Arc<dyn TaskRepo>>>()
+        .ok_or_else(|| AppError::Internal("任务存储未配置".into()))?;
+    repo.find_detail_by_id(&task_id, &claims.tenant_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("任务不存在".into()))?;
+    let bearer = bearer.to_owned();
+    let auth = auth.get_ref().clone();
+    let repo = repo.get_ref().clone();
 
     tracing::info!("WebSocket 连接请求: task_id={task_id}");
 
-    let (response, mut session, mut msg_stream) = actix_ws::handle(&req, stream)?;
+    let (mut response, mut session, mut msg_stream) = actix_ws::handle(&req, stream)?;
+    if req
+        .headers()
+        .get("Sec-WebSocket-Protocol")
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.split(',').any(|part| part.trim() == "dts.logs"))
+    {
+        response.headers_mut().insert(
+            actix_web::http::header::SEC_WEBSOCKET_PROTOCOL,
+            actix_web::http::header::HeaderValue::from_static("dts.logs"),
+        );
+    }
     let mut rx = hub.tx.subscribe();
 
     let mut heartbeat_interval = tokio::time::interval(tokio::time::Duration::from_secs(15));
@@ -110,6 +182,20 @@ pub async fn task_log_ws(
                     }
                 }
                 _ = heartbeat_interval.tick() => {
+                    let authorized = async {
+                        let identity = auth.authenticate(&bearer).await?;
+                        auth.authorize(&identity, "task:read").await?;
+                        repo.find_detail_by_id(&task_id, &identity.tenant_id).await?
+                            .ok_or_else(|| AppError::NotFound("任务不存在".into()))?;
+                        Ok::<_, AppError>(())
+                    }.await;
+                    if authorized.is_err() {
+                        let _ = session.close(Some(actix_ws::CloseReason {
+                            code: actix_ws::CloseCode::Policy,
+                            description: Some("任务日志访问权限已失效".into()),
+                        })).await;
+                        break;
+                    }
                     if session.ping(b"").await.is_err() {
                         break;
                     }
@@ -136,6 +222,56 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
 
+    struct FailingLogRepo;
+
+    #[async_trait::async_trait]
+    impl dts_backend::repo::TaskLogRepo for FailingLogRepo {
+        async fn append(
+            &self,
+            _: &dts_backend::repo::task_log::AppendTaskLog,
+        ) -> Result<dts_backend::repo::task_log::TaskLogRecord, dts_backend::BackendError> {
+            Err(dts_backend::BackendError::Internal(
+                "test storage failure".into(),
+            ))
+        }
+        async fn list(
+            &self,
+            _: &str,
+            _: &str,
+            _: &str,
+            _: i64,
+            _: i64,
+        ) -> Result<dts_backend::repo::task_log::TaskLogPage, dts_backend::BackendError> {
+            Err(dts_backend::BackendError::Internal(
+                "test storage failure".into(),
+            ))
+        }
+    }
+
+    #[tokio::test]
+    async fn persistence_failure_and_missing_service_never_broadcast_success_logs() {
+        let scope = RunLogScope {
+            tenant_id: "tenant",
+            task_id: "task",
+            run_id: "run",
+        };
+        for hub in [
+            WsHub::new(),
+            WsHub::with_log_service(TaskLogService::new(Arc::new(FailingLogRepo))),
+        ] {
+            let mut receiver = hub.tx.subscribe();
+            assert!(
+                hub.push_run_log(scope, "INFO", "scheduler", "observed event")
+                    .await
+                    .is_err()
+            );
+            assert!(matches!(
+                receiver.try_recv(),
+                Err(broadcast::error::TryRecvError::Empty)
+            ));
+        }
+    }
+
     // ========== WsHub::new() Tests ==========
 
     #[test]
@@ -149,7 +285,7 @@ mod tests {
     #[test]
     fn ws_hub_new_senders_can_be_cloned() {
         let hub = WsHub::new();
-        let _tx2 = hub.tx.clone();
+        let _tx2 = hub.tx;
         // The hub should have at least 1 sender (from new) + 1 cloned
         // We just verify cloning doesn't panic
     }
@@ -265,11 +401,7 @@ mod tests {
             let pct = payload["percentage"].as_f64().unwrap();
             assert!(
                 (pct - expected_pct).abs() < 0.01,
-                "Expected {}%, got {}% for {}/{}",
-                expected_pct,
-                pct,
-                rows_synced,
-                total_rows
+                "Expected {expected_pct}%, got {pct}% for {rows_synced}/{total_rows}"
             );
         }
     }
